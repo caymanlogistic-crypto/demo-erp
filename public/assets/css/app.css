@@ -104,11 +104,11 @@
   --gap:        5px;
 
   /* Control sizing */
-  --control-h:  28px;
+  --control-h:  24px;
   --btn-h:      30px;
-  --toolbar-h:  26px;
-  --row-h:      32px;
-  --thead-h:    30px;
+  --toolbar-h:  24px;
+  --row-h:      24px;
+  --thead-h:    24px;
 
   /* Typography */
   --font: "Segoe UI", Arial, sans-serif;
@@ -218,12 +218,15 @@ textarea { resize: vertical; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 10px;
+  padding: 0 8px;
   height: 100%;
+  min-width: 0;
   border-left: 1px solid var(--line-hair);
 }
 .top-search {
-  width: 220px; height: 26px;
+  width: 220px; height: 24px;
+  min-width: 180px;
+  max-width: 220px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -239,6 +242,8 @@ textarea { resize: vertical; }
   align-items: center;
   gap: 8px;
   padding-left: 4px;
+  flex: 0 0 auto;
+  max-width: 130px;
 }
 .avatar {
   width: 24px; height: 24px;
@@ -319,11 +324,11 @@ textarea { resize: vertical; }
    ============================================================ */
 .page-head {
   flex-shrink: 0;
-  height: 56px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 12px;
   background: linear-gradient(180deg, var(--surface-strong) 0%, #ece8de 100%);
   border: 1px solid var(--line);
 }
@@ -337,7 +342,7 @@ textarea { resize: vertical; }
   line-height: 1;
 }
 .page-title {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -.035em;
   color: var(--text-main);
@@ -346,7 +351,7 @@ textarea { resize: vertical; }
 .page-summary {
   display: flex;
   gap: 10px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
   line-height: 1;
@@ -402,7 +407,8 @@ textarea { resize: vertical; }
 
 .btn-toolbar {
   height: var(--toolbar-h);
-  padding: 0 10px;
+  padding: 0 8px;
+  font-size: 10.5px;
   background: linear-gradient(180deg, rgba(255,255,255,.7) 0%, rgba(255,255,255,.08) 100%),
               var(--surface-strong);
   border-color: var(--line-soft);
@@ -425,8 +431,9 @@ textarea { resize: vertical; }
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 8px;
-  padding: 7px 12px;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 46px;
   background: var(--surface-muted);
   border: 1px solid var(--line);
   border-top: none;
@@ -437,16 +444,18 @@ textarea { resize: vertical; }
   gap: 3px;
 }
 .filter-field label {
+  margin-bottom: 2px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
   line-height: 1;
 }
 .filter-field input {
-  height: 26px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
   background: var(--surface-field);
   border: 1px solid var(--line-soft);
   color: var(--text-main);
@@ -480,8 +489,8 @@ textarea { resize: vertical; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 26px;
-  padding: 0 10px;
+  height: 24px;
+  padding: 0 7px;
   background: var(--surface-field);
   border: 1px solid var(--line-soft);
   color: var(--text-muted);
@@ -494,7 +503,7 @@ textarea { resize: vertical; }
 }
 .toggle-box:hover { border-color: var(--line); }
 .toggle-box input[type="checkbox"] {
-  width: 14px; height: 14px;
+  width: 12px; height: 12px;
   margin: 0;
   accent-color: var(--accent);
 }
@@ -550,10 +559,10 @@ textarea { resize: vertical; }
 
 /* Table — ERP Grid */
 .table {
-  min-width: 1300px;
+  min-width: 1440px;
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
 }
 .table thead {
   position: sticky;
@@ -578,10 +587,10 @@ textarea { resize: vertical; }
 .table th:last-child { border-right: none; }
 .table td {
   height: var(--row-h);
-  padding: 0 8px;
+  padding: 0 6px;
   border-bottom: 1px solid rgba(220,216,208,.7);
   border-right: 1px solid rgba(216,212,204,.35);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   vertical-align: middle;
   white-space: nowrap;
@@ -798,24 +807,24 @@ textarea { resize: vertical; }
 }
 
 /* Muted empty cell */
-.empty-cell { color: var(--text-faint); font-weight: 600; }
+.empty-cell { color: #9a948c; font-weight: 600; }
 
 /* ============================================================
-   FEO COLUMN WIDTHS (colgroup)
+   FEO COLUMN WIDTHS (colgroup) — compact
    ============================================================ */
-.col-feo-id      { width: 82px; }
-.col-feo-mass    { width: 78px; }
-.col-feo-region  { width: 155px; }
-.col-feo-mo      { width: 175px; }
-.col-feo-sender  { width: 260px; }
-.col-feo-address { width: auto; }
-.col-feo-available { width: 92px; }
-.col-feo-route   { width: 86px; }
-.col-feo-flight  { width: 76px; }
-.col-feo-status  { width: 132px; }
-.col-feo-dates   { width: 150px; }
-.col-feo-price   { width: 96px; }
-.col-feo-pricekg { width: 70px; }
+.col-feo-id        { width: 70px; }
+.col-feo-mass      { width: 62px; }
+.col-feo-region    { width: 122px; }
+.col-feo-mo        { width: 145px; }
+.col-feo-sender    { width: 235px; }
+.col-feo-address   { width: 340px; }
+.col-feo-available { width: 72px; }
+.col-feo-route     { width: 62px; }
+.col-feo-flight    { width: 58px; }
+.col-feo-status    { width: 118px; }
+.col-feo-dates     { width: 122px; }
+.col-feo-price     { width: 78px; }
+.col-feo-pricekg   { width: 54px; }
 
 /* ============================================================
    CELL ELLIPSIS
@@ -825,11 +834,11 @@ textarea { resize: vertical; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cell-address,
-.cell-sender,
-.cell-region,
-.cell-mo {
-  max-width: 100%;
+.table td.cell-ellipsis {
+  display: table-cell;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ============================================================
@@ -846,20 +855,20 @@ textarea { resize: vertical; }
 }
 
 /* ============================================================
-   REFERENCE CHIPS (neutral)
+   REFERENCE CHIPS (neutral, quiet)
    ============================================================ */
 .ref-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 18px;
+  height: 16px;
   max-width: 100%;
-  padding: 0 6px;
-  border: 1px solid var(--line-soft);
+  padding: 0 5px;
+  border: 1px solid #d0cbc2;
   border-radius: 2px;
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  font-size: 10.5px;
+  background: #ece8df;
+  color: #5c5750;
+  font-size: 9.5px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -867,27 +876,27 @@ textarea { resize: vertical; }
 .ref-available,
 .ref-route,
 .ref-flight {
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  border-color: var(--line-soft);
+  background: #ece8df;
+  color: #5c5750;
+  border-color: #d0cbc2;
 }
 .ref-chip:hover {
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--text-main);
+  background: #e4dfd5;
+  border-color: #b8b1a6;
+  color: #2f2b26;
 }
 
-/* Legacy status classes → neutral ref-chip alias */
+/* Legacy status classes → neutral ref-chip alias (forced) */
 .status-available,
 .status-marshrut,
 .status-flight {
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  border-color: var(--line-soft);
+  background: #ece8df !important;
+  color: #5c5750 !important;
+  border-color: #d0cbc2 !important;
 }
 
 /* ============================================================
-   PLANNED-ROUTE ALIAS (status-planned-route)
+   PLANNED-ROUTE ALIAS + NEUTRAL FALLBACK
    ============================================================ */
 .status-planned-route {
   background: var(--flight-planned-bg);
@@ -896,4 +905,13 @@ textarea { resize: vertical; }
 }
 .status-planned-route .flight-status-dot {
   background: var(--flight-planned-dot);
+}
+
+.status-neutral {
+  background: var(--neutral-bg);
+  border-color: var(--line-soft);
+  color: var(--neutral);
+}
+.status-neutral .flight-status-dot {
+  background: var(--neutral);
 }

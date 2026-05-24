@@ -18,10 +18,6 @@
             <span>автозагрузка</span>
         </div>
     </div>
-    <div>
-        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Выбрать файл</button>
-        <input type="file" id="fileInput" accept=".xlsx" style="display: none;" disabled>
-    </div>
 </div>
 
 <!-- Filter bar -->
@@ -95,7 +91,6 @@
 </div>
 
 <script>
-var fileInput = document.getElementById('fileInput');
 var tableBody = document.getElementById('tableBody');
 var tableWrapper = document.getElementById('tableWrapper');
 var filterInput = document.getElementById('filterZayavki');
@@ -122,13 +117,6 @@ var isLoading = false;
 var hasMore = true;
 var loadTimeout = null;
 var scrollTimeout = null;
-
-// Предупреждение о том, что загрузка файла отключена
-fileInput.addEventListener('click', function(e) {
-    e.preventDefault();
-    alert('Загрузка файла .xlsx временно отключена в demoERP.\nИспользуйте оригинальный инструмент для импорта данных.');
-    return false;
-});
 
 function loadData(reset) {
     if (reset === undefined) reset = true;
