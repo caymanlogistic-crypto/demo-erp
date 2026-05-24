@@ -1188,3 +1188,28 @@ deepseek-v4-pro
 Каждое изменение проверять в runtime.
 Каждое завершение подтверждать MAX-уведомлением.
 ```
+
+
+
+ Windows PowerShell запрещено использовать curl -s / curl -L / curl -w.
+Использовать только curl.exe или Invoke-WebRequest.
+
+Правильно:
+curl.exe -s -k -L -w "%{http_code}" "https://mg-log.ru/demoERP/public/" -o NUL
+
+Или:
+$response = Invoke-WebRequest "https://mg-log.ru/demoERP/public/" -UseBasicParsing
+$response.StatusCode
+
+
+## Правило HTTP-проверок в Windows PowerShell
+
+В Windows PowerShell запрещено использовать Linux-синтаксис `curl`, потому что `curl` в PowerShell часто является alias для `Invoke-WebRequest`.
+
+Запрещено использовать:
+
+```powershell
+curl -s ...
+curl -L ...
+curl -w ...
+curl -I ...

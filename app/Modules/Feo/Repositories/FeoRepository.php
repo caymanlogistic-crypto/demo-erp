@@ -7,150 +7,23 @@ namespace App\Modules\Feo\Repositories;
 use App\Core\Database\Connection;
 use PDO;
 
+/**
+ * Репозиторий для чтения данных из таблиц feo, status_blocks, flights.
+ *
+ * Фильтры (логика из index22.php):
+ *  - "available"   — JOIN status_blocks WHERE status_type = 'dostupno'
+ *  - "routes"      — WHERE napravlenie IS NOT NULL AND napravlenie != ''
+ *  - "flights"     — INNER JOIN flights (flight_id IS NOT NULL)
+ */
 class FeoRepository
 {
     /**
-     * Получить статусы (из таблицы status) для отображения.
+     * Получить отфильтрованные строки заявок с пагинацией.
      *
-     * @return array<string, array>
-     */
-    public function getStatusMap(): array
-    {
-        $pdo = Connection::get();
-        if ($pdo === null) {
-            return [];
-        }
-
-        try {
-            $stmt = $pdo->query("SELECT * FROM status ORDER BY id");
-            $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $map = [];
-            foreach ($statuses as $s) {
-                $map[$s['статус']] = $s;
-            }
-            return $map;
-        } catch (\Exception $e) {
-            error_log('FeoRepository::getStatusMap error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Получить ID заявок из status_blocks с типом "dostupno".
-     *
-     * Результат: ['zayavka_id' => 'block_id', ...]
-     */
-    public function getAvailableZayavkiMap(): array
-    {
-        return $this->getZayavkiIdsFromStatusBlocks('dostupno');
-    }
-
-    /**
-     * Получить ID заявок из status_blocks с типом "marshrut".
-     *
-     * Результат: ['zayavka_id' => 'block_id', ...]
-     */
-    public function getMarshrutZayavkiMap(): array
-    {
-        return $this->getZayavkiIdsFromStatusBlocks('marshrut');
-    }
-
-    /**
-     * Получить ID заявок из таблицы flights + детали рейсов.
-     *
-     * @return array{zayavkaMap: array, flightDetails: array}
-     */
-    public function getFlightZayavkiData(): array
-    {
-        $pdo = Connection::get();
-        $zayavkaMap = [];
-        $flightDetails = [];
-
-        if ($pdo === null) {
-            return ['zayavkaMap' => $zayavkaMap, 'flightDetails' => $flightDetails];
-        }
-
-        try {
-            $stmt = $pdo->query("
-                SELECT id, zayavki_ids, comment, status,
-                    planned_start_date, planned_start_date_from, planned_start_date_to,
-                    actual_start_date, actual_end_date
-                FROM flights
-            ");
-            $flights = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($flights as $flight) {
-                $zayavkiIds = array_filter(explode(',', $flight['zayavki_ids']));
-                foreach ($zayavkiIds as $zayavkaId) {
-                    if (!isset($zayavkaMap[$zayavkaId])) {
-                        $zayavkaMap[$zayavkaId] = $flight['id'];
-                    }
-                }
-                $flightDetails[$flight['id']] = [
-                    'comment'               => $flight['comment'],
-                    'status'                => $flight['status'],
-                    'planned_start_date'     => $flight['planned_start_date'],
-                    'planned_start_date_from' => $flight['planned_start_date_from'],
-                    'planned_start_date_to'  => $flight['planned_start_date_to'],
-                    'actual_start_date'      => $flight['actual_start_date'],
-                    'actual_end_date'        => $flight['actual_end_date'],
-                ];
-            }
-        } catch (\Exception $e) {
-            error_log('FeoRepository::getFlightZayavkiData error: ' . $e->getMessage());
-        }
-
-        return ['zayavkaMap' => $zayavkaMap, 'flightDetails' => $flightDetails];
-    }
-
-    /**
-     * Получить полный маппинг status_blocks для отображения.
-     *
-     * @return array{available: array, marshrut: array}
-     */
-    public function getAllStatusBlockMaps(): array
-    {
-        $pdo = Connection::get();
-        $available = [];
-        $marshrut = [];
-
-        if ($pdo === null) {
-            return ['available' => $available, 'marshrut' => $marshrut];
-        }
-
-        try {
-            $stmt = $pdo->query("
-                SELECT id, zayavki_ids, status_type
-                FROM status_blocks
-                WHERE status_type IN ('dostupno', 'marshrut')
-            ");
-            $blocks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($blocks as $block) {
-                $zayavkiIds = array_filter(explode(',', $block['zayavki_ids']));
-                foreach ($zayavkiIds as $zayavkaId) {
-                    if ($block['status_type'] === 'dostupno' && !isset($available[$zayavkaId])) {
-                        $available[$zayavkaId] = $block['id'];
-                    }
-                    if ($block['status_type'] === 'marshrut' && !isset($marshrut[$zayavkaId])) {
-                        $marshrut[$zayavkaId] = $block['id'];
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            error_log('FeoRepository::getAllStatusBlockMaps error: ' . $e->getMessage());
-        }
-
-        return ['available' => $available, 'marshrut' => $marshrut];
-    }
-
-    /**
-     * ПОЛУЧИТЬ ДАННЫЕ ЗАЯВОК С ПАГИНАЦИЕЙ.
-     *
-     * @param array $zayavkaIds    ID заявок для фильтра "по номерам"
-     * @param string $filterType   Тип фильтра: all | available | routes | flights
-     * @param int $offset
-     * @param int $limit
+     * @param string[] $zayavkaIds  ID заявок для фильтра «по номерам» (из поля feo.zayavka_id)
+     * @param string   $filterType  all | available | routes | flights
+     * @param int      $offset
+     * @param int      $limit
      * @return array{rows: array, total: int, foundZayavki: array, missingZayavki: array}
      */
     public function getFilteredRows(
@@ -163,50 +36,52 @@ class FeoRepository
 
         if ($pdo === null) {
             return [
-                'rows'           => [],
-                'total'          => 0,
-                'foundZayavki'    => [],
-                'missingZayavki'  => $zayavkaIds,
+                'rows'          => [],
+                'total'         => 0,
+                'foundZayavki'   => [],
+                'missingZayavki' => $zayavkaIds,
             ];
         }
 
-        $limit = min(100, max(10, $limit));
-        $hasFilter = !empty($zayavkaIds);
-        $where = [];
-        $params = [];
+        $limit   = min(100, max(10, $limit));
+        $hasNums = !empty($zayavkaIds);
 
-        // Собираем zayavka_id по фильтру "по номерам"
-        if ($hasFilter) {
+        // --- строим SQL по логике index22.php ---
+        // Базовые поля + LEFT JOIN для отображения статуса и рейса
+        $select = 'f.*, sb.наименование AS status_name, fl.comment AS flight_name';
+        $from   = 'feo f'
+                . ' LEFT JOIN status_blocks sb ON f.status_id = sb.id'
+                . ' LEFT JOIN flights fl ON f.flight_id = fl.id';
+
+        $where   = [];
+        $params  = [];
+
+        // 1) Фильтр по номерам заявок (поле zayavka_id)
+        if ($hasNums) {
             $placeholders = implode(',', array_fill(0, count($zayavkaIds), '?'));
-            $where[] = "zayavka_id IN ($placeholders)";
+            $where[] = "f.zayavka_id IN ($placeholders)";
             $params = array_merge($params, $zayavkaIds);
         }
 
-        // Собираем zayavka_id по типу фильтра
-        $filterIds = [];
-        if ($filterType === 'available') {
-            $map = $this->getAvailableZayavkiMap();
-            $filterIds = array_keys($map);
-        } elseif ($filterType === 'routes') {
-            $map = $this->getMarshrutZayavkiMap();
-            $filterIds = array_keys($map);
-        } elseif ($filterType === 'flights') {
-            $data = $this->getFlightZayavkiData();
-            $filterIds = array_keys($data['zayavkaMap']);
-        }
+        // 2) Фильтр по типу (логика index22.php)
+        switch ($filterType) {
+            case 'available':
+                // Доступные — status_blocks.status_type = 'dostupno'
+                $where[] = 'sb.status_type = ?';
+                $params[] = 'dostupno';
+                break;
 
-        if ($filterType !== 'all') {
-            if (empty($filterIds)) {
-                return [
-                    'rows'           => [],
-                    'total'          => 0,
-                    'foundZayavki'    => [],
-                    'missingZayavki'  => $hasFilter ? $zayavkaIds : [],
-                ];
-            }
-            $placeholders = implode(',', array_fill(0, count($filterIds), '?'));
-            $where[] = "zayavka_id IN ($placeholders)";
-            $params = array_merge($params, $filterIds);
+            case 'routes':
+                // Маршруты — есть направление
+                $where[] = "f.napravlenie IS NOT NULL AND f.napravlenie != ''";
+                break;
+
+            case 'flights':
+                // Рейсы — привязаны к flights
+                $where[] = 'f.flight_id IS NOT NULL';
+                break;
+
+            // 'all' — без дополнительных условий
         }
 
         $whereSQL = '';
@@ -214,59 +89,60 @@ class FeoRepository
             $whereSQL = 'WHERE ' . implode(' AND ', $where);
         }
 
-        // Считаем общее количество
+        // --- COUNT ---
         try {
-            $countSQL = "SELECT COUNT(*) as total FROM feo $whereSQL";
+            $countSQL = "SELECT COUNT(*) AS total FROM {$from} {$whereSQL}";
             $stmt = $pdo->prepare($countSQL);
             $stmt->execute($params);
-            $total = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $total = (int) $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         } catch (\Exception $e) {
-            error_log('FeoRepository::getFilteredRows count error: ' . $e->getMessage());
+            error_log('FeoRepository::getFilteredRows COUNT error: ' . $e->getMessage());
             return [
-                'rows'           => [],
-                'total'          => 0,
-                'foundZayavki'    => [],
-                'missingZayavki'  => $zayavkaIds,
+                'rows'          => [],
+                'total'         => 0,
+                'foundZayavki'   => [],
+                'missingZayavki' => $zayavkaIds,
             ];
         }
 
-        // Находим найденные zayavka_id
+        // --- Поиск существующих zayavka_id (если фильтр по номерам) ---
         $foundZayavki = [];
-        if ($hasFilter) {
+        if ($hasNums) {
             try {
-                $foundSQL = "SELECT zayavka_id FROM feo $whereSQL";
+                $foundSQL = "SELECT f.zayavka_id FROM {$from} {$whereSQL}";
                 $stmt = $pdo->prepare($foundSQL);
                 $stmt->execute($params);
-                $foundRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                $foundZayavki = array_column($foundRows, 'zayavka_id');
+                $foundZayavki = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'zayavka_id');
             } catch (\Exception $e) {
-                error_log('FeoRepository::getFilteredRows found error: ' . $e->getMessage());
+                error_log('FeoRepository::getFilteredRows FOUND error: ' . $e->getMessage());
             }
         }
 
-        // Получаем строки данных
-        $missingZayavki = $hasFilter ? array_values(array_diff($zayavkaIds, $foundZayavki)) : [];
+        $missingZayavki = $hasNums ? array_values(array_diff($zayavkaIds, $foundZayavki)) : [];
 
+        // --- Данные с пагинацией ---
         try {
-            $dataSQL = "SELECT * FROM feo $whereSQL ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}";
+            $dataSQL = "SELECT {$select} FROM {$from} {$whereSQL} ORDER BY f.id DESC LIMIT {$limit} OFFSET {$offset}";
             $stmt = $pdo->prepare($dataSQL);
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            error_log('FeoRepository::getFilteredRows data error: ' . $e->getMessage());
+            error_log('FeoRepository::getFilteredRows DATA error: ' . $e->getMessage());
             $rows = [];
         }
 
         return [
-            'rows'           => $rows,
-            'total'          => $total,
-            'foundZayavki'    => $foundZayavki,
-            'missingZayavki'  => $missingZayavki,
+            'rows'          => $rows,
+            'total'         => $total,
+            'foundZayavki'   => $foundZayavki,
+            'missingZayavki' => $missingZayavki,
         ];
     }
 
     /**
      * Парсим строку с номерами заявок в массив чистых ID.
+     *
+     * Из index22.php — cleanZayavkaNumbers().
      *
      * @return string[]
      */
@@ -278,12 +154,13 @@ class FeoRepository
         }
 
         $parts = preg_split('/[,;\s]+/', $input);
-        $ids = [];
+        $ids   = [];
         foreach ($parts as $part) {
             $part = trim($part);
             if ($part === '') {
                 continue;
             }
+            // Удаляем всё кроме цифр
             $clean = preg_replace('/[^0-9]/', '', $part);
             if ($clean !== '') {
                 $ids[] = $clean;
@@ -291,41 +168,5 @@ class FeoRepository
         }
 
         return array_values(array_unique($ids));
-    }
-
-    /**
-     * Получить ID заявок из status_blocks по типу.
-     */
-    private function getZayavkiIdsFromStatusBlocks(string $statusType): array
-    {
-        $pdo = Connection::get();
-        $map = [];
-
-        if ($pdo === null) {
-            return $map;
-        }
-
-        try {
-            $stmt = $pdo->prepare("
-                SELECT id, zayavki_ids
-                FROM status_blocks
-                WHERE status_type = :type
-            ");
-            $stmt->execute(['type' => $statusType]);
-            $blocks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($blocks as $block) {
-                $zayavkiIds = array_filter(explode(',', $block['zayavki_ids']));
-                foreach ($zayavkiIds as $zayavkaId) {
-                    if (!isset($map[$zayavkaId])) {
-                        $map[$zayavkaId] = $block['id'];
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            error_log("FeoRepository::getZayavkiIdsFromStatusBlocks({$statusType}) error: " . $e->getMessage());
-        }
-
-        return $map;
     }
 }

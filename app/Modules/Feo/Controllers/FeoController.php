@@ -7,7 +7,6 @@ namespace App\Modules\Feo\Controllers;
 use App\Core\Database\Connection;
 use App\Modules\Feo\Repositories\FeoRepository;
 use App\Modules\Feo\Services\FeoFilterService;
-use App\Modules\Feo\Support\FeoStatusResolver;
 
 class FeoController
 {
@@ -16,7 +15,7 @@ class FeoController
 
     public function __construct()
     {
-        $this->repository = new FeoRepository();
+        $this->repository    = new FeoRepository();
         $this->filterService = new FeoFilterService($this->repository);
     }
 
@@ -36,7 +35,7 @@ class FeoController
         }
 
         $numbers = $_GET['numbers'] ?? '';
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page    = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 
         try {
             $data = $this->filterService->execute($numbers, $filterType, $page, 50);
@@ -45,20 +44,7 @@ class FeoController
             return $this->renderError('Ошибка при получении данных: ' . $e->getMessage());
         }
 
-        // Получаем дополнительные данные для отображения
-        $statusMap = [];
-        $statusBlocks = [];
-        $flightZayavkaData = [];
-
-        try {
-            $statusMap = $this->repository->getStatusMap();
-            $statusBlocks = $this->repository->getAllStatusBlockMaps();
-            $flightZayavkaData = $this->repository->getFlightZayavkiData();
-        } catch (\Exception $e) {
-            error_log('FeoController::index extra data error: ' . $e->getMessage());
-        }
-
-        return $this->renderIndex($data, $statusMap, $statusBlocks, $flightZayavkaData);
+        return $this->renderIndex($data);
     }
 
     /**
@@ -78,7 +64,7 @@ class FeoController
         }
 
         $numbers = $_GET['numbers'] ?? '';
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page    = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 
         try {
             $data = $this->filterService->execute($numbers, $filterType, $page, 50);
@@ -88,63 +74,18 @@ class FeoController
             return;
         }
 
-        // Дополнительные данные для строк
-        try {
-            $statusMap = $this->repository->getStatusMap();
-            $statusBlocks = $this->repository->getAllStatusBlockMaps();
-            $flightZayavkaData = $this->repository->getFlightZayavkiData();
-        } catch (\Exception $e) {
-            $statusMap = [];
-            $statusBlocks = ['available' => [], 'marshrut' => []];
-            $flightZayavkaData = ['zayavkaMap' => [], 'flightDetails' => []];
-        }
-
-        $rows = [];
-        foreach ($data['rows'] as $row) {
-            $zayavkaId = $row['zayavka_id'];
-            $flightId = $flightZayavkaData['zayavkaMap'][$zayavkaId] ?? null;
-            $flightDetail = ($flightId !== null && isset($flightZayavkaData['flightDetails'][$flightId]))
-                ? $flightZayavkaData['flightDetails'][$flightId]
-                : null;
-
-            $flightStatusInfo = FeoStatusResolver::buildFlightStatus(
-                $flightDetail['status'] ?? null,
-                $statusMap
-            );
-
-            $rows[] = [
-                'id'                     => $row['id'],
-                'zayavka_id'            => $zayavkaId,
-                'kompaniya_perevozchik' => $row['kompaniya_perevozchik'] ?? '',
-                'punkt_pogruzki'        => $row['punkt_pogruzki'] ?? '',
-                'punkt_vygruzki'        => $row['punkt_vygruzki'] ?? '',
-                'mass_netto'            => $row['mass_netto'] ?? '',
-                'data_sozdaniya_porucheniya' => $row['data_sozdaniya_porucheniya'] ?? '',
-                'available'             => isset($statusBlocks['available'][$zayavkaId]),
-                'marshrut'              => isset($statusBlocks['marshrut'][$zayavkaId]),
-                'flight_id'             => $flightId,
-                'flight_comment'        => $flightDetail['comment'] ?? '',
-                'flight_status'         => $flightStatusInfo['html'],
-                'flight_status_class'   => $flightStatusInfo['class'],
-                'flight_dates'          => $flightDetail !== null
-                    ? FeoStatusResolver::formatFlightDates($flightDetail)
-                    : '—',
-            ];
-        }
-
-        $response = [
-            'rows'           => $rows,
-            'total'          => $data['total'],
-            'page'           => $data['page'],
-            'totalPages'     => $data['totalPages'],
+        // Передаём строки как есть — все JOIN уже сделаны в репозитории
+        $this->jsonResponse([
+            'rows'          => $data['rows'],
+            'total'         => $data['total'],
+            'page'          => $data['page'],
+            'totalPages'    => $data['totalPages'],
             'foundZayavki'   => $data['foundZayavki'],
             'missingZayavki' => $data['missingZayavki'],
-        ];
-
-        $this->jsonResponse($response);
+        ]);
     }
 
-    private function renderIndex(array $data, array $statusMap, array $statusBlocks, array $flightZayavkaData): string
+    private function renderIndex(array $data): string
     {
         ob_start();
         require __DIR__ . '/../../../Views/feo/index.php';

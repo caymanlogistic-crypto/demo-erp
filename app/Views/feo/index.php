@@ -2,7 +2,10 @@
 /**
  * Шаблон страницы "Заявки ФЭО".
  *
- * Переменные (уже определены в FeoController::renderIndex):
+ * Реальные колонки из index22.php:
+ *   № | ID заявки | Номер заявки | Направление | Статус | Рейс | Номер машины | Дата | Стоимость
+ *
+ * Переменные:
  * @var array $data
  * @var array $statusMap
  * @var array $statusBlocks
@@ -63,15 +66,15 @@ $statusColors = FeoStatusResolver::statusColors();
         <p><a href="/">← На главную</a></p>
 
         <div class="filter-panel">
-            <form method="GET" action="">
+            <form id="filterForm" method="GET" action="">
                 <input type="hidden" name="module" value="feo">
                 <label style="font-size:0.875rem;">
                     Номера заявок:
-                    <input type="text" name="numbers" value="<?= htmlspecialchars(implode(', ', $zayavkaIds), ENT_QUOTES, 'UTF-8') ?>" placeholder="Например: 123, 456, 789">
+                    <input type="text" id="numbersInput" name="numbers" value="<?= htmlspecialchars(implode(', ', $zayavkaIds), ENT_QUOTES, 'UTF-8') ?>" placeholder="Например: 123, 456, 789" autocomplete="off">
                 </label>
                 <label style="font-size:0.875rem;">
                     Фильтр:
-                    <select name="filter">
+                    <select name="filter" id="filterSelect">
                         <option value="all" <?= $filterType === 'all' ? 'selected' : '' ?>>Все</option>
                         <option value="available" <?= $filterType === 'available' ? 'selected' : '' ?>>Доступные</option>
                         <option value="routes" <?= $filterType === 'routes' ? 'selected' : '' ?>>Маршруты</option>
@@ -82,94 +85,11 @@ $statusColors = FeoStatusResolver::statusColors();
             </form>
         </div>
 
-        <?php if (!empty($missingZayavki)): ?>
-        <div class="missing-info">
-            <strong>Не найдены номера заявок:</strong> <?= htmlspecialchars(implode(', ', $missingZayavki), ENT_QUOTES, 'UTF-8') ?>
+        <div id="searchInfo"></div>
+
+        <div id="tableContainer">
+            <?php require __DIR__ . '/_table.php'; ?>
         </div>
-        <?php endif; ?>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>ID заявки</th>
-                    <th>Перевозчик</th>
-                    <th>Пункт погрузки</th>
-                    <th>Пункт выгрузки</th>
-                    <th>Масса нетто, т</th>
-                    <th>Дата поручения</th>
-                    <th>Доступные</th>
-                    <th>Маршруты</th>
-                    <th>Рейс</th>
-                    <th>Статус рейса</th>
-                    <th>Даты рейса</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($rows)): ?>
-                <tr>
-                    <td colspan="12" style="text-align: center; padding: 2rem; color: #6c757d;">
-                        <?= count($zayavkaIds) > 0 ? 'Заявки с указанными номерами не найдены.' : 'Нет данных для отображения.' ?>
-                    </td>
-                </tr>
-                <?php else: ?>
-                <?php foreach ($rows as $i => $row): ?>
-                    <?php
-                    $zId = $row['zayavka_id'];
-                    $flightId = $flightZayavkaData['zayavkaMap'][$zId] ?? null;
-                    $flightDetail = ($flightId !== null && isset($flightZayavkaData['flightDetails'][$flightId]))
-                        ? $flightZayavkaData['flightDetails'][$flightId]
-                        : null;
-
-                    $flightStatusInfo = FeoStatusResolver::buildFlightStatus(
-                        $flightDetail['status'] ?? null,
-                        $statusMap
-                    );
-                    ?>
-                <tr>
-                    <td><?= $i + 1 + ($page - 1) * 50 ?></td>
-                    <td><strong><?= htmlspecialchars($zId, ENT_QUOTES, 'UTF-8') ?></strong></td>
-                    <td><?= htmlspecialchars($row['kompaniya_perevozchik'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($row['punkt_pogruzki'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($row['punkt_vygruzki'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars((string)($row['mass_netto'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($row['data_sozdaniya_porucheniya'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td>
-                        <?php if (isset($statusBlocks['available'][$zId])): ?>
-                            <span class="badge-yes">✓</span>
-                        <?php else: ?>
-                            <span class="badge-no">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if (isset($statusBlocks['marshrut'][$zId])): ?>
-                            <span class="badge-yes">✓</span>
-                        <?php else: ?>
-                            <span class="badge-no">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($flightId !== null): ?>
-                            <span title="<?= htmlspecialchars($flightDetail['comment'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                <?= htmlspecialchars((string)$flightId, ENT_QUOTES, 'UTF-8') ?>
-                            </span>
-                        <?php else: ?>
-                            <span class="empty-cell">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($flightStatusInfo['class'] !== ''): ?>
-                            <span class="status-badge <?= $flightStatusInfo['class'] ?>"><?= $flightStatusInfo['html'] ?></span>
-                        <?php else: ?>
-                            <span class="empty-cell">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?= htmlspecialchars($flightDetail !== null ? FeoStatusResolver::formatFlightDates($flightDetail) : '—', ENT_QUOTES, 'UTF-8') ?></td>
-                </tr>
-                <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
 
         <div class="pagination">
             <span>Всего: <strong><?= $total ?></strong></span>
@@ -191,5 +111,168 @@ $statusColors = FeoStatusResolver::statusColors();
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+    (function() {
+        var numbersInput = document.getElementById('numbersInput');
+        var filterSelect = document.getElementById('filterSelect');
+        var tableContainer = document.getElementById('tableContainer');
+        var searchInfo = document.getElementById('searchInfo');
+        var debounceTimer = null;
+        var currentRequest = null;
+        var currentPage = <?= (int)$page ?>;
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&';
+                if (m === '<') return '<';
+                if (m === '>') return '>';
+                return m;
+            });
+        }
+
+        function renderTable(data) {
+            if (!data || !data.rows) {
+                tableContainer.innerHTML = '<table><tr><td colspan="9" style="text-align:center;padding:2rem;color:#6c757d;">Нет данных для отображения.</td></tr></table>';
+                return;
+            }
+
+            var html = '<table><thead><tr>';
+            html += '<th>№</th>';
+            html += '<th>ID заявки</th>';
+            html += '<th>Номер заявки</th>';
+            html += '<th>Направление</th>';
+            html += '<th>Статус</th>';
+            html += '<th>Рейс</th>';
+            html += '<th>Номер машины</th>';
+            html += '<th>Дата</th>';
+            html += '<th>Стоимость</th>';
+            html += '</tr></thead><tbody>';
+
+            if (data.rows.length === 0) {
+                var msg = (data.missingZayavki && data.missingZayavki.length > 0)
+                    ? 'Заявки с указанными номерами не найдены.'
+                    : 'Нет данных для отображения.';
+                html += '<tr><td colspan="9" style="text-align:center;padding:2rem;color:#6c757d;">' + msg + '</td></tr>';
+            } else {
+                for (var i = 0; i < data.rows.length; i++) {
+                    var row = data.rows[i];
+                    var rowNum = (data.page - 1) * 50 + i + 1;
+                    html += '<tr>';
+                    html += '<td>' + rowNum + '</td>';
+                    html += '<td><strong>' + escapeHtml(row.zayavka_id) + '</strong></td>';
+                    html += '<td>' + escapeHtml(row.nomer_zayavki) + '</td>';
+                    html += '<td>' + escapeHtml(row.napravlenie) + '</td>';
+                    html += '<td>' + escapeHtml(row.status_name) + '</td>';
+                    html += '<td>' + escapeHtml(row.flight_name) + '</td>';
+                    html += '<td>' + escapeHtml(row.nomer_mashiny) + '</td>';
+                    html += '<td>' + escapeHtml(row.data_zayavki) + '</td>';
+                    html += '<td>' + escapeHtml(row.zakaz_s_op_stoimost) + '</td>';
+                    html += '</tr>';
+                }
+            }
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+        function renderMissingInfo(missingZayavki) {
+            if (missingZayavki && missingZayavki.length > 0) {
+                searchInfo.innerHTML = '<div class="missing-info"><strong>Не найдены номера заявок:</strong> ' + escapeHtml(missingZayavki.join(', ')) + '</div>';
+            } else {
+                searchInfo.innerHTML = '';
+            }
+        }
+
+        function doSearch(page) {
+            page = page || 1;
+            currentPage = page;
+
+            var numbers = numbersInput.value.trim();
+            var filter = filterSelect.value;
+
+            var params = 'module=feo&action=list&ajax=1';
+            if (numbers) params += '&numbers=' + encodeURIComponent(numbers);
+            if (filter) params += '&filter=' + encodeURIComponent(filter);
+            if (page > 1) params += '&page=' + page;
+
+            if (currentRequest) {
+                currentRequest.abort();
+            }
+
+            var xhr = new XMLHttpRequest();
+            currentRequest = xhr;
+
+            xhr.open('GET', '?' + params, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.error) {
+                            tableContainer.innerHTML = '<div class="missing-info">' + escapeHtml(data.error) + '</div>';
+                            searchInfo.innerHTML = '';
+                        } else {
+                            renderTable(data);
+                            renderMissingInfo(data.missingZayavki);
+                            // Update pagination links in URL without reload
+                            updateUrl(page, numbers, filter);
+                        }
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        tableContainer.innerHTML = '<div class="missing-info">Ошибка обработки ответа сервера.</div>';
+                    }
+                } else {
+                    tableContainer.innerHTML = '<div class="missing-info">Ошибка сервера (код ' + xhr.status + ').</div>';
+                }
+                currentRequest = null;
+            };
+
+            xhr.onerror = function() {
+                tableContainer.innerHTML = '<div class="missing-info">Ошибка соединения с сервером.</div>';
+                currentRequest = null;
+            };
+
+            xhr.send();
+        }
+
+        function updateUrl(page, numbers, filter) {
+            var url = '?module=feo';
+            if (numbers) url += '&numbers=' + encodeURIComponent(numbers);
+            if (filter && filter !== 'all') url += '&filter=' + encodeURIComponent(filter);
+            if (page > 1) url += '&page=' + page;
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', url);
+            }
+        }
+
+        // Debounced input handler (400ms, same as index22.php)
+        numbersInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() {
+                doSearch(1);
+            }, 400);
+        });
+
+        // Filter select change triggers search immediately
+        filterSelect.addEventListener('change', function() {
+            clearTimeout(debounceTimer);
+            doSearch(1);
+        });
+
+        // Form submit as fallback (regular GET reload, shown as button)
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            // Only use form submit if JS is disabled; AJAX handles the rest
+            // Keep as fallback: do nothing special - form submits naturally
+        });
+
+        // Initial missing info
+        <?php if (!empty($missingZayavki)): ?>
+        renderMissingInfo(<?= json_encode($missingZayavki, JSON_UNESCAPED_UNICODE) ?>);
+        <?php endif; ?>
+    })();
+    </script>
 </body>
 </html>
