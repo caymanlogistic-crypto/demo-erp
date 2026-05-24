@@ -134,21 +134,24 @@ class FeoController
             $zayavkaId = $row['zayavka_id'] ?? '';
 
             // Доступно
-            $availableBlockId = $availableBlockMap[$zayavkaId] ?? '';
+            $availableBlockIdRaw = $availableBlockMap[$zayavkaId] ?? null;
+            $availableBlockId = $availableBlockIdRaw !== null ? (string) $availableBlockIdRaw : '';
             $availableDisplay = $availableBlockId !== ''
                 ? '<span class="status-available">Блок #' . htmlspecialchars($availableBlockId, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span style="color:#999;">—</span>';
 
             // Маршрут
-            $marshrutId = $marshrutMap[$zayavkaId] ?? '';
+            $marshrutIdRaw = $marshrutMap[$zayavkaId] ?? null;
+            $marshrutId = $marshrutIdRaw !== null ? (string) $marshrutIdRaw : '';
             $marshrutDisplay = $marshrutId !== ''
                 ? '<span class="status-marshrut">М#' . htmlspecialchars($marshrutId, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span style="color:#999;">—</span>';
 
-            // Рейс
-            $flightId = $flightMap[$zayavkaId] ?? '';
-            $flightDisplay = $flightId !== ''
-                ? '<span class="status-flight">Р#' . htmlspecialchars($flightId, ENT_QUOTES, 'UTF-8') . '</span>'
+            // Рейс — сохраняем int для ключа массива, string для htmlspecialchars
+            $flightIdRaw = $flightMap[$zayavkaId] ?? null;
+            $flightIdStr = $flightIdRaw !== null ? (string) $flightIdRaw : '';
+            $flightDisplay = $flightIdStr !== ''
+                ? '<span class="status-flight">Р#' . htmlspecialchars($flightIdStr, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span style="color:#999;">—</span>';
 
             // Масса, кг (mass_netto в тоннах → умножаем на 1000)
@@ -159,8 +162,8 @@ class FeoController
 
             // Статус рейса
             $statusDisplay = '<span style="color:#999;">—</span>';
-            if ($flightId !== '' && isset($flightDetailsMap[$flightId])) {
-                $flightStatus = $flightDetailsMap[$flightId]['status'];
+            if ($flightIdRaw !== null && isset($flightDetailsMap[$flightIdRaw])) {
+                $flightStatus = $flightDetailsMap[$flightIdRaw]['status'];
                 $statusData = $statusMap[$flightStatus] ?? null;
                 if ($statusData) {
                     $styleClass = ltrim($statusData['style'] ?? '', '.');
@@ -176,8 +179,8 @@ class FeoController
 
             // Даты рейса
             $datesDisplay = '<span style="color:#999;">—</span>';
-            if ($flightId !== '' && isset($flightDetailsMap[$flightId])) {
-                $datesDisplay = FeoStatusResolver::formatFlightDates($flightDetailsMap[$flightId]);
+            if ($flightIdRaw !== null && isset($flightDetailsMap[$flightIdRaw])) {
+                $datesDisplay = FeoStatusResolver::formatFlightDates($flightDetailsMap[$flightIdRaw]);
             }
 
             // Стоимость
