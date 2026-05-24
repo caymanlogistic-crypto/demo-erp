@@ -1,0 +1,18 @@
+{
+  "name": "client/demo-erp",
+  "description": "Demo ERP project",
+  "type": "project",
+  "require": {
+    "php": ">=8.4 <8.6",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
