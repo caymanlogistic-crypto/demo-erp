@@ -131,7 +131,8 @@ class FeoController
         $html = '';
 
         foreach ($rows as $row) {
-            $zayavkaId = $row['zayavka_id'] ?? '';
+            $zayavkaIdRaw = $row['zayavka_id'] ?? '';
+            $zayavkaId = (string) $zayavkaIdRaw;
 
             // Доступно
             $availableBlockIdRaw = $availableBlockMap[$zayavkaId] ?? null;
@@ -198,12 +199,12 @@ class FeoController
 
             $html .= '<tr data-id="' . htmlspecialchars((string) $row['id'], ENT_QUOTES, 'UTF-8') . '"'
                   . ' data-zayavka-id="' . htmlspecialchars($zayavkaId, ENT_QUOTES, 'UTF-8') . '">';
-            $html .= '<td style="width: 80px;">' . htmlspecialchars($row['zayavka_id'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td style="width: 80px;">' . htmlspecialchars((string) ($row['zayavka_id'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
             $html .= '<td style="width: 90px; text-align: right;">' . $massDisplay . '</td>';
-            $html .= '<td style="width: 150px;">' . htmlspecialchars($row['mno_region'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 150px;">' . htmlspecialchars($row['mno_mo'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 200px;">' . htmlspecialchars($row['naim_oo_gruzootpravitel'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="text-align: left;">' . htmlspecialchars($row['mno_adres_pogruzki'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td style="width: 150px;">' . htmlspecialchars((string) ($row['mno_region'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td style="width: 150px;">' . htmlspecialchars((string) ($row['mno_mo'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td style="width: 200px;">' . htmlspecialchars((string) ($row['naim_oo_gruzootpravitel'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td style="text-align: left;">' . htmlspecialchars((string) ($row['mno_adres_pogruzki'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
             $html .= '<td style="width: 100px; text-align: center;">' . $availableDisplay . '</td>';
             $html .= '<td style="width: 100px; text-align: center;">' . $marshrutDisplay . '</td>';
             $html .= '<td style="width: 150px; text-align: center;">' . $flightDisplay . '</td>';
