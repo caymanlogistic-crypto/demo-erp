@@ -222,10 +222,13 @@ class FeoController
 
     private function renderIndex(): string
     {
+        // Capture feo/index.php content
         ob_start();
-        $content = function () {
-            require __DIR__ . '/../../../Views/feo/index.php';
-        };
+        require __DIR__ . '/../../../Views/feo/index.php';
+        $content = ob_get_clean();
+
+        // Render inside layout
+        ob_start();
         $title = 'Загрузка данных FEO — Demo ERP';
         $pageTitle = 'Заявки ФЭО';
         require __DIR__ . '/../../../Views/layouts/main.php';
@@ -234,6 +237,7 @@ class FeoController
 
     private function renderNoDb(): string
     {
+        // Capture no-db message content
         ob_start();
         $title = 'Загрузка данных FEO — Demo ERP';
         $pageTitle = 'Заявки ФЭО';
@@ -251,6 +255,8 @@ class FeoController
         </div>
         <?php
         $content = ob_get_clean();
+
+        // Render inside layout
         ob_start();
         require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
