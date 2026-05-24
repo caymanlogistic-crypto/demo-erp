@@ -1,0 +1,46 @@
+name: Deploy demoERP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo, pdo_mysql
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          rsync -az --delete \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude=".env" \
+            --exclude="storage/logs/*" \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}"
+
+      - name: Runtime check
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+          "cd '${{ secrets.DEPLOY_PATH }}' && /usr/bin/php8.4 -l public/index.php"
