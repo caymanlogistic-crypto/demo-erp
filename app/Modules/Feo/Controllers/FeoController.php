@@ -134,25 +134,25 @@ class FeoController
             $zayavkaIdRaw = $row['zayavka_id'] ?? '';
             $zayavkaId = (string) $zayavkaIdRaw;
 
-            // Доступно
+            // Доступно — нейтральный ref-chip
             $availableBlockIdRaw = $availableBlockMap[$zayavkaId] ?? null;
             $availableBlockId = $availableBlockIdRaw !== null ? (string) $availableBlockIdRaw : '';
             $availableDisplay = $availableBlockId !== ''
-                ? '<span class="status-available">Блок #' . htmlspecialchars($availableBlockId, ENT_QUOTES, 'UTF-8') . '</span>'
+                ? '<span class="ref-chip ref-available">Блок #' . htmlspecialchars($availableBlockId, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span class="empty-cell">—</span>';
 
-            // Маршрут
+            // Маршрут — нейтральный ref-chip
             $marshrutIdRaw = $marshrutMap[$zayavkaId] ?? null;
             $marshrutId = $marshrutIdRaw !== null ? (string) $marshrutIdRaw : '';
             $marshrutDisplay = $marshrutId !== ''
-                ? '<span class="status-marshrut">М#' . htmlspecialchars($marshrutId, ENT_QUOTES, 'UTF-8') . '</span>'
+                ? '<span class="ref-chip ref-route">М#' . htmlspecialchars($marshrutId, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span class="empty-cell">—</span>';
 
-            // Рейс — сохраняем int для ключа массива, string для htmlspecialchars
+            // Рейс — нейтральный ref-chip
             $flightIdRaw = $flightMap[$zayavkaId] ?? null;
             $flightIdStr = $flightIdRaw !== null ? (string) $flightIdRaw : '';
             $flightDisplay = $flightIdStr !== ''
-                ? '<span class="status-flight">Р#' . htmlspecialchars($flightIdStr, ENT_QUOTES, 'UTF-8') . '</span>'
+                ? '<span class="ref-chip ref-flight">Р#' . htmlspecialchars($flightIdStr, ENT_QUOTES, 'UTF-8') . '</span>'
                 : '<span class="empty-cell">—</span>';
 
             // Масса, кг (mass_netto в тоннах → умножаем на 1000)
@@ -199,21 +199,27 @@ class FeoController
                 $pricePerKgDisplay = number_format($pricePerKgMap[$zayavkaKeyRaw], 2, '.', ' ');
             }
 
+            // Экранируем текстовые значения для title
+            $regionVal    = (string) ($row['mno_region'] ?? '');
+            $moVal        = (string) ($row['mno_mo'] ?? '');
+            $senderVal    = (string) ($row['naim_oo_gruzootpravitel'] ?? '');
+            $addressVal   = (string) ($row['mno_adres_pogruzki'] ?? '');
+
             $html .= '<tr data-id="' . htmlspecialchars((string) $row['id'], ENT_QUOTES, 'UTF-8') . '"'
                   . ' data-zayavka-id="' . htmlspecialchars($zayavkaId, ENT_QUOTES, 'UTF-8') . '">';
-            $html .= '<td style="width: 80px;">' . htmlspecialchars((string) ($row['zayavka_id'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 90px; text-align: right;">' . $massDisplay . '</td>';
-            $html .= '<td style="width: 150px;">' . htmlspecialchars((string) ($row['mno_region'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 150px;">' . htmlspecialchars((string) ($row['mno_mo'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 200px;">' . htmlspecialchars((string) ($row['naim_oo_gruzootpravitel'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="text-align: left;">' . htmlspecialchars((string) ($row['mno_adres_pogruzki'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
-            $html .= '<td style="width: 100px; text-align: center;">' . $availableDisplay . '</td>';
-            $html .= '<td style="width: 100px; text-align: center;">' . $marshrutDisplay . '</td>';
-            $html .= '<td style="width: 150px; text-align: center;">' . $flightDisplay . '</td>';
-            $html .= '<td style="width: 140px; text-align: center;">' . $statusDisplay . '</td>';
-            $html .= '<td style="width: 180px; text-align: center; font-size: 12px;">' . $datesDisplay . '</td>';
-            $html .= '<td style="width: 100px; text-align: right;">' . $costDisplay . '</td>';
-            $html .= '<td style="width: 80px; text-align: right;">' . $pricePerKgDisplay . '</td>';
+            $html .= '<td class="cell-num">' . htmlspecialchars((string) ($row['zayavka_id'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td class="cell-num">' . $massDisplay . '</td>';
+            $html .= '<td class="cell-ellipsis cell-region" title="' . htmlspecialchars($regionVal, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($regionVal, ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td class="cell-ellipsis cell-mo" title="' . htmlspecialchars($moVal, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($moVal, ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td class="cell-ellipsis cell-sender" title="' . htmlspecialchars($senderVal, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($senderVal, ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td class="cell-ellipsis cell-address" title="' . htmlspecialchars($addressVal, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($addressVal, ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td>' . $availableDisplay . '</td>';
+            $html .= '<td>' . $marshrutDisplay . '</td>';
+            $html .= '<td>' . $flightDisplay . '</td>';
+            $html .= '<td>' . $statusDisplay . '</td>';
+            $html .= '<td style="text-align: center; font-size: 12px;">' . $datesDisplay . '</td>';
+            $html .= '<td class="cell-money">' . $costDisplay . '</td>';
+            $html .= '<td class="cell-money">' . $pricePerKgDisplay . '</td>';
             $html .= '</tr>';
         }
 

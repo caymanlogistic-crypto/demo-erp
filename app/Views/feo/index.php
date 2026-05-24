@@ -11,12 +11,11 @@
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
-        <div class="page-eyebrow">Основное / Заявки ФЭО</div>
         <div class="page-title">Загрузка данных FEO</div>
         <div class="page-summary">
-            <span>Плотная рабочая таблица</span>
+            <span>Рабочая таблица заявок</span>
             <span class="sep">·</span>
-            <span>Автозагрузка</span>
+            <span>автозагрузка</span>
         </div>
     </div>
     <div>
@@ -57,6 +56,21 @@
     </div>
     <div class="table-scroll" id="tableWrapper">
         <table class="table" id="dataTable">
+            <colgroup>
+                <col class="col-feo-id">
+                <col class="col-feo-mass">
+                <col class="col-feo-region">
+                <col class="col-feo-mo">
+                <col class="col-feo-sender">
+                <col class="col-feo-address">
+                <col class="col-feo-available">
+                <col class="col-feo-route">
+                <col class="col-feo-flight">
+                <col class="col-feo-status">
+                <col class="col-feo-dates">
+                <col class="col-feo-price">
+                <col class="col-feo-pricekg">
+            </colgroup>
             <thead>
                 <tr>
                     <th style="width: 80px;">ID ЗАЯВКИ</th>

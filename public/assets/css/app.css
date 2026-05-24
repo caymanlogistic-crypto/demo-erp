@@ -798,4 +798,102 @@ textarea { resize: vertical; }
 }
 
 /* Muted empty cell */
-.empty-cell { color: var(--text-faint); }
+.empty-cell { color: var(--text-faint); font-weight: 600; }
+
+/* ============================================================
+   FEO COLUMN WIDTHS (colgroup)
+   ============================================================ */
+.col-feo-id      { width: 82px; }
+.col-feo-mass    { width: 78px; }
+.col-feo-region  { width: 155px; }
+.col-feo-mo      { width: 175px; }
+.col-feo-sender  { width: 260px; }
+.col-feo-address { width: auto; }
+.col-feo-available { width: 92px; }
+.col-feo-route   { width: 86px; }
+.col-feo-flight  { width: 76px; }
+.col-feo-status  { width: 132px; }
+.col-feo-dates   { width: 150px; }
+.col-feo-price   { width: 96px; }
+.col-feo-pricekg { width: 70px; }
+
+/* ============================================================
+   CELL ELLIPSIS
+   ============================================================ */
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cell-address,
+.cell-sender,
+.cell-region,
+.cell-mo {
+  max-width: 100%;
+}
+
+/* ============================================================
+   CELL TYPOGRAPHY
+   ============================================================ */
+.cell-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cell-money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ============================================================
+   REFERENCE CHIPS (neutral)
+   ============================================================ */
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ref-available,
+.ref-route,
+.ref-flight {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border-color: var(--line-soft);
+}
+.ref-chip:hover {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--text-main);
+}
+
+/* Legacy status classes → neutral ref-chip alias */
+.status-available,
+.status-marshrut,
+.status-flight {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border-color: var(--line-soft);
+}
+
+/* ============================================================
+   PLANNED-ROUTE ALIAS (status-planned-route)
+   ============================================================ */
+.status-planned-route {
+  background: var(--flight-planned-bg);
+  border-color: var(--flight-planned-border);
+  color: var(--flight-planned-text);
+}
+.status-planned-route .flight-status-dot {
+  background: var(--flight-planned-dot);
+}
