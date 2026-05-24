@@ -299,7 +299,6 @@
                         <th style="width: 180px; text-align: center;">ДАТЫ</th>
                         <th style="width: 100px; text-align: right;">СТОИМОСТЬ</th>
                         <th style="width: 80px; text-align: right;">₽/КГ</th>
-                        <th style="width: 100px; text-align: center;">ДЕЙСТВИЯ</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -393,12 +392,12 @@
                     parseRowsForSearch();
                     applyTextFilter();
                 } else {
-                    tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
                 }
             })
             .catch(function(error) {
                 console.error('Ошибка загрузки:', error);
-                tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка загрузки данных</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка загрузки данных</td></tr>';
             })
             .finally(function() {
                 isLoading = false;
@@ -565,14 +564,6 @@
         });
         observer.observe(tableBody, { childList: true, subtree: true });
     }
-
-    // Заглушки для кнопок ДЕЙСТВИЯ
-    window.editRow = function(rowId) {
-        alert('Редактирование заявки #' + rowId + ' временно отключено в demoERP.');
-    };
-    window.deleteRow = function(rowId, zayavkaId) {
-        alert('Удаление заявки ' + zayavkaId + ' временно отключено в demoERP.');
-    };
 
     // Первая загрузка
     loadData(true);

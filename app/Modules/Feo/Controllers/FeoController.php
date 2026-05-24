@@ -212,10 +212,6 @@ class FeoController
             $html .= '<td style="width: 180px; text-align: center; font-size: 12px;">' . $datesDisplay . '</td>';
             $html .= '<td style="width: 100px; text-align: right;">' . $costDisplay . '</td>';
             $html .= '<td style="width: 80px; text-align: right;">' . $pricePerKgDisplay . '</td>';
-            $html .= '<td style="width: 100px; text-align: center; white-space: nowrap;">'
-                  . '<button class="btn btn-sm" onclick="editRow(' . (int) $row['id'] . ')" disabled title="Редактирование временно отключено">✎</button> '
-                  . '<button class="btn btn-sm btn-delete" onclick="deleteRow(' . (int) $row['id'] . ', \'' . htmlspecialchars($zayavkaId, ENT_QUOTES, 'UTF-8') . '\')" disabled title="Удаление временно отключено">✖</button>'
-                  . '</td>';
             $html .= '</tr>';
         }
 
