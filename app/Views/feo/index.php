@@ -532,6 +532,9 @@
         currentSearch = searchInput.value.trim();
         if (allRowsData.length > 0) {
             applyTextFilter();
+        } else {
+            // Если данных ещё нет (первый ввод поиска до загрузки) — инициируем загрузку
+            loadData(true);
         }
     }
 
