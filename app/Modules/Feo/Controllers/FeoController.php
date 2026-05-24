@@ -139,21 +139,21 @@ class FeoController
             $availableBlockId = $availableBlockIdRaw !== null ? (string) $availableBlockIdRaw : '';
             $availableDisplay = $availableBlockId !== ''
                 ? '<span class="status-available">Блок #' . htmlspecialchars($availableBlockId, ENT_QUOTES, 'UTF-8') . '</span>'
-                : '<span style="color:#999;">—</span>';
+                : '<span class="empty-cell">—</span>';
 
             // Маршрут
             $marshrutIdRaw = $marshrutMap[$zayavkaId] ?? null;
             $marshrutId = $marshrutIdRaw !== null ? (string) $marshrutIdRaw : '';
             $marshrutDisplay = $marshrutId !== ''
                 ? '<span class="status-marshrut">М#' . htmlspecialchars($marshrutId, ENT_QUOTES, 'UTF-8') . '</span>'
-                : '<span style="color:#999;">—</span>';
+                : '<span class="empty-cell">—</span>';
 
             // Рейс — сохраняем int для ключа массива, string для htmlspecialchars
             $flightIdRaw = $flightMap[$zayavkaId] ?? null;
             $flightIdStr = $flightIdRaw !== null ? (string) $flightIdRaw : '';
             $flightDisplay = $flightIdStr !== ''
                 ? '<span class="status-flight">Р#' . htmlspecialchars($flightIdStr, ENT_QUOTES, 'UTF-8') . '</span>'
-                : '<span style="color:#999;">—</span>';
+                : '<span class="empty-cell">—</span>';
 
             // Масса, кг (mass_netto в тоннах → умножаем на 1000)
             $massKg = isset($row['mass_netto']) && $row['mass_netto'] !== '' && $row['mass_netto'] !== null
@@ -161,38 +161,40 @@ class FeoController
                 : null;
             $massDisplay = $massKg !== null ? number_format($massKg, 0, '.', ' ') : '';
 
-            // Статус рейса
-            $statusDisplay = '<span style="color:#999;">—</span>';
+            // Статус рейса — TransportERP flight-status pattern
+            $statusDisplay = '<span style="color: var(--text-faint);">—</span>';
             if ($flightIdRaw !== null && isset($flightDetailsMap[$flightIdRaw])) {
                 $flightStatus = $flightDetailsMap[$flightIdRaw]['status'];
                 $statusData = $statusMap[$flightStatus] ?? null;
                 if ($statusData) {
                     $styleClass = ltrim($statusData['style'] ?? '', '.');
-                    $statusDisplay = '<span class="status-badge ' . htmlspecialchars($styleClass, ENT_QUOTES, 'UTF-8') . '">'
+                    $statusDisplay = '<span class="flight-status ' . htmlspecialchars($styleClass, ENT_QUOTES, 'UTF-8') . '">'
+                        . '<span class="flight-status-dot"></span>'
                         . htmlspecialchars($statusData['наименование'] ?? $flightStatus, ENT_QUOTES, 'UTF-8')
                         . '</span>';
                 } else {
-                    $statusDisplay = '<span class="status-badge" style="background: #6c757d;">'
+                    $statusDisplay = '<span class="flight-status status-completed">'
+                        . '<span class="flight-status-dot"></span>'
                         . htmlspecialchars($flightStatus, ENT_QUOTES, 'UTF-8')
                         . '</span>';
                 }
             }
 
             // Даты рейса
-            $datesDisplay = '<span style="color:#999;">—</span>';
+            $datesDisplay = '<span style="color: var(--text-faint);">—</span>';
             if ($flightIdRaw !== null && isset($flightDetailsMap[$flightIdRaw])) {
                 $datesDisplay = FeoStatusResolver::formatFlightDates($flightDetailsMap[$flightIdRaw]);
             }
 
             // Стоимость
-            $costDisplay = '<span style="color:#999;">—</span>';
+            $costDisplay = '<span class="empty-cell">—</span>';
             $zayavkaKeyRaw = $row['zayavka_id'] ?? '';
             if ($zayavkaKeyRaw !== '' && isset($priceMap[$zayavkaKeyRaw])) {
                 $costDisplay = number_format($priceMap[$zayavkaKeyRaw], 0, '.', ' ') . ' ₽';
             }
 
             // ₽/КГ
-            $pricePerKgDisplay = '<span style="color:#999;">—</span>';
+            $pricePerKgDisplay = '<span class="empty-cell">—</span>';
             if ($zayavkaKeyRaw !== '' && isset($pricePerKgMap[$zayavkaKeyRaw])) {
                 $pricePerKgDisplay = number_format($pricePerKgMap[$zayavkaKeyRaw], 2, '.', ' ');
             }
@@ -221,32 +223,36 @@ class FeoController
     private function renderIndex(): string
     {
         ob_start();
-        require __DIR__ . '/../../../Views/feo/index.php';
+        $content = function () {
+            require __DIR__ . '/../../../Views/feo/index.php';
+        };
+        $title = 'Загрузка данных FEO — Demo ERP';
+        $pageTitle = 'Заявки ФЭО';
+        require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
     }
 
     private function renderNoDb(): string
     {
         ob_start();
+        $title = 'Загрузка данных FEO — Demo ERP';
+        $pageTitle = 'Заявки ФЭО';
         ?>
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Загрузка данных FEO — Demo ERP</title>
-        </head>
-        <body>
-            <h1>Загрузка данных FEO</h1>
-            <div style="padding: 2rem; background: #fff3cd; border: 1px solid #ffc107; color: #856404; border-radius: 4px; margin: 2rem 0;">
-                <strong>База данных не подключена.</strong><br>
-                Проверьте параметры .env (DB_HOST, DB_NAME, DB_USER, DB_PASS).<br>
-                Функционал ФЭО требует подключения к БД.
+        <div class="page-head">
+            <div class="page-head-left">
+                <div class="page-eyebrow">Основное / Заявки ФЭО</div>
+                <div class="page-title">Загрузка данных FEO</div>
+                <div class="page-summary"><span>Функционал требует подключения к БД</span></div>
             </div>
-            <p><a href="/">← На главную</a></p>
-        </body>
-        </html>
+        </div>
+        <div class="form-alert alert-warning" style="margin: 0;">
+            <strong>База данных не подключена.</strong>
+            Проверьте параметры .env (DB_HOST, DB_NAME, DB_USER, DB_PASS).
+        </div>
         <?php
+        $content = ob_get_clean();
+        ob_start();
+        require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
     }
 
