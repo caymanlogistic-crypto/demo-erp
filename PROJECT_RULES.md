@@ -1131,3 +1131,64 @@ deepseek-v4-pro
 Не вызывать Support/max_notify.php как endpoint.
 Всегда перечитывать PROJECT_RULES.md перед началом новой задачи.
 ```
+
+---
+
+## Production runtime checks via SSH
+
+Production check MUST NOT be limited to HTTP 200 OK.
+HTTP 200 can still contain an application error inside HTML.
+
+After every deploy, especially after changes in layout, views, controllers, routing, CSS links or AJAX, the coder MUST check:
+
+1. HTTP status.
+2. HTML content for runtime errors.
+3. Server state and logs through SSH.
+
+Production path:
+/home/s/spugovxsim/public_html/demoERP
+
+SSH login command from Windows:
+ssh spugovxsim@77.222.40.251
+
+Commands on server:
+cd /home/s/spugovxsim/public_html/demoERP
+git status
+git log --oneline -5
+/usr/bin/php8.4 -v
+/usr/bin/php8.4 -l public/index.php
+tail -50 storage/logs/app.log
+
+If PHP files were changed, every changed PHP file MUST be checked with /usr/bin/php8.4 -l.
+
+Required HTML error check:
+curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep -E "Fatal error^|Warning^|Notice^|Error^|Object of class^|Stack trace^|Parse error^|Deprecated"
+
+If this command prints anything, production check FAILED.
+
+Required key text checks:
+curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep "TransportERP"
+curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep "Zayavki"
+
+One-command SSH check from Windows:
+ssh spugovxsim@77.222.40.251 "cd /home/s/spugovxsim/public_html/demoERP && git status && git log --oneline -5 && /usr/bin/php8.4 -l public/index.php && tail -50 storage/logs/app.log"
+
+One-command HTML error check through SSH:
+ssh spugovxsim@77.222.40.251 "curl -k -s -L 'https://mg-log.ru/demoERP/public/?module=feo' ^| grep -E 'Fatal error^|Warning^|Notice^|Error^|Object of class^|Stack trace^|Parse error^|Deprecated'"
+
+Task is NOT complete if:
+- only HTTP 200 was checked;
+- HTML content was not checked;
+- server logs were not checked through SSH;
+- HTML contains Fatal error, Warning, Notice, Error, Object of class, Stack trace, Parse error or Deprecated;
+- key page text is missing;
+- production URL opens but shows an application error.
+
+Final report MUST include:
+1. Production HTTP status.
+2. HTML error check result.
+3. SSH log check result.
+4. Server php -l result.
+5. Whether Fatal/Warning/Notice/Error/Object of class was found.
+
+Main rule: production is confirmed only after HTTP check + HTML content check + SSH logs check.
