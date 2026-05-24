@@ -162,8 +162,6 @@ public/feo.php
 public/ajax.php
 ```
 
----
-
 ### 4.2. Public directory
 
 В `public/` разрешено хранить только:
@@ -177,8 +175,6 @@ assets/img/
 
 Вся бизнес-логика должна быть вне `public/`.
 
----
-
 ### 4.3. App directory
 
 В `app/` хранится основная логика проекта:
@@ -188,8 +184,6 @@ app/Core        базовые классы ядра
 app/Modules     функциональные модули
 app/Views       шаблоны
 ```
-
----
 
 ### 4.4. Modules
 
@@ -215,8 +209,6 @@ app/Modules/Feo/
 ```
 
 Не смешивать весь код в одном файле.
-
----
 
 ### 4.5. Views
 
@@ -321,6 +313,7 @@ main
 
 ```powershell
 git status
+git pull
 ```
 
 После изменений:
@@ -451,7 +444,7 @@ php -l public\index.php
 php -S localhost:8000 -t public
 ```
 
-Открыть:
+Проверить в браузере:
 
 ```text
 http://localhost:8000
@@ -803,17 +796,23 @@ Excel-импорт сейчас не переносится, поэтому PhpS
 
 ### 19.2. Что переносить
 
-Перенести только read-only функционал:
+Перенести read-only функционал и поведение страницы из `index22.php`:
 
 ```text
 чтение данных из существующей таблицы feo
 вывод списка заявок
+реальные заголовки колонок
+реальный порядок колонок
+реальные поля таблицы
 HTTP/AJAX-выдача данных для списка
 фильтр по номерам заявок
+поиск без обязательного нажатия кнопки, если он был в старом файле
 фильтр “доступные”
 фильтр “маршруты”
 фильтр “рейсы”
 использование status_blocks и flights только для отображения/фильтрации
+вывод ошибок
+сообщения при пустом результате
 минимальная HTML-страница без дизайна
 ```
 
@@ -821,13 +820,18 @@ HTTP/AJAX-выдача данных для списка
 
 ```text
 какие поля есть в feo
+какие заголовки выводились
+какой порядок колонок
 как выбираются заявки
 как работает фильтр по номерам
+как работает автопоиск
 как определяется “доступные”
 как определяется “маршруты”
 как определяется “рейсы”
 как связаны feo / status_blocks / flights
 ```
+
+Кодеру запрещено выдумывать названия колонок, порядок колонок и бизнес-логику.
 
 ---
 
@@ -946,8 +950,6 @@ format=markdown
 
 Если владелец проекта временно дал тестовый ключ, его можно использовать только для ручного вызова, но нельзя добавлять в репозиторий.
 
----
-
 ### 22.2. PowerShell-вызов MAX
 
 Команда 1:
@@ -964,8 +966,6 @@ Invoke-WebRequest "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?ke
 
 Команды выполнять отдельно, не одной длинной строкой.
 
----
-
 ### 22.3. Bash-вызов MAX
 
 Команда 1:
@@ -979,8 +979,6 @@ TEXT=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("Demo ERP: за
 ```bash
 curl "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=<MAX_NOTIFY_KEY>&text=$TEXT&format=markdown"
 ```
-
----
 
 ### 22.4. Уведомление о завершении работы
 
@@ -1009,8 +1007,6 @@ GitHub Actions зелёный.
 Production проверен: https://mg-log.ru/demoERP/public/
 ```
 
----
-
 ### 22.5. Уведомление, если нужно участие Владимира
 
 Если задача заблокирована или требуется решение владельца, кодер обязан сразу отправить уведомление.
@@ -1021,8 +1017,6 @@ Production проверен: https://mg-log.ru/demoERP/public/
 Demo ERP: требуется участие Владимира.
 Причина: на production отсутствуют параметры .env / не хватает таблицы / не хватает поля / нужно подтвердить UI / нужен доступ.
 ```
-
----
 
 ### 22.6. Запрещено
 
@@ -1148,7 +1142,94 @@ https://mg-log.ru/demoERP/public/
 
 ---
 
-## 26. Рекомендация по coding agent
+## 26. Правило HTTP-проверок в Windows PowerShell
+
+В Windows PowerShell запрещено использовать Linux-синтаксис `curl`, потому что `curl` в PowerShell часто является alias для `Invoke-WebRequest`.
+
+Запрещено использовать:
+
+```powershell
+curl -s ...
+curl -L ...
+curl -w ...
+curl -I ...
+```
+
+Такие команды могут зависнуть, перейти в интерактивный режим и начать спрашивать параметр `Uri`, из-за чего Cline/кодер останавливается и ждёт участия владельца.
+
+Для HTTP-проверок в Windows PowerShell разрешено использовать только `curl.exe` или `Invoke-WebRequest`.
+
+Правильно через `curl.exe`:
+
+```powershell
+curl.exe -s -k -L -w "%{http_code}" "https://mg-log.ru/demoERP/public/" -o NUL
+```
+
+Правильно через `Invoke-WebRequest`:
+
+```powershell
+$response = Invoke-WebRequest "https://mg-log.ru/demoERP/public/" -UseBasicParsing
+$response.StatusCode
+```
+
+Для проверки локального сервера:
+
+```powershell
+curl.exe -s -k -L -w "%{http_code}" "http://localhost:8000/" -o NUL
+```
+
+или:
+
+```powershell
+$response = Invoke-WebRequest "http://localhost:8000/" -UseBasicParsing
+$response.StatusCode
+```
+
+Все команды проверки должны быть неинтерактивными. Команда не должна ждать ручного ввода пользователя.
+
+---
+
+## 27. Правило MAX-уведомлений: только notify_max.php
+
+Для отправки MAX-уведомлений запрещено вызывать:
+
+```text
+http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
+```
+
+Этот файл является PHP-библиотекой функций, а не публичным endpoint.
+
+Правильный endpoint:
+
+```text
+http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php
+```
+
+Обязательные параметры:
+
+```text
+key
+text
+format=markdown
+```
+
+Правильный PowerShell-вызов:
+
+```powershell
+$Text = [uri]::EscapeDataString("Demo ERP: задача завершена. Push выполнен, GitHub Actions зелёный, production проверен.")
+```
+
+```powershell
+Invoke-WebRequest "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=<MAX_NOTIFY_KEY>&text=$Text&format=markdown" -UseBasicParsing
+```
+
+Команды выполнять отдельно.
+
+Запрещено использовать `Support/max_notify.php` как URL даже если он возвращает `200 OK`. `200 OK` от этого файла не означает, что сообщение отправлено.
+
+---
+
+## 28. Рекомендация по coding agent
 
 Для задач по этому проекту использовать:
 
@@ -1178,7 +1259,7 @@ deepseek-v4-pro
 
 ---
 
-## 27. Главный принцип проекта
+## 29. Главный принцип проекта
 
 ```text
 Сначала стабильный работающий demo ERP.
@@ -1188,28 +1269,3 @@ deepseek-v4-pro
 Каждое изменение проверять в runtime.
 Каждое завершение подтверждать MAX-уведомлением.
 ```
-
-
-
- Windows PowerShell запрещено использовать curl -s / curl -L / curl -w.
-Использовать только curl.exe или Invoke-WebRequest.
-
-Правильно:
-curl.exe -s -k -L -w "%{http_code}" "https://mg-log.ru/demoERP/public/" -o NUL
-
-Или:
-$response = Invoke-WebRequest "https://mg-log.ru/demoERP/public/" -UseBasicParsing
-$response.StatusCode
-
-
-## Правило HTTP-проверок в Windows PowerShell
-
-В Windows PowerShell запрещено использовать Linux-синтаксис `curl`, потому что `curl` в PowerShell часто является alias для `Invoke-WebRequest`.
-
-Запрещено использовать:
-
-```powershell
-curl -s ...
-curl -L ...
-curl -w ...
-curl -I ...
