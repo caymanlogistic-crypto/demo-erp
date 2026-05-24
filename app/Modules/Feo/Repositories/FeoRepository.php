@@ -156,7 +156,7 @@ class FeoRepository
         $marshrutMap       = $this->buildMarshrutMap($pdo);
         $flightMapData     = $this->buildFlightMaps($pdo);
         $statusMap         = $this->buildStatusMap($pdo);
-        $priceData         = $this->loadPriceData();
+        $priceData         = $this->calculatePrices($pdo);
 
         return [
             'rows'              => $rows,
@@ -335,27 +335,127 @@ class FeoRepository
     }
 
     /**
-     * Загрузка данных о ценах (include/price.php из старого проекта).
-     * Если файл недоступен — возвращаем пустые массивы.
+     * Расчёт стоимости заявок на основе status_blocks (логика из price.php).
+     *
+     * Алгоритм:
+     *  1. Берём все блоки where status_type='marshrut' AND cost IS NOT NULL AND cost > 0.
+     *  2. Для каждого блока получаем заявки (zayavki_ids через запятую).
+     *  3. Получаем mass_netto из feo для этих заявок.
+     *  4. Распределяем стоимость пропорционально весу (как в price.php).
+     *  5. Возвращаем $price[zayavka_id => cost] и $price_per_kg[zayavka_id => price_per_kg].
      *
      * @return array{price: array<string, float>, price_per_kg: array<string, float>}
      */
-    private function loadPriceData(): array
+    private function calculatePrices(PDO $pdo): array
     {
         $price = [];
         $price_per_kg = [];
 
-        // Пытаемся загрузить price.php из config/ (если скопирован)
-        $priceFile = dirname(__DIR__, 3) . '/config/price.php';
-        if (file_exists($priceFile)) {
-            try {
-                $result = require $priceFile;
-                if (is_array($result)) {
-                    $price = $result['price'] ?? $result;
-                }
-            } catch (\Throwable $e) {
-                error_log('FeoRepository loadPriceData error: ' . $e->getMessage());
+        try {
+            // 1. Блоки со стоимостью
+            $stmt = $pdo->prepare("
+                SELECT id, zayavki_ids, cost
+                FROM status_blocks
+                WHERE status_type = 'marshrut' AND cost IS NOT NULL AND cost > 0 AND zayavki_ids != ''
+            ");
+            $stmt->execute();
+            $blocks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($blocks)) {
+                return ['price' => $price, 'price_per_kg' => $price_per_kg];
             }
+
+            // 2. Собираем все уникальные zayavka_id
+            $allZayavkaIds = [];
+            foreach ($blocks as $block) {
+                $ids = array_filter(array_map('trim', explode(',', $block['zayavki_ids'])));
+                foreach ($ids as $id) {
+                    $allZayavkaIds[$id] = true;
+                }
+            }
+            $uniqueIds = array_keys($allZayavkaIds);
+
+            // 3. Получаем массу нетто для всех заявок
+            $weightMap = [];
+            if (!empty($uniqueIds)) {
+                $placeholders = implode(',', array_fill(0, count($uniqueIds), '?'));
+                $stmtFeo = $pdo->prepare("
+                    SELECT zayavka_id, mass_netto
+                    FROM feo
+                    WHERE zayavka_id IN ($placeholders)
+                ");
+                $stmtFeo->execute($uniqueIds);
+                $feoRows = $stmtFeo->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($feoRows as $row) {
+                    $weightKg = (float) $row['mass_netto'] * 1000;
+                    if ($weightKg > 0) {
+                        $weightMap[$row['zayavka_id']] = $weightKg;
+                    }
+                }
+            }
+
+            // 4. Обрабатываем каждый блок
+            foreach ($blocks as $block) {
+                $blockId = $block['id'];
+                $blockCost = (float) $block['cost'];
+                $ids = array_filter(array_map('trim', explode(',', $block['zayavki_ids'])));
+
+                // Собираем заявки с известной массой
+                $validItems = [];
+                $totalWeight = 0.0;
+                foreach ($ids as $zId) {
+                    if (isset($weightMap[$zId])) {
+                        $w = $weightMap[$zId];
+                        $validItems[] = ['zayavka_id' => $zId, 'weight_kg' => $w];
+                        $totalWeight += $w;
+                    }
+                }
+
+                if ($totalWeight <= 0 || empty($validItems)) {
+                    continue;
+                }
+
+                // Находим заявку с максимальным весом
+                $maxIdx = 0;
+                $maxWeight = 0.0;
+                foreach ($validItems as $idx => $item) {
+                    if ($item['weight_kg'] > $maxWeight) {
+                        $maxWeight = $item['weight_kg'];
+                        $maxIdx = $idx;
+                    }
+                }
+
+                $pricePerKg = $blockCost / $totalWeight;
+                $sumInteger = 0.0;
+
+                // Распределяем стоимость (все, кроме max-веса — floor)
+                foreach ($validItems as $idx => $item) {
+                    if ($idx === $maxIdx) {
+                        continue;
+                    }
+                    $exactCost = ($item['weight_kg'] / $totalWeight) * $blockCost;
+                    $intCost = floor($exactCost);
+                    $zId = $item['zayavka_id'];
+
+                    if (!isset($price[$zId])) {
+                        $price[$zId] = 0.0;
+                        $price_per_kg[$zId] = $pricePerKg;
+                    }
+                    $price[$zId] += $intCost;
+                    $sumInteger += $intCost;
+                }
+
+                // Остаток — заявке с макс. весом
+                $maxCost = $blockCost - $sumInteger;
+                $maxZId = $validItems[$maxIdx]['zayavka_id'];
+                if (!isset($price[$maxZId])) {
+                    $price[$maxZId] = 0.0;
+                    $price_per_kg[$maxZId] = $pricePerKg;
+                }
+                $price[$maxZId] += round($maxCost, 2);
+            }
+        } catch (\Exception $e) {
+            error_log('FeoRepository calculatePrices error: ' . $e->getMessage());
         }
 
         return ['price' => $price, 'price_per_kg' => $price_per_kg];
