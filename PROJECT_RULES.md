@@ -4,7 +4,7 @@
 
 Проект: **Demo ERP**  
 Назначение: мини ERP-система для демонстрации части функционала клиенту.  
-Цель: быстро собрать стабильный, визуально аккуратный и понятный демо-контур без тяжёлых фреймворков и без архитектурного усложнения.
+Цель: быстро собрать стабильный, понятный и расширяемый демо-контур без тяжёлых фреймворков и без архитектурного усложнения.
 
 ---
 
@@ -22,22 +22,22 @@ C:\demoERP
 https://github.com/caymanlogistic-crypto/demo-erp
 ```
 
+### Ветка
+
+```text
+main
+```
+
 ### Сервер
 
 ```text
 /home/s/spugovxsim/public_html/demoERP
 ```
 
-### Публичная ссылка
+### Production URL
 
 ```text
 https://mg-log.ru/demoERP/public/
-```
-
-### Основная ветка
-
-```text
-main
 ```
 
 ### Автодеплой
@@ -61,6 +61,8 @@ PHP >=8.4 <8.6
 Composer
 PSR-4 autoload
 vlucas/phpdotenv
+PDO
+MySQL
 Vanilla PHP
 Vanilla CSS
 Vanilla JavaScript
@@ -100,6 +102,7 @@ demoERP/
 │   ├── Core/
 │   ├── Modules/
 │   │   ├── Auth/
+│   │   ├── Feo/
 │   │   └── Home/
 │   └── Views/
 ├── bootstrap/
@@ -116,14 +119,23 @@ demoERP/
 ├── .gitignore
 ├── composer.json
 ├── composer.lock
-└── PROJECT_RULES.md
+├── PROJECT_RULES.md
+└── README.md
+```
+
+Фактическая структура может отличаться по мере развития проекта, но архитектурный принцип сохраняется:
+
+```text
+public/ — только публичная точка входа и assets
+app/ — весь PHP-код приложения
+storage/ — логи и runtime-файлы
 ```
 
 ---
 
 ## 4. Главные архитектурные правила
 
-### 4.1. Entry point
+### 4.1. Единственная публичная точка входа
 
 Единственная публичная точка входа:
 
@@ -145,6 +157,9 @@ public/index.php
 public/clients.php
 public/orders.php
 public/test.php
+public/index22.php
+public/feo.php
+public/ajax.php
 ```
 
 ---
@@ -185,15 +200,17 @@ app/Modules/Clients
 app/Modules/Orders
 app/Modules/Flights
 app/Modules/Documents
+app/Modules/Feo
 ```
 
 Пример структуры модуля:
 
 ```text
-app/Modules/Clients/
+app/Modules/Feo/
 ├── Controllers/
 ├── Repositories/
 ├── Services/
+├── Support/
 └── Validators/
 ```
 
@@ -214,9 +231,7 @@ app/Views/
 ```text
 app/Views/layouts/main.php
 app/Views/home/index.php
-app/Views/clients/index.php
-app/Views/clients/create.php
-app/Views/clients/edit.php
+app/Views/feo/index.php
 ```
 
 В шаблонах нельзя размещать тяжёлую бизнес-логику.
@@ -290,7 +305,7 @@ DB_USER=root
 DB_PASS=
 ```
 
-Все доступы к базе, ключи и секреты хранить только в `.env` или GitHub Secrets.
+Все доступы к базе, ключи и секреты хранить только в `.env`, серверном окружении или GitHub Secrets.
 
 ---
 
@@ -319,11 +334,11 @@ git push
 Формат сообщений:
 
 ```text
-feat(clients): add client list screen
+feat(feo): add read-only requests listing
 fix(auth): handle invalid login
 ui(layout): polish sidebar and dashboard
 ci(deploy): update deployment workflow
-docs(project): add architecture rules
+docs(project): update coder workflow rules
 ```
 
 Не коммитить:
@@ -336,6 +351,9 @@ storage/logs/*.log
 архивы
 дампы БД
 личные ключи
+секретные токены
+MAX token
+MAX notify key
 ```
 
 ---
@@ -393,12 +411,13 @@ SSH_PRIVATE_KEY
 
 ```text
 1. Проверить синтаксис PHP.
-2. Проверить локальный запуск.
-3. Проверить страницу в браузере.
-4. Запушить.
-5. Проверить GitHub Actions.
-6. Проверить страницу на сервере.
-7. Отправить уведомление в MAX.
+2. Проверить Composer/autoload.
+3. Проверить локальный запуск.
+4. Проверить страницу в браузере.
+5. Запушить.
+6. Проверить GitHub Actions.
+7. Проверить страницу на production.
+8. Отправить MAX-уведомление.
 ```
 
 ---
@@ -509,7 +528,14 @@ tail -50 /home/s/spugovxsim/public_html/demoERP/storage/logs/app.log
 мини ERP должна выглядеть как рабочая B2B-система, а не как учебный шаблон.
 ```
 
-Стиль:
+Но при переносе старого функционала действует отдельное правило:
+
+```text
+сначала переносится голый функционал без дизайна;
+дизайн натягивается отдельным этапом после проверки логики.
+```
+
+Стиль будущего интерфейса:
 
 ```text
 desktop-first
@@ -611,15 +637,20 @@ e($value)
 
 ## 16. Работа с базой данных
 
-Пока БД может быть не подключена.
-
-Когда будет добавлена БД:
+Использовать:
 
 ```text
-использовать PDO
-не использовать ORM
-использовать prepared statements
-не собирать SQL через конкатенацию пользовательского ввода
+PDO
+prepared statements
+.env для доступов
+```
+
+Не использовать:
+
+```text
+ORM
+SQL через конкатенацию пользовательского ввода
+реальные DB-доступы в Git
 ```
 
 Правильно:
@@ -637,63 +668,413 @@ $pdo->query("SELECT * FROM clients WHERE id = " . $_GET['id']);
 
 ---
 
-## 17. Приоритет разработки
+## 17. Важно: локально БД не настроена
 
-Сначала делаем демонстрационный контур:
+На локальной машине БД по умолчанию не настроена.
+
+Поэтому локальная проверка не должна требовать реального подключения к MySQL.
+
+Код должен быть написан так, чтобы при отсутствии локальной БД:
 
 ```text
-1. Главный экран
-2. Клиенты / контрагенты
-3. Заявки
-4. Рейсы
-5. Документы
-6. Авторизация
-7. Простая роль администратора
+не было PHP Fatal error
+не было белого экрана
+не было 500 из-за отсутствия подключения
+главная страница продолжала работать
+модульная страница открывалась
+пользователь видел понятное сообщение
 ```
 
-Не начинать с чрезмерной архитектуры.
-
-Сначала:
+Пример понятного сообщения:
 
 ```text
-видимый рабочий функционал
-понятная навигация
-стабильный runtime
+База данных не подключена. Проверьте параметры .env.
 ```
 
-Потом:
+или:
 
 ```text
-расширение модулей
-валидация
-права
-сложные связи
-отчёты
+Функционал требует подключения к БД.
+```
+
+Локально обязательно проверить:
+
+```text
+composer validate
+composer dump-autoload
+php -l для всех изменённых PHP-файлов
+php -S localhost:8000 -t public
+http://localhost:8000/
+http://localhost:8000/?module=feo
+```
+
+Реальную проверку выборки из БД выполнять после push на production/server.
+
+---
+
+## 18. Правила переноса функционала из старой ERP
+
+Старые файлы могут лежать локально, например:
+
+```text
+C:\ТЕСТ УДАЛИТЬ
+```
+
+Главное правило:
+
+```text
+НЕ копировать старый файл целиком в public/.
+```
+
+Правильный процесс:
+
+```text
+старый ERP-файл
+        ↓
+анализ логики
+        ↓
+выделение нужного функционала
+        ↓
+адаптация под app/Modules/...
+        ↓
+подключение через public/index.php / routing
+        ↓
+runtime-проверка
+        ↓
+commit + push + deploy
+```
+
+Сначала переносится голый функционал.
+
+Не переносить:
+
+```text
+старый CSS
+старую тему
+старые украшательства
+старую навигацию
+случайный JS
+старые файлы как есть
 ```
 
 ---
 
-## 18. Запрещённые действия
+## 19. Текущая задача переноса ФЭО
 
-Кодеру запрещено:
+Функционал переносится из старого файла:
 
 ```text
-ломать автодеплой
-менять DEPLOY_PATH без согласования
-коммитить .env
-коммитить vendor/
-добавлять Laravel/Symfony
-добавлять frontend-сборщик
-создавать хаотичные PHP-файлы в public/
-удалять рабочий public/index.php без замены
-оставлять проект в состоянии 500
-пушить без локальной проверки
-считать работу завершённой без MAX-уведомления
+C:\ТЕСТ УДАЛИТЬ\index22.php
+```
+
+Также для анализа может использоваться:
+
+```text
+C:\ТЕСТ УДАЛИТЬ\config.php
+```
+
+`config.php` использовать только для понимания старого подключения.  
+Секреты из `config.php` не переносить в Git.
+
+### 19.1. Что НЕ переносить из index22.php
+
+Категорически не переносить:
+
+```text
+создание таблицы feo, если её нет
+загрузку Excel .xlsx
+разбор Excel через PhpSpreadsheet
+сопоставление колонок Excel с полями БД
+анализ новых и существующих заявок для импорта
+импорт только новых заявок
+импорт с перезаписью существующих
+редактирование строки
+удаление строки
+подтягивание стоимости из include/price.php
+старый CSS
+старую визуальную тему
+старые украшательства
+старую навигацию
+копирование index22.php целиком в public/
+установку phpoffice/phpspreadsheet
+```
+
+Excel-импорт сейчас не переносится, поэтому PhpSpreadsheet не нужен.
+
+### 19.2. Что переносить
+
+Перенести только read-only функционал:
+
+```text
+чтение данных из существующей таблицы feo
+вывод списка заявок
+HTTP/AJAX-выдача данных для списка
+фильтр по номерам заявок
+фильтр “доступные”
+фильтр “маршруты”
+фильтр “рейсы”
+использование status_blocks и flights только для отображения/фильтрации
+минимальная HTML-страница без дизайна
+```
+
+Старый `index22.php` использовать как источник алгоритма:
+
+```text
+какие поля есть в feo
+как выбираются заявки
+как работает фильтр по номерам
+как определяется “доступные”
+как определяется “маршруты”
+как определяется “рейсы”
+как связаны feo / status_blocks / flights
 ```
 
 ---
 
-## 19. Обязательный порядок работы кодера
+## 20. URL для модуля ФЭО
+
+Минимальный URL:
+
+```text
+https://mg-log.ru/demoERP/public/?module=feo
+```
+
+Допустимые варианты фильтров:
+
+```text
+https://mg-log.ru/demoERP/public/?module=feo&filter=available
+https://mg-log.ru/demoERP/public/?module=feo&filter=routes
+https://mg-log.ru/demoERP/public/?module=feo&filter=flights
+https://mg-log.ru/demoERP/public/?module=feo&numbers=123,456,789
+```
+
+Если используется JSON action:
+
+```text
+https://mg-log.ru/demoERP/public/?module=feo&action=list
+https://mg-log.ru/demoERP/public/?module=feo&action=list&filter=available
+https://mg-log.ru/demoERP/public/?module=feo&action=list&filter=routes
+https://mg-log.ru/demoERP/public/?module=feo&action=list&filter=flights
+```
+
+---
+
+## 21. Проверки после push на сервере
+
+После push обязательно:
+
+```text
+1. Открыть GitHub Actions.
+2. Дождаться зелёного workflow.
+3. Проверить production.
+```
+
+Production URL:
+
+```text
+https://mg-log.ru/demoERP/public/
+https://mg-log.ru/demoERP/public/?module=feo
+https://mg-log.ru/demoERP/public/?module=feo&filter=available
+https://mg-log.ru/demoERP/public/?module=feo&filter=routes
+https://mg-log.ru/demoERP/public/?module=feo&filter=flights
+```
+
+Если production показывает ошибку подключения к БД, отсутствия таблицы или отсутствия поля:
+
+```text
+зафиксировать точный текст ошибки
+не считать задачу завершённой
+отправить MAX-уведомление “требуется участие Владимира”
+```
+
+Если GitHub Actions красный — задача не завершена.
+
+---
+
+## 22. Обязательные MAX-уведомления
+
+MAX-уведомления обязательны.
+
+Кодер обязан отправлять уведомление в двух случаях:
+
+```text
+1. Работа завершена.
+2. Требуется участие Владимира.
+```
+
+### 22.1. Важное уточнение по файлам MAX
+
+В проект `demoERP` не добавлять локальный `max_notify.php`.
+
+Файл:
+
+```text
+http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
+```
+
+напрямую не вызывать.
+
+Это библиотека функций, а не публичный endpoint.
+
+Правильный endpoint для отправки уведомлений:
+
+```text
+http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php
+```
+
+Параметры endpoint:
+
+```text
+key
+text
+format
+```
+
+Формат:
+
+```text
+format=markdown
+```
+
+Ключ уведомления не коммитить в Git.
+
+В промтах и документации использовать placeholder:
+
+```text
+<MAX_NOTIFY_KEY>
+```
+
+Если владелец проекта временно дал тестовый ключ, его можно использовать только для ручного вызова, но нельзя добавлять в репозиторий.
+
+---
+
+### 22.2. PowerShell-вызов MAX
+
+Команда 1:
+
+```powershell
+$Text = [uri]::EscapeDataString("Demo ERP: задача завершена. Push выполнен, GitHub Actions зелёный, production проверен.")
+```
+
+Команда 2:
+
+```powershell
+Invoke-WebRequest "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=<MAX_NOTIFY_KEY>&text=$Text&format=markdown" -UseBasicParsing
+```
+
+Команды выполнять отдельно, не одной длинной строкой.
+
+---
+
+### 22.3. Bash-вызов MAX
+
+Команда 1:
+
+```bash
+TEXT=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("Demo ERP: задача завершена. Push выполнен, GitHub Actions зелёный, production проверен."))')
+```
+
+Команда 2:
+
+```bash
+curl "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=<MAX_NOTIFY_KEY>&text=$TEXT&format=markdown"
+```
+
+---
+
+### 22.4. Уведомление о завершении работы
+
+Перед отправкой уведомления “готово” кодер обязан выполнить:
+
+```text
+1. Проверить код локально.
+2. Выполнить composer validate.
+3. Выполнить composer dump-autoload.
+4. Выполнить php -l для изменённых PHP-файлов.
+5. Проверить локальный запуск.
+6. Сделать commit.
+7. Сделать push.
+8. Проверить GitHub Actions.
+9. Проверить production-ссылку.
+10. Только после этого отправить MAX-уведомление.
+```
+
+Пример текста:
+
+```text
+Demo ERP: задача завершена.
+Проверки пройдены.
+Push выполнен.
+GitHub Actions зелёный.
+Production проверен: https://mg-log.ru/demoERP/public/
+```
+
+---
+
+### 22.5. Уведомление, если нужно участие Владимира
+
+Если задача заблокирована или требуется решение владельца, кодер обязан сразу отправить уведомление.
+
+Пример текста:
+
+```text
+Demo ERP: требуется участие Владимира.
+Причина: на production отсутствуют параметры .env / не хватает таблицы / не хватает поля / нужно подтвердить UI / нужен доступ.
+```
+
+---
+
+### 22.6. Запрещено
+
+Нельзя считать работу завершённой без MAX-уведомления.
+
+Нельзя отправлять “готово”, если:
+
+```text
+не выполнен push
+не проверен GitHub Actions
+GitHub Actions красный
+production не открывается
+есть PHP Fatal error
+есть 500 Internal Server Error
+есть белый экран
+реальная проверка с БД не выполнена и требуется вмешательство владельца
+```
+
+---
+
+## 23. Правило завершения задачи
+
+Задача считается завершённой только если:
+
+```text
+код написан
+локально работает
+php -l проходит
+composer validate проходит
+composer dump-autoload проходит
+изменения закоммичены
+изменения запушены
+GitHub Actions зелёный
+production-ссылка открывается
+нет 500 ошибки
+нет PHP Fatal error
+MAX-уведомление отправлено
+```
+
+Если что-то сломалось — не скрывать. Сразу сообщить:
+
+```text
+что изменено
+что проверено
+где ошибка
+какой лог/вывод команды
+что нужно исправить
+```
+
+---
+
+## 24. Обязательный порядок работы кодера
 
 Перед началом:
 
@@ -745,36 +1126,29 @@ https://mg-log.ru/demoERP/public/
 
 ---
 
-## 20. Правило завершения задачи
+## 25. Запрещённые действия
 
-Задача считается завершённой только если:
-
-```text
-код написан
-локально работает
-php -l проходит
-composer validate проходит
-изменения закоммичены
-изменения запушены
-GitHub Actions зелёный
-production-ссылка открывается
-нет 500 ошибки
-отправлено MAX-уведомление
-```
-
-Если что-то сломалось — не скрывать. Сразу сообщить:
+Кодеру запрещено:
 
 ```text
-что изменено
-что проверено
-где ошибка
-какой лог/вывод команды
-что нужно исправить
+ломать автодеплой
+менять DEPLOY_PATH без согласования
+коммитить .env
+коммитить vendor/
+добавлять Laravel/Symfony
+добавлять frontend-сборщик
+создавать хаотичные PHP-файлы в public/
+удалять рабочий public/index.php без замены
+оставлять проект в состоянии 500
+пушить без локальной проверки
+пушить без production-проверки
+пушить секреты, ключи, токены
+дёргать Support/max_notify.php как endpoint
 ```
 
 ---
 
-## 21. Рекомендация по coding agent
+## 26. Рекомендация по coding agent
 
 Для задач по этому проекту использовать:
 
@@ -796,7 +1170,7 @@ deepseek-v4-pro
 deepseek-v4-flash
 ```
 
-Но для архитектуры, автодеплоя, модулей и runtime-стабильности предпочтительно:
+Но для архитектуры, автодеплоя, модулей, миграции старой ERP и runtime-стабильности предпочтительно:
 
 ```text
 deepseek-v4-pro
@@ -804,134 +1178,7 @@ deepseek-v4-pro
 
 ---
 
-## 22. Обязательные уведомления в MAX
-
-В проект `demoERP` **не добавлять локальный `max_notify.php`**.
-
-Для уведомлений использовать уже существующий рабочий внешний MAX-уведомитель:
-
-```text
-http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
-```
-
-Кодер обязан отправлять уведомление в MAX в двух случаях:
-
-```text
-1. Работа завершена.
-2. Требуется участие Владимира.
-```
-
----
-
-### 22.1. Когда отправлять уведомление о завершении
-
-Перед отправкой уведомления кодер обязан выполнить:
-
-```text
-1. Проверить код локально.
-2. Выполнить composer validate.
-3. Выполнить composer dump-autoload.
-4. Выполнить php -l для изменённых PHP-файлов.
-5. Проверить локальный запуск.
-6. Сделать commit.
-7. Сделать push.
-8. Проверить GitHub Actions.
-9. Проверить production-ссылку.
-10. Только после этого отправить MAX-уведомление.
-```
-
-Production-ссылка:
-
-```text
-https://mg-log.ru/demoERP/public/
-```
-
----
-
-### 22.2. PowerShell-вызов уведомления о завершении
-
-Пример:
-
-```powershell
-$Message = [uri]::EscapeDataString("Demo ERP: задача завершена. Проверки пройдены, push выполнен, GitHub Actions зелёный, production открывается: https://mg-log.ru/demoERP/public/")
-Invoke-WebRequest "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=$Message"
-```
-
----
-
-### 22.3. PowerShell-вызов, если нужно участие владельца
-
-Если задача заблокирована или требуется решение владельца, кодер обязан сразу отправить уведомление:
-
-```powershell
-$Message = [uri]::EscapeDataString("Demo ERP: требуется участие Владимира. Причина: нужно подтвердить UI / добавить secret / дать доступ / проверить production.")
-Invoke-WebRequest "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=$Message"
-```
-
----
-
-### 22.4. Linux/server curl-вариант
-
-На сервере можно использовать:
-
-```bash
-curl "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=Demo%20ERP%3A%20task%20finished"
-```
-
-Для русских сообщений предпочтительно использовать PowerShell-вариант с `[uri]::EscapeDataString(...)`, чтобы не сломать кодировку.
-
----
-
-### 22.5. Формат сообщения о завершении
-
-Сообщение должно содержать:
-
-```text
-Проект: Demo ERP
-Задача:
-Что сделано:
-Какие файлы изменены:
-Проверки:
-Commit:
-GitHub Actions:
-Production URL:
-Что нужно проверить владельцу:
-```
-
-Пример полного сообщения:
-
-```text
-Проект: Demo ERP
-Задача: добавить главный экран мини ERP
-Что сделано: обновлён public/index.php, добавлен базовый layout и CSS
-Файлы: public/index.php, app/Views/layouts/main.php, public/assets/css/app.css
-Проверки: composer validate OK, php -l OK, локально OK, GitHub Actions зелёный
-Commit: abc1234
-Production URL: https://mg-log.ru/demoERP/public/
-Что проверить владельцу: внешний вид главного экрана
-```
-
----
-
-### 22.6. Запрещено
-
-Нельзя считать работу завершённой без MAX-уведомления.
-
-Нельзя отправлять сообщение `готово`, если:
-
-```text
-не выполнен push
-не проверен GitHub Actions
-production не открывается
-есть PHP Fatal error
-есть 500 Internal Server Error
-```
-
-Нельзя добавлять в `demoERP` локальный `support/max_notify.php`, если отдельно не согласовано. Используется внешний рабочий URL.
-
----
-
-## 23. Главный принцип проекта
+## 27. Главный принцип проекта
 
 ```text
 Сначала стабильный работающий demo ERP.
@@ -939,5 +1186,5 @@ production не открывается
 Не ломать рабочее ради красоты.
 Не усложнять без необходимости.
 Каждое изменение проверять в runtime.
-Финальный шаг любой задачи — MAX-уведомление владельцу.
+Каждое завершение подтверждать MAX-уведомлением.
 ```
