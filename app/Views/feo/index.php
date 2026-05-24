@@ -1,278 +1,578 @@
 <?php
 /**
- * Шаблон страницы "Заявки ФЭО".
+ * Шаблон страницы «Загрузка данных FEO».
  *
- * Реальные колонки из index22.php:
- *   № | ID заявки | Номер заявки | Направление | Статус | Рейс | Номер машины | Дата | Стоимость
+ * Полностью повторяет структуру и поведение index22.php:
+ *  - Заголовок «Загрузка данных FEO»
+ *  - Кнопка «Выбрать файл» (визуально, без реальной загрузки)
+ *  - Фильтр по номерам заявок
+ *  - Поиск по содержимому
+ *  - Чекбоксы: Доступно, Маршрут, Рейс
+ *  - Счётчик «Всего заявок в базе: N»
+ *  - Таблица 14 колонок (как в index22.php)
+ *  - Бесконечная прокрутка
  *
- * Переменные:
- * @var array $data
- * @var array $statusMap
- * @var array $statusBlocks
- * @var array $flightZayavkaData
+ * Переменные (доступны из FeoController::index):
+ *   (нет — страница отдаётся пустой, данные загружаются AJAX'ом)
  */
-
-use App\Modules\Feo\Support\FeoStatusResolver;
-
-$rows           = $data['rows'] ?? [];
-$total          = $data['total'] ?? 0;
-$page           = $data['page'] ?? 1;
-$totalPages     = $data['totalPages'] ?? 0;
-$zayavkaIds     = $data['zayavkaIds'] ?? [];
-$filterType     = $data['filterType'] ?? 'all';
-$foundZayavki   = $data['foundZayavki'] ?? [];
-$missingZayavki = $data['missingZayavki'] ?? [];
-
-$statusColors = FeoStatusResolver::statusColors();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Заявки ФЭО — Demo ERP</title>
+    <title>Загрузка данных FEO — Demo ERP</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; color: #333; }
-        h1 { font-size: 1.5rem; margin: 0 0 1rem; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .filter-panel { background: #fff; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .filter-panel form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-        .filter-panel input[type="text"] { padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 3px; min-width: 250px; }
-        .filter-panel select { padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 3px; }
-        .filter-panel button { padding: 0.4rem 1rem; background: #007bff; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
-        .filter-panel button:hover { background: #0069d9; }
-        table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.875rem; }
-        th, td { padding: 0.5rem 0.75rem; border: 1px solid #dee2e6; text-align: left; }
-        th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; }
-        tr:hover { background: #f1f3f5; }
-        .status-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600; color: #fff; }
-        .badge-yes { background: #28a745; color: #fff; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; }
-        .badge-no { color: #6c757d; }
-        .empty-cell { color: #adb5bd; }
-        .missing-info { background: #fff3cd; border: 1px solid #ffc107; padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.875rem; }
-        .pagination { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-        .pagination a { text-decoration: none; padding: 0.3rem 0.7rem; border: 1px solid #dee2e6; border-radius: 3px; color: #007bff; background: #fff; font-size: 0.875rem; }
-        .pagination a:hover { background: #e9ecef; }
-        .pagination strong { padding: 0.3rem 0.7rem; background: #007bff; color: #fff; border-radius: 3px; font-size: 0.875rem; }
-        .pagination span { font-size: 0.875rem; color: #6c757d; }
-        <?php foreach ($statusColors as $class => $color): ?>
-        .<?= $class ?> { background: <?= $color ?> !important; }
-        <?php endforeach; ?>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .app {
+            max-width: 100%;
+            margin: 0;
+            padding: 1rem;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            background: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .toolbar h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            flex: 1;
+        }
+        .toolbar a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .toolbar a:hover {
+            text-decoration: underline;
+        }
+        .btn {
+            padding: 0.4rem 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #e9ecef;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background: #0069d9;
+        }
+        .btn-sm {
+            padding: 0.15rem 0.4rem;
+            font-size: 0.75rem;
+        }
+        .btn-delete {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-delete:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Фильтры */
+        .filter-container {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .filter-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .filter-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-label {
+            font-size: 14px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .filter-input {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .filter-checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .filter-checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .filter-stats {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+        .filter-stats-error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        /* Таблица */
+        .table-wrapper {
+            overflow: auto;
+            max-height: calc(100vh - 320px);
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+        .data-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        .data-table td {
+            padding: 0.4rem 0.5rem;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        .data-table tbody tr:hover {
+            background: #f1f3f5;
+        }
+
+        /* Статусы */
+        .status-available {
+            color: #28a745;
+            font-weight: bold;
+            background: #d4edda;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            min-width: 50px;
+        }
+        .status-marshrut {
+            color: #0066cc;
+            font-weight: bold;
+            background: #e7f3ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            min-width: 50px;
+        }
+        .status-flight {
+            color: #856404;
+            font-weight: bold;
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            min-width: 50px;
+        }
+        .status-badge {
+            display: inline-block;
+            width: 120px;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .status-search        { background: #FFA459; }
+        .status-found         { background: #17a2b8; }
+        .status-started       { background: #28a745; }
+        .status-completed     { background: #6c757d; }
+        .status-attention     { background: #dc3545; }
+        .status-planned-route { background: #9c27b0; }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 1rem;
+            color: #6c757d;
+        }
+        .no-more-data {
+            text-align: center;
+            padding: 1rem;
+            color: #adb5bd;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Заявки ФЭО</h1>
-        <p><a href="/">← На главную</a></p>
-
-        <div class="filter-panel">
-            <form id="filterForm" method="GET" action="">
-                <input type="hidden" name="module" value="feo">
-                <label style="font-size:0.875rem;">
-                    Номера заявок:
-                    <input type="text" id="numbersInput" name="numbers" value="<?= htmlspecialchars(implode(', ', $zayavkaIds), ENT_QUOTES, 'UTF-8') ?>" placeholder="Например: 123, 456, 789" autocomplete="off">
-                </label>
-                <label style="font-size:0.875rem;">
-                    Фильтр:
-                    <select name="filter" id="filterSelect">
-                        <option value="all" <?= $filterType === 'all' ? 'selected' : '' ?>>Все</option>
-                        <option value="available" <?= $filterType === 'available' ? 'selected' : '' ?>>Доступные</option>
-                        <option value="routes" <?= $filterType === 'routes' ? 'selected' : '' ?>>Маршруты</option>
-                        <option value="flights" <?= $filterType === 'flights' ? 'selected' : '' ?>>Рейсы</option>
-                    </select>
-                </label>
-                <button type="submit">Показать</button>
-            </form>
+    <div class="app">
+        <div class="toolbar">
+            <h1>Загрузка данных FEO</h1>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Выбрать файл</button>
+            <input type="file" id="fileInput" accept=".xlsx" style="display: none;" disabled>
+            <a href="/demoERP/public/">← На главную</a>
         </div>
 
-        <div id="searchInfo"></div>
-
-        <div id="tableContainer">
-            <?php require __DIR__ . '/_table.php'; ?>
+        <div class="filter-container">
+            <div class="filter-row">
+                <div class="filter-input-group">
+                    <label for="filterZayavki" class="filter-label">Фильтр по заявкам:</label>
+                    <input type="text" id="filterZayavki" placeholder="Введите номера заявок через запятую, пробел" class="filter-input" value="">
+                    <button id="clearFilterBtn" class="btn">Очистить</button>
+                </div>
+                <div class="filter-input-group">
+                    <label for="searchText" class="filter-label">Поиск по содержимому:</label>
+                    <input type="text" id="searchText" placeholder="Регион, МО, Отправитель, Адрес, Доступно, Маршрут, Рейс, Статус..." class="filter-input" value="">
+                    <button id="clearSearchBtn" class="btn">Очистить</button>
+                </div>
+            </div>
+            <div class="filter-checkbox-group">
+                <label for="showOnlyAvailable"><input type="checkbox" id="showOnlyAvailable"> Доступно</label>
+                <label for="showOnlyMarshrut"><input type="checkbox" id="showOnlyMarshrut"> Маршрут</label>
+                <label for="showOnlyFlight"><input type="checkbox" id="showOnlyFlight"> Рейс</label>
+            </div>
+            <div id="filterInfo" class="filter-stats"><span id="filterStats"></span></div>
         </div>
 
-        <div class="pagination">
-            <span>Всего: <strong><?= $total ?></strong></span>
-            <?php if ($totalPages > 1): ?>
-                <span>Страница <?= $page ?> из <?= $totalPages ?></span>
-                <?php
-                $queryParams = [
-                    'module' => 'feo',
-                    'numbers' => implode(',', $zayavkaIds),
-                    'filter' => $filterType,
-                ];
-                ?>
-                <?php if ($page > 1): ?>
-                    <a href="?<?= http_build_query(array_merge($queryParams, ['page' => $page - 1])) ?>">← Назад</a>
-                <?php endif; ?>
-                <?php if ($page < $totalPages): ?>
-                    <a href="?<?= http_build_query(array_merge($queryParams, ['page' => $page + 1])) ?>">Вперёд →</a>
-                <?php endif; ?>
-            <?php endif; ?>
+        <div class="table-wrapper" id="tableWrapper">
+            <table class="data-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID ЗАЯВКИ</th>
+                        <th style="width: 90px; text-align: right;">МАССА, КГ</th>
+                        <th style="width: 150px;">МНО, РЕГИОН</th>
+                        <th style="width: 150px;">МНО, МО</th>
+                        <th style="width: 200px;">ГРУЗООТПРАВИТЕЛЬ</th>
+                        <th style="text-align: left;">АДРЕС ПОГРУЗКИ</th>
+                        <th style="width: 100px; text-align: center;">ДОСТУПНО</th>
+                        <th style="width: 100px; text-align: center;">МАРШРУТ</th>
+                        <th style="width: 150px; text-align: center;">РЕЙС</th>
+                        <th style="width: 140px; text-align: center;">СТАТУС</th>
+                        <th style="width: 180px; text-align: center;">ДАТЫ</th>
+                        <th style="width: 100px; text-align: right;">СТОИМОСТЬ</th>
+                        <th style="width: 80px; text-align: right;">₽/КГ</th>
+                        <th style="width: 100px; text-align: center;">ДЕЙСТВИЯ</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;">Загрузка...</div>
+            <div id="noMoreData" class="no-more-data" style="display: none;">Все заявки загружены</div>
         </div>
     </div>
 
     <script>
-    (function() {
-        var numbersInput = document.getElementById('numbersInput');
-        var filterSelect = document.getElementById('filterSelect');
-        var tableContainer = document.getElementById('tableContainer');
-        var searchInfo = document.getElementById('searchInfo');
-        var debounceTimer = null;
-        var currentRequest = null;
-        var currentPage = <?= (int)$page ?>;
+    var fileInput = document.getElementById('fileInput');
+    var tableBody = document.getElementById('tableBody');
+    var tableWrapper = document.getElementById('tableWrapper');
+    var filterInput = document.getElementById('filterZayavki');
+    var clearFilterBtn = document.getElementById('clearFilterBtn');
+    var filterStats = document.getElementById('filterStats');
+    var loadingIndicator = document.getElementById('loadingIndicator');
+    var noMoreData = document.getElementById('noMoreData');
+    var showOnlyAvailableCheckbox = document.getElementById('showOnlyAvailable');
+    var showOnlyMarshrutCheckbox = document.getElementById('showOnlyMarshrut');
+    var showOnlyFlightCheckbox = document.getElementById('showOnlyFlight');
 
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str).replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&';
-                if (m === '<') return '<';
-                if (m === '>') return '>';
-                return m;
-            });
-        }
+    // Поиск по содержимому
+    var searchInput = document.getElementById('searchText');
+    var clearSearchBtn = document.getElementById('clearSearchBtn');
+    var currentSearch = '';
+    var allRowsData = [];
+    var lastAjaxData = null;
 
-        function renderTable(data) {
-            if (!data || !data.rows) {
-                tableContainer.innerHTML = '<table><tr><td colspan="9" style="text-align:center;padding:2rem;color:#6c757d;">Нет данных для отображения.</td></tr></table>';
-                return;
-            }
+    var currentOffset = 0;
+    var currentLimit = 50;
+    var currentFilter = '';
+    var currentTotal = 0;
+    var isLoading = false;
+    var hasMore = true;
+    var loadTimeout = null;
+    var scrollTimeout = null;
 
-            var html = '<table><thead><tr>';
-            html += '<th>№</th>';
-            html += '<th>ID заявки</th>';
-            html += '<th>Номер заявки</th>';
-            html += '<th>Направление</th>';
-            html += '<th>Статус</th>';
-            html += '<th>Рейс</th>';
-            html += '<th>Номер машины</th>';
-            html += '<th>Дата</th>';
-            html += '<th>Стоимость</th>';
-            html += '</tr></thead><tbody>';
+    // Предупреждение о том, что загрузка файла отключена
+    fileInput.addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('Загрузка файла .xlsx временно отключена в demoERP.\nИспользуйте оригинальный инструмент для импорта данных.');
+        return false;
+    });
 
-            if (data.rows.length === 0) {
-                var msg = (data.missingZayavki && data.missingZayavki.length > 0)
-                    ? 'Заявки с указанными номерами не найдены.'
-                    : 'Нет данных для отображения.';
-                html += '<tr><td colspan="9" style="text-align:center;padding:2rem;color:#6c757d;">' + msg + '</td></tr>';
-            } else {
-                for (var i = 0; i < data.rows.length; i++) {
-                    var row = data.rows[i];
-                    var rowNum = (data.page - 1) * 50 + i + 1;
-                    html += '<tr>';
-                    html += '<td>' + rowNum + '</td>';
-                    html += '<td><strong>' + escapeHtml(row.zayavka_id) + '</strong></td>';
-                    html += '<td>' + escapeHtml(row.nomer_zayavki) + '</td>';
-                    html += '<td>' + escapeHtml(row.napravlenie) + '</td>';
-                    html += '<td>' + escapeHtml(row.status_name) + '</td>';
-                    html += '<td>' + escapeHtml(row.flight_name) + '</td>';
-                    html += '<td>' + escapeHtml(row.nomer_mashiny) + '</td>';
-                    html += '<td>' + escapeHtml(row.data_zayavki) + '</td>';
-                    html += '<td>' + escapeHtml(row.zakaz_s_op_stoimost) + '</td>';
-                    html += '</tr>';
-                }
-            }
+    function loadData(reset) {
+        if (reset === undefined) reset = true;
+        if (isLoading) return;
+        if (reset) { currentOffset = 0; hasMore = true; tableBody.innerHTML = ''; noMoreData.style.display = 'none'; }
+        if (!hasMore) return;
+        isLoading = true;
+        loadingIndicator.style.display = 'block';
 
-            html += '</tbody></table>';
-            tableContainer.innerHTML = html;
-        }
+        var filterValue = filterInput.value.trim();
+        var showOnlyAvailable = showOnlyAvailableCheckbox.checked ? '1' : '0';
+        var showOnlyMarshrut = showOnlyMarshrutCheckbox.checked ? '1' : '0';
+        var showOnlyFlight = showOnlyFlightCheckbox.checked ? '1' : '0';
 
-        function renderMissingInfo(missingZayavki) {
-            if (missingZayavki && missingZayavki.length > 0) {
-                searchInfo.innerHTML = '<div class="missing-info"><strong>Не найдены номера заявок:</strong> ' + escapeHtml(missingZayavki.join(', ')) + '</div>';
-            } else {
-                searchInfo.innerHTML = '';
-            }
-        }
+        var url = '?module=feo&action=list&ajax=get_zayavki'
+            + '&offset=' + currentOffset
+            + '&limit=' + currentLimit
+            + '&filter_zayavki=' + encodeURIComponent(filterValue)
+            + '&show_only_available=' + showOnlyAvailable
+            + '&show_only_marshrut=' + showOnlyMarshrut
+            + '&show_only_flight=' + showOnlyFlight;
 
-        function doSearch(page) {
-            page = page || 1;
-            currentPage = page;
-
-            var numbers = numbersInput.value.trim();
-            var filter = filterSelect.value;
-
-            var params = 'module=feo&action=list&ajax=1';
-            if (numbers) params += '&numbers=' + encodeURIComponent(numbers);
-            if (filter) params += '&filter=' + encodeURIComponent(filter);
-            if (page > 1) params += '&page=' + page;
-
-            if (currentRequest) {
-                currentRequest.abort();
-            }
-
-            var xhr = new XMLHttpRequest();
-            currentRequest = xhr;
-
-            xhr.open('GET', '?' + params, true);
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-            xhr.onload = function() {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (data.error) {
-                            tableContainer.innerHTML = '<div class="missing-info">' + escapeHtml(data.error) + '</div>';
-                            searchInfo.innerHTML = '';
-                        } else {
-                            renderTable(data);
-                            renderMissingInfo(data.missingZayavki);
-                            // Update pagination links in URL without reload
-                            updateUrl(page, numbers, filter);
-                        }
-                    } catch (e) {
-                        console.error('JSON parse error:', e);
-                        tableContainer.innerHTML = '<div class="missing-info">Ошибка обработки ответа сервера.</div>';
+        fetch(url)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    if (reset) {
+                        tableBody.innerHTML = data.html;
+                    } else {
+                        tableBody.insertAdjacentHTML('beforeend', data.html);
                     }
+                    currentTotal = data.total;
+                    currentFilter = filterValue;
+                    hasMore = data.has_more;
+                    lastAjaxData = data;
+
+                    var rowsCount = tableBody.querySelectorAll('tr').length;
+                    currentOffset = rowsCount;
+
+                    if (!hasMore && currentOffset > 0) {
+                        noMoreData.style.display = 'block';
+                    } else {
+                        noMoreData.style.display = 'none';
+                    }
+
+                    updateFilterInfo(data);
+                    parseRowsForSearch();
+                    applyTextFilter();
                 } else {
-                    tableContainer.innerHTML = '<div class="missing-info">Ошибка сервера (код ' + xhr.status + ').</div>';
+                    tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
                 }
-                currentRequest = null;
-            };
+            })
+            .catch(function(error) {
+                console.error('Ошибка загрузки:', error);
+                tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: #dc3545;">Ошибка загрузки данных</td></tr>';
+            })
+            .finally(function() {
+                isLoading = false;
+                loadingIndicator.style.display = 'none';
+            });
+    }
 
-            xhr.onerror = function() {
-                tableContainer.innerHTML = '<div class="missing-info">Ошибка соединения с сервером.</div>';
-                currentRequest = null;
-            };
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&';
+            if (m === '<') return '<';
+            if (m === '>') return '>';
+            return m;
+        });
+    }
 
-            xhr.send();
-        }
+    function updateFilterInfo(data) {
+        var filterText = [];
+        if (data.show_only_available) filterText.push('доступные');
+        if (data.show_only_marshrut) filterText.push('маршруты');
+        if (data.show_only_flight) filterText.push('рейсы');
+        var availableText = filterText.length > 0 ? ' (только ' + filterText.join(', ') + ')' : '';
 
-        function updateUrl(page, numbers, filter) {
-            var url = '?module=feo';
-            if (numbers) url += '&numbers=' + encodeURIComponent(numbers);
-            if (filter && filter !== 'all') url += '&filter=' + encodeURIComponent(filter);
-            if (page > 1) url += '&page=' + page;
-            if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, '', url);
+        if (data.has_filter && data.filter_count > 0) {
+            if (data.total > 0) {
+                var message = '🔍 Найдено заявок' + availableText + ': ' + data.total + ' из ' + data.filter_count + ' введенных';
+                if (data.missing_zayavki && data.missing_zayavki.length > 0) {
+                    message += ' <span class="filter-stats-error">: ' + escapeHtml(data.missing_zayavki.join(', ')) + '</span>';
+                }
+                filterStats.innerHTML = message;
+            } else {
+                var message2 = '⚠️ По введенным номерам заявок' + availableText + ' (' + data.filter_count + ') ничего не найдено';
+                if (data.missing_zayavki && data.missing_zayavki.length > 0) {
+                    message2 += ' <span class="filter-stats-error">: ' + escapeHtml(data.missing_zayavki.join(', ')) + '</span>';
+                }
+                filterStats.innerHTML = message2;
             }
+        } else if (data.has_filter && data.filter_count === 0) {
+            filterStats.innerHTML = '⚠️ Не найдено корректных номеров заявок';
+        } else {
+            filterStats.innerHTML = '📋 Всего заявок в базе' + availableText + ': ' + data.total;
         }
+    }
 
-        // Debounced input handler (400ms, same as index22.php)
-        numbersInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(function() {
-                doSearch(1);
-            }, 400);
+    // Логика поиска по содержимому (из index22.php)
+    function parseRowsForSearch() {
+        allRowsData = [];
+        tableBody.querySelectorAll('tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length >= 10) {
+                allRowsData.push({
+                    element: row,
+                    searchText: [
+                        cells[2] ? cells[2].textContent : '',
+                        cells[3] ? cells[3].textContent : '',
+                        cells[4] ? cells[4].textContent : '',
+                        cells[5] ? cells[5].textContent : '',
+                        cells[6] ? cells[6].textContent : '',
+                        cells[7] ? cells[7].textContent : '',
+                        cells[8] ? cells[8].textContent : '',
+                        cells[9] ? cells[9].textContent : ''
+                    ].join(' ').toLowerCase()
+                });
+            }
         });
+    }
 
-        // Filter select change triggers search immediately
-        filterSelect.addEventListener('change', function() {
-            clearTimeout(debounceTimer);
-            doSearch(1);
+    function applyTextFilter() {
+        var searchValue = currentSearch.trim().toLowerCase();
+        if (!searchValue) {
+            allRowsData.forEach(function(item) { item.element.style.display = ''; });
+            if (lastAjaxData) updateFilterInfo(lastAjaxData);
+            return;
+        }
+        var visibleCount = 0;
+        allRowsData.forEach(function(item) {
+            if (item.searchText.indexOf(searchValue) !== -1) {
+                item.element.style.display = '';
+                visibleCount++;
+            } else {
+                item.element.style.display = 'none';
+            }
         });
+        if (lastAjaxData) {
+            var html = filterStats.innerHTML.replace(/ 🔍 Найдено по тексту: \d+/, '');
+            html += ' 🔍 Найдено по тексту: ' + visibleCount;
+            filterStats.innerHTML = html;
+        }
+    }
 
-        // Form submit as fallback (regular GET reload, shown as button)
-        document.getElementById('filterForm').addEventListener('submit', function(e) {
-            // Only use form submit if JS is disabled; AJAX handles the rest
-            // Keep as fallback: do nothing special - form submits naturally
+    function handleScroll() {
+        if (!tableWrapper) return;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function() {
+            var scrollTop = tableWrapper.scrollTop;
+            var scrollHeight = tableWrapper.scrollHeight;
+            var clientHeight = tableWrapper.clientHeight;
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                if (!isLoading && hasMore) loadData(false);
+            }
+        }, 100);
+    }
+
+    function handleFilterInput() {
+        if (loadTimeout) clearTimeout(loadTimeout);
+        loadTimeout = setTimeout(function() {
+            loadData(true);
+            if (tableWrapper) tableWrapper.scrollTop = 0;
+        }, 500);
+    }
+
+    function handleCheckboxChange() {
+        if (loadTimeout) clearTimeout(loadTimeout);
+        loadTimeout = setTimeout(function() {
+            loadData(true);
+            if (tableWrapper) tableWrapper.scrollTop = 0;
+        }, 300);
+    }
+
+    function clearFilter() {
+        filterInput.value = '';
+        showOnlyAvailableCheckbox.checked = false;
+        showOnlyMarshrutCheckbox.checked = false;
+        showOnlyFlightCheckbox.checked = false;
+        loadData(true);
+        if (tableWrapper) tableWrapper.scrollTop = 0;
+    }
+
+    function handleSearchInput() {
+        currentSearch = searchInput.value.trim();
+        if (allRowsData.length > 0) {
+            applyTextFilter();
+        }
+    }
+
+    function clearSearch() {
+        searchInput.value = '';
+        currentSearch = '';
+        if (allRowsData.length > 0) applyTextFilter();
+    }
+
+    // Event listeners
+    if (filterInput) filterInput.addEventListener('input', handleFilterInput);
+    if (clearFilterBtn) clearFilterBtn.addEventListener('click', clearFilter);
+    if (showOnlyAvailableCheckbox) showOnlyAvailableCheckbox.addEventListener('change', handleCheckboxChange);
+    if (showOnlyMarshrutCheckbox) showOnlyMarshrutCheckbox.addEventListener('change', handleCheckboxChange);
+    if (showOnlyFlightCheckbox) showOnlyFlightCheckbox.addEventListener('change', handleCheckboxChange);
+    if (searchInput) searchInput.addEventListener('input', handleSearchInput);
+    if (clearSearchBtn) clearSearchBtn.addEventListener('click', clearSearch);
+
+    // Бесконечная прокрутка
+    if (tableWrapper) {
+        tableWrapper.addEventListener('scroll', handleScroll);
+        var observer = new MutationObserver(function() {
+            setTimeout(function() {
+                if (tableWrapper.scrollHeight <= tableWrapper.clientHeight && hasMore && !isLoading) {
+                    loadData(false);
+                }
+            }, 100);
         });
+        observer.observe(tableBody, { childList: true, subtree: true });
+    }
 
-        // Initial missing info
-        <?php if (!empty($missingZayavki)): ?>
-        renderMissingInfo(<?= json_encode($missingZayavki, JSON_UNESCAPED_UNICODE) ?>);
-        <?php endif; ?>
-    })();
+    // Заглушки для кнопок ДЕЙСТВИЯ
+    window.editRow = function(rowId) {
+        alert('Редактирование заявки #' + rowId + ' временно отключено в demoERP.');
+    };
+    window.deleteRow = function(rowId, zayavkaId) {
+        alert('Удаление заявки ' + zayavkaId + ' временно отключено в demoERP.');
+    };
+
+    // Первая загрузка
+    loadData(true);
     </script>
 </body>
 </html>

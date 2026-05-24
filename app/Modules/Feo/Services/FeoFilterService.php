@@ -7,9 +7,11 @@ namespace App\Modules\Feo\Services;
 use App\Modules\Feo\Repositories\FeoRepository;
 
 /**
- * Сервис фильтрации заявок.
+ * Сервис фильтрации заявок (оркестратор).
  *
- * Оркестрирует получение данных: парсинг номеров → запрос в репозиторий.
+ * Повторяет логику index22.php:
+ *  - offset/limit вместо page-based пагинации
+ *  - чекбоксы: showOnlyAvailable, showOnlyMarshrut, showOnlyFlight
  */
 class FeoFilterService
 {
@@ -23,36 +25,57 @@ class FeoFilterService
     /**
      * Выполнить фильтрацию.
      *
-     * @param string $numbers     Строка номеров заявок (через запятую/пробел/;)
-     * @param string $filterType  all | available | routes | flights
-     * @param int    $page        Номер страницы (начиная с 1)
-     * @param int    $limit       Элементов на странице
+     * @param string $numbers            Строка номеров заявок (через запятую/пробел/;)
+     * @param bool   $showOnlyAvailable  Чекбокс «Доступно»
+     * @param bool   $showOnlyMarshrut   Чекбокс «Маршрут»
+     * @param bool   $showOnlyFlight     Чекбокс «Рейс»
+     * @param int    $offset             Смещение для бесконечной прокрутки
+     * @param int    $limit              Элементов на странице
      * @return array
      */
     public function execute(
         string $numbers,
-        string $filterType = 'all',
-        int $page = 1,
+        bool $showOnlyAvailable = false,
+        bool $showOnlyMarshrut = false,
+        bool $showOnlyFlight = false,
+        int $offset = 0,
         int $limit = 50
     ): array {
         $zayavkaIds = FeoRepository::parseZayavkaNumbers($numbers);
-        $page       = max(1, $page);
         $limit      = min(100, max(10, $limit));
-        $offset     = ($page - 1) * $limit;
+        $offset     = max(0, $offset);
 
-        $result     = $this->repository->getFilteredRows($zayavkaIds, $filterType, $offset, $limit);
-        $totalPages = (int) ceil($result['total'] / $limit);
+        $result = $this->repository->getFilteredRows(
+            $zayavkaIds,
+            $showOnlyAvailable,
+            $showOnlyMarshrut,
+            $showOnlyFlight,
+            $offset,
+            $limit
+        );
+
+        $hasMore = ($offset + $limit) < $result['total'];
 
         return [
-            'rows'          => $result['rows'],
-            'total'         => $result['total'],
-            'foundZayavki'   => $result['foundZayavki'],
-            'missingZayavki' => $result['missingZayavki'],
-            'page'          => $page,
-            'limit'         => $limit,
-            'zayavkaIds'    => $zayavkaIds,
-            'filterType'    => $filterType,
-            'totalPages'    => $totalPages,
+            'rows'              => $result['rows'],
+            'total'             => $result['total'],
+            'foundZayavki'      => $result['foundZayavki'],
+            'missingZayavki'    => $result['missingZayavki'],
+            'statusMap'         => $result['statusMap'],
+            'availableBlockMap' => $result['availableBlockMap'],
+            'marshrutMap'       => $result['marshrutMap'],
+            'flightMap'         => $result['flightMap'],
+            'flightDetailsMap'  => $result['flightDetailsMap'],
+            'priceMap'          => $result['priceMap'],
+            'pricePerKgMap'     => $result['pricePerKgMap'],
+            'offset'            => $offset,
+            'limit'             => $limit,
+            'hasMore'           => $hasMore,
+            'zayavkaIds'        => $zayavkaIds,
+            'showOnlyAvailable' => $showOnlyAvailable,
+            'showOnlyMarshrut'  => $showOnlyMarshrut,
+            'showOnlyFlight'    => $showOnlyFlight,
+            '_checkboxEmpty'    => $result['_checkboxEmpty'] ?? false,
         ];
     }
 }
