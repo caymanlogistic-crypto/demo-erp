@@ -3,15 +3,16 @@
  * Контент страницы «Статистика вывозов» (TransportERP shell).
  *
  * Переменные:
- *   $period    — week|month|custom
- *   $dateType  — delivery|pickup
- *   $dateFrom  — YYYY-MM-DD
- *   $dateTo    — YYYY-MM-DD
- *   $warning   — string|null
- *   $summary   — [periods_count, requests_total, flights_total, weight_total_kg, ...]
- *   $rows      — array of period rows
- *   $chartData — [enabled, period, date_type, items, ...]
- *   $service   — StatisticsService
+ *   $period      — week|month|custom
+ *   $dateType    — delivery|pickup
+ *   $dateFrom    — YYYY-MM-DD
+ *   $dateTo      — YYYY-MM-DD
+ *   $warning     — string|null
+ *   $summary     — [periods_count, requests_total, flights_total, weight_total_kg, ...]
+ *   $rows        — array of period rows
+ *   $chartData   — [enabled, period, date_type, items, ...]
+ *   $chartMetric — weight|requests|flights
+ *   $service     — StatisticsService
  */
 
 use App\Modules\Statistics\Services\StatisticsService;
@@ -24,19 +25,21 @@ use App\Modules\Statistics\Services\StatisticsService;
 /** @var array $summary */
 /** @var array $rows */
 /** @var array $chartData */
+/** @var string $chartMetric */
 /** @var StatisticsService $service */
 ?>
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
         <div class="page-title">Статистика вывозов</div>
-        <div class="page-summary"><span>Количество заявок и масса по выбранной дате</span></div>
+        <div class="page-summary"><span>Количество заявок и масса по выбранному основанию</span></div>
     </div>
 </div>
 
 <!-- Filter bar -->
 <form class="statistics-filters" data-statistics-filter-form method="get" action="">
     <input type="hidden" name="module" value="statistics">
+    <input type="hidden" name="chart_metric" id="chartMetricInput" value="<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?>">
 
     <div class="filter-field" style="width: 140px;">
         <label for="periodSelect">Группировка</label>
@@ -48,7 +51,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     </div>
 
     <div class="filter-field" style="width: 130px;">
-        <label for="dateTypeSelect">Считать по дате</label>
+        <label for="dateTypeSelect">Строить по</label>
         <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
             <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
             <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>
@@ -116,7 +119,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             <div class="statistics-chart-head">
                 <div class="statistics-chart-heading">
                     <div class="statistics-chart-title">Динамика по периодам</div>
-                    <div class="statistics-chart-subtitle">Масса, заявки и рейсы по выбранной дате события</div>
+                    <div class="statistics-chart-subtitle">Масса, заявки и рейсы по выбранному основанию</div>
                 </div>
 
                 <div class="statistics-chart-switch" role="group" aria-label="Метрика графика">
@@ -337,7 +340,9 @@ use App\Modules\Statistics\Services\StatisticsService;
     var microAvg = chartPanel.querySelector('[data-chart-avg]');
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
 
-    var currentMetric = 'requests';
+    var chartMetricInput = document.getElementById('chartMetricInput');
+    var currentMetric = chartMetricInput ? chartMetricInput.value : 'requests';
+    if (!metricConfigs[currentMetric]) currentMetric = 'requests';
     var guideLine = null;
 
     function formatNumber(value) {
@@ -698,6 +703,7 @@ use App\Modules\Statistics\Services\StatisticsService;
         });
         renderChart(metric);
         updateMicroSummary(metric);
+        if (chartMetricInput) chartMetricInput.value = metric;
     }
 
     switchBtns.forEach(function (btn) {

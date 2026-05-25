@@ -345,7 +345,12 @@ class StatisticsService
 
     private function normalizeDateType(string $dateType): string
     {
-        return in_array($dateType, ['delivery', 'pickup'], true) ? $dateType : 'delivery';
+        return in_array($dateType, ['delivery', 'pickup'], true) ? $dateType : 'pickup';
+    }
+
+    public function normalizeChartMetric(string $metric): string
+    {
+        return in_array($metric, ['weight', 'requests', 'flights'], true) ? $metric : 'requests';
     }
 
     private function isValidDate(string $date): bool

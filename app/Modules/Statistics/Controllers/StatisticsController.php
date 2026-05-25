@@ -42,16 +42,19 @@ class StatisticsController
             $filters['date_type']
         );
 
+        $chartMetric = $this->service->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
+
         ob_start();
-        $period    = $filters['period'];
-        $dateType  = $filters['date_type'];
-        $dateFrom  = $filters['date_from'];
-        $dateTo    = $filters['date_to'];
-        $warning   = $filters['warning'];
-        $summary   = $data['summary'];
-        $rows      = $data['rows'];
-        $chartData = $chartData;
-        $service   = $this->service;
+        $period      = $filters['period'];
+        $dateType    = $filters['date_type'];
+        $dateFrom    = $filters['date_from'];
+        $dateTo      = $filters['date_to'];
+        $warning     = $filters['warning'];
+        $summary     = $data['summary'];
+        $rows        = $data['rows'];
+        $chartData   = $chartData;
+        $chartMetric = $chartMetric;
+        $service     = $this->service;
         require __DIR__ . '/../../../Views/statistics/index.php';
         $content = ob_get_clean();
 
