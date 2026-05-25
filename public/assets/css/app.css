@@ -1590,7 +1590,7 @@ textarea { resize: vertical; }
 }
 
 .statistics-chart-inner {
-  max-width: 1120px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -1657,13 +1657,13 @@ textarea { resize: vertical; }
 
 .statistics-chart-body {
   position: relative;
-  min-height: 165px;
+  min-height: 205px;
 }
 
 .statistics-chart-svg {
   display: block;
   width: 100%;
-  height: 160px;
+  height: 200px;
 }
 
 .statistics-chart-tooltip {
@@ -1685,7 +1685,7 @@ textarea { resize: vertical; }
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 130px;
+  height: 150px;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;

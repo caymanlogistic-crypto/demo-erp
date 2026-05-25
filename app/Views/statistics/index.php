@@ -130,7 +130,8 @@ use App\Modules\Statistics\Services\StatisticsService;
             </div>
 
             <div class="statistics-chart-body">
-                <svg class="statistics-chart-svg" viewBox="0 0 900 180" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+                <!-- statistics chart: viewBox=1200x210 innerMax=1200 defaultMetric=requests -->
+                <svg class="statistics-chart-svg" viewBox="0 0 1200 210" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="statistics-chart-tooltip" hidden></div>
 
@@ -275,8 +276,8 @@ use App\Modules\Statistics\Services\StatisticsService;
 
 <script>
 (function () {
-    var CHART_SVG_VIEWBOX = { w: 900, h: 180 };
-    var PADDING = { left: 52, right: 16, top: 16, bottom: 30 };
+    var CHART_SVG_VIEWBOX = { w: 1200, h: 210 };
+    var PADDING = { left: 48, right: 24, top: 18, bottom: 34 };
     var GRID_LINES = 4;
     var LINE_WIDTH = 2.5;
     var DOT_RADIUS = 3.5;
