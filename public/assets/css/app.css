@@ -529,60 +529,72 @@ textarea { resize: vertical; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  min-height: 34px;
+  height: 34px;
   padding: 0 10px;
-  min-height: 30px;
-  height: 30px;
   background: linear-gradient(180deg, #f6f4ef 0%, #e8e4da 100%);
   border-bottom: 1px solid var(--line);
 }
-.found-label {
+
+/* ============================================================
+   SUMMARY BAR — Left block
+   ============================================================ */
+.summary-left {
   display: flex;
   align-items: center;
-  gap: 8px;
   min-width: 0;
-  white-space: nowrap;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-}
-.found-marker {
-  width: 5px; height: 5px;
-  flex: 0 0 5px;
-  background: var(--accent-line);
-  border-radius: 1px;
-}
-.found-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
   flex: 0 0 auto;
-  font-size: 11px;
-  color: var(--text-muted);
 }
-.found-main b {
-  color: var(--text-main);
-  font-weight: 800;
-}
-.found-label b { color: var(--text-main); font-weight: 700; }
-.toolbar-right { display: flex; gap: 5px; align-items: center; }
-
-/* Status summary chips in toolbar */
-.status-summary {
+.summary-main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-muted);
 }
-.status-count {
+.summary-main-dot {
+  width: 6px; height: 6px;
+  flex: 0 0 6px;
+  border-radius: 1px;
+  background: var(--accent-line);
+}
+.summary-main-label {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.summary-main b {
+  color: var(--text-main);
+  font-weight: 800;
+}
+.summary-main-unit {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+/* ============================================================
+   SUMMARY BAR — Right block
+   ============================================================ */
+.summary-right {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 18px;
-  padding: 0 6px;
-  border: 1px solid var(--line-soft);
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid rgba(168, 161, 150, 0.55);
   border-radius: 2px;
-  background: var(--surface);
+  background: rgba(245, 243, 238, 0.72);
   color: var(--text-muted);
   font-size: 10px;
   font-weight: 700;
@@ -590,19 +602,27 @@ textarea { resize: vertical; }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.status-count b {
+.summary-chip b {
   color: var(--text-main);
   font-weight: 800;
 }
-.status-count-dot {
+.summary-chip-dot {
   width: 6px; height: 6px;
   flex: 0 0 6px;
   border-radius: 1px;
 }
-.status-count-planned .status-count-dot { background: var(--flight-planned-dot); }
-.status-count-found .status-count-dot   { background: var(--flight-found-dot); }
-.status-count-started .status-count-dot { background: var(--flight-started-dot); }
-.status-count-completed .status-count-dot { background: var(--flight-completed-dot); }
+
+/* Dot colours */
+.summary-chip-received .summary-chip-dot  { background: var(--accent-line); }
+.summary-chip-planned .summary-chip-dot   { background: var(--flight-planned-dot); }
+.summary-chip-found .summary-chip-dot     { background: var(--flight-found-dot); }
+.summary-chip-started .summary-chip-dot   { background: var(--flight-started-dot); }
+.summary-chip-completed .summary-chip-dot { background: var(--flight-completed-dot); }
+
+/* Keep legacy classes working */
+.found-label { display: none; }
+.found-marker, .found-main { display: none; }
+.status-summary, .status-count, .status-count-dot { display: none; }
 
 /* Table scroll */
 .table-scroll {

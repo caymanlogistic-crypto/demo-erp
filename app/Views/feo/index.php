@@ -45,8 +45,40 @@
 <!-- Table card -->
 <div class="table-card">
     <div class="table-toolbar">
-        <div class="found-label" id="foundLabel">Заявки ФЭО</div>
-        <div class="toolbar-right">
+        <div class="summary-left" id="summaryLeft">
+            <span class="summary-main">
+                <span class="summary-main-dot"></span>
+                <span class="summary-main-label">Найдено:</span>
+                <b id="foundCount">—</b>
+                <span class="summary-main-unit">заявок</span>
+            </span>
+        </div>
+        <div class="summary-right" id="statusSummary">
+            <span class="summary-chip summary-chip-received">
+                <span class="summary-chip-dot"></span>
+                <span>Всего заявок получено</span>
+                <b id="countReceived">—</b>
+            </span>
+            <span class="summary-chip summary-chip-planned">
+                <span class="summary-chip-dot"></span>
+                <span>Планируемый</span>
+                <b id="countPlanned">—</b>
+            </span>
+            <span class="summary-chip summary-chip-found">
+                <span class="summary-chip-dot"></span>
+                <span>Рейс сформирован</span>
+                <b id="countFound">—</b>
+            </span>
+            <span class="summary-chip summary-chip-started">
+                <span class="summary-chip-dot"></span>
+                <span>Вывоз начался</span>
+                <b id="countStarted">—</b>
+            </span>
+            <span class="summary-chip summary-chip-completed">
+                <span class="summary-chip-dot"></span>
+                <span>Груз сдан</span>
+                <b id="countCompleted">—</b>
+            </span>
             <span id="loadingIndicator" style="display: none; font-size: 11px; color: var(--text-faint);">Загрузка...</span>
         </div>
     </div>
@@ -194,17 +226,19 @@ function escapeHtml(str) {
 }
 
 function updateFoundLabel(data) {
-    var fl = document.getElementById('foundLabel');
-    if (!fl) return;
-    var sc = data.status_counts || {planned:0,found:0,started:0,completed:0};
-    fl.innerHTML = '<span class="found-marker"></span>'
-        + '<span class="found-main">Найдено: <b>' + data.total + '</b> заявок</span>'
-        + '<span class="status-summary">'
-        + '<span class="status-count status-count-planned"><span class="status-count-dot"></span>Планируемый <b>' + sc.planned + '</b></span>'
-        + '<span class="status-count status-count-found"><span class="status-count-dot"></span>Рейс сформирован <b>' + sc.found + '</b></span>'
-        + '<span class="status-count status-count-started"><span class="status-count-dot"></span>Вывоз начался <b>' + sc.started + '</b></span>'
-        + '<span class="status-count status-count-completed"><span class="status-count-dot"></span>Груз сдан <b>' + sc.completed + '</b></span>'
-        + '</span>';
+    var fc = document.getElementById('foundCount');
+    if (fc) fc.textContent = data.total;
+    var cr = document.getElementById('countReceived');
+    if (cr && data.status_counts) cr.textContent = data.status_counts.received_total || 0;
+    var sc = data.status_counts || {};
+    var cp = document.getElementById('countPlanned');
+    if (cp) cp.textContent = sc.planned || 0;
+    var cf = document.getElementById('countFound');
+    if (cf) cf.textContent = sc.found || 0;
+    var cs = document.getElementById('countStarted');
+    if (cs) cs.textContent = sc.started || 0;
+    var cc = document.getElementById('countCompleted');
+    if (cc) cc.textContent = sc.completed || 0;
 }
 
 function updateFilterInfo(data) {

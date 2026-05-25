@@ -189,6 +189,7 @@ class FeoRepository
         bool $showOnlyFlight
     ): array {
         $counts = ['planned' => 0, 'found' => 0, 'started' => 0, 'completed' => 0];
+        $receivedTotal = 0;
         try {
             $where   = [];
             $params  = [];
@@ -234,7 +235,16 @@ class FeoRepository
             $stmt->execute($params);
             $allZIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+            // Build available block map for the full set
+            $availableBlockMap = $this->buildAvailableBlockMap($pdo);
+
             foreach ($allZIds as $zId) {
+                $zId = (string) $zId;
+                // received_total: has value in OTGRUZKA column
+                if (isset($availableBlockMap[$zId])) {
+                    $receivedTotal++;
+                }
+                $fId = $flightData['flightMap'][$zId] ?? null;
                 $zId = (string) $zId;
                 $fId = $flightData['flightMap'][$zId] ?? null;
                 if ($fId !== null && isset($flightData['flightDetailsMap'][$fId])) {
@@ -250,6 +260,7 @@ class FeoRepository
         } catch (\Exception $e) {
             error_log('FeoRepository getStatusCounts error: ' . $e->getMessage());
         }
+        $counts['received_total'] = $receivedTotal;
         return $counts;
     }
 
