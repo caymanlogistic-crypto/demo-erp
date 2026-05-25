@@ -1692,6 +1692,15 @@ textarea { resize: vertical; }
   font-weight: 700;
 }
 
-.chart-bar {
-  transition: fill .12s ease, opacity .12s ease;
+.chart-line {
+  transition: stroke .12s ease;
+}
+
+.chart-dot {
+  transition: r .12s ease, stroke .12s ease, stroke-width .12s ease;
+  cursor: default;
+}
+
+.chart-area {
+  pointer-events: none;
 }

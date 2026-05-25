@@ -258,13 +258,12 @@ use App\Modules\Statistics\Services\StatisticsService;
 <script>
 (function () {
     var CHART_SVG_VIEWBOX = { w: 900, h: 180 };
-    var PADDING = { left: 42, right: 18, top: 8, bottom: 26 };
-    var BAR_RX = 5;
-    var BAR_RY = 5;
-    var MIN_BAR_HEIGHT = 3;
-    var MAX_BAR_WIDTH = 32;
-    var MIN_BAR_WIDTH = 8;
+    var PADDING = { left: 48, right: 22, top: 12, bottom: 28 };
     var GRID_LINES = 4;
+    var LINE_WIDTH = 2.5;
+    var DOT_RADIUS = 5;
+    var DOT_HOVER_RADIUS = 7;
+    var SMOOTH_TENSION = 0.3;
 
     var metricConfigs = {
         weight: {
@@ -359,6 +358,34 @@ use App\Modules\Statistics\Services\StatisticsService;
         return el;
     }
 
+    // Build smooth Catmull-Rom → cubic Bezier path
+    function buildSmoothPath(points, tension) {
+        if (points.length < 2) return '';
+        tension = tension || 0.3;
+        var d = '';
+        var n = points.length;
+
+        for (var i = 0; i < n - 1; i++) {
+            var p0 = i > 0 ? points[i - 1] : points[i];
+            var p1 = points[i];
+            var p2 = points[i + 1];
+            var p3 = i < n - 2 ? points[i + 2] : p2;
+
+            var cp1x = p1.x + (p2.x - p0.x) * tension;
+            var cp1y = p1.y + (p2.y - p0.y) * tension;
+            var cp2x = p2.x - (p3.x - p1.x) * tension;
+            var cp2y = p2.y - (p3.y - p1.y) * tension;
+
+            if (i === 0) {
+                d += 'M' + p1.x.toFixed(1) + ',' + p1.y.toFixed(1);
+            }
+            d += ' C' + cp1x.toFixed(1) + ',' + cp1y.toFixed(1) +
+                 ' ' + cp2x.toFixed(1) + ',' + cp2y.toFixed(1) +
+                 ' ' + p2.x.toFixed(1) + ',' + p2.y.toFixed(1);
+        }
+        return d;
+    }
+
     function renderChart(metric) {
         if (!svg) return;
         // Clear
@@ -394,11 +421,19 @@ use App\Modules\Statistics\Services\StatisticsService;
             return;
         }
 
-        // Bar dimensions
-        var gap = Math.max(5, pw / (n * 2.0));
-        var barW = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, (pw - gap * (n + 1)) / n));
-        var totalW = barW * n + gap * (n + 1);
-        var offsetX = PADDING.left + (pw - totalW) / 2 + gap;
+        // Compute point positions
+        var points = [];
+        var stepX = n > 1 ? pw / (n - 1) : 0;
+        for (var i = 0; i < n; i++) {
+            var val = items[i][cfg.key];
+            var px = PADDING.left + i * stepX;
+            var py = PADDING.top + ph - (val / maxVal) * ph;
+            points.push({ x: px, y: Math.round(py) });
+        }
+        // Single point case: center it
+        if (n === 1) {
+            points[0].x = PADDING.left + pw / 2;
+        }
 
         // Grid
         var gridStep = Math.ceil(maxVal / GRID_LINES);
@@ -417,7 +452,6 @@ use App\Modules\Statistics\Services\StatisticsService;
             });
             svg.appendChild(gridLine);
 
-            // Y label
             var yLabel = svgEl('text', {
                 'x': String(PADDING.left - 6),
                 'y': String(Math.round(gy) + 3),
@@ -431,56 +465,85 @@ use App\Modules\Statistics\Services\StatisticsService;
             svg.appendChild(yLabel);
         }
 
-        // Bars
-        for (var i = 0; i < n; i++) {
-            var item = items[i];
-            var val = item[cfg.key];
-            var barH = Math.max(MIN_BAR_HEIGHT, (val / maxVal) * ph);
-            var bx = Math.round(offsetX + i * (barW + gap));
-            var by = Math.round(PADDING.top + ph - barH);
+        // Add subtle area fill under the line
+        if (n > 1) {
+            var areaD = buildSmoothPath(points, SMOOTH_TENSION);
+            if (areaD) {
+                var lastX = points[n - 1].x;
+                var baseY = PADDING.top + ph;
+                var firstX = points[0].x;
+                areaD += ' L' + lastX.toFixed(1) + ',' + baseY.toFixed(1) +
+                         ' L' + firstX.toFixed(1) + ',' + baseY.toFixed(1) + ' Z';
+                var area = svgEl('path', {
+                    'd': areaD,
+                    'fill': cfg.soft,
+                    'class': 'chart-area'
+                });
+                svg.appendChild(area);
+            }
+        }
 
-            var bar = svgEl('rect', {
-                'x': String(bx),
-                'y': String(by),
-                'width': String(Math.round(barW)),
-                'height': String(Math.round(barH)),
-                'rx': String(BAR_RX),
-                'ry': String(BAR_RY),
-                'fill': cfg.color,
-                'opacity': '0.82',
-                'class': 'chart-bar',
-                'data-index': String(i)
+        // Smooth line path
+        var lineD = buildSmoothPath(points, SMOOTH_TENSION);
+        if (lineD) {
+            var path = svgEl('path', {
+                'd': lineD,
+                'fill': 'none',
+                'stroke': cfg.color,
+                'stroke-width': String(LINE_WIDTH),
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                'class': 'chart-line'
+            });
+            svg.appendChild(path);
+        }
+
+        // Dots
+        for (var j = 0; j < n; j++) {
+            var pt = points[j];
+            var item = items[j];
+
+            var circle = svgEl('circle', {
+                'cx': String(Math.round(pt.x)),
+                'cy': String(Math.round(pt.y)),
+                'r': String(DOT_RADIUS),
+                'fill': '#ffffff',
+                'stroke': cfg.color,
+                'stroke-width': '2',
+                'class': 'chart-dot',
+                'data-index': String(j)
             });
 
-            bar.addEventListener('mouseenter', function(e) {
+            circle.addEventListener('mouseenter', function(e) {
                 var idx = parseInt(this.getAttribute('data-index'));
                 if (isNaN(idx) || !items[idx]) return;
-                this.setAttribute('fill', cfg.hover);
-                this.setAttribute('opacity', '0.96');
+                this.setAttribute('r', String(DOT_HOVER_RADIUS));
+                this.setAttribute('stroke', cfg.hover);
+                this.setAttribute('stroke-width', '2.5');
                 showTooltip(e, items[idx]);
             });
 
-            bar.addEventListener('mouseleave', function() {
-                this.setAttribute('fill', cfg.color);
-                this.setAttribute('opacity', '0.82');
+            circle.addEventListener('mouseleave', function() {
+                this.setAttribute('r', String(DOT_RADIUS));
+                this.setAttribute('stroke', cfg.color);
+                this.setAttribute('stroke-width', '2');
                 hideTooltip();
             });
 
-            bar.addEventListener('mousemove', function(e) {
+            circle.addEventListener('mousemove', function(e) {
                 updateTooltipPosition(e);
             });
 
-            svg.appendChild(bar);
+            svg.appendChild(circle);
         }
 
         // X labels
         var showEvery = n <= 12 ? 1 : Math.ceil(n / 12);
-        for (var j = 0; j < n; j++) {
-            if (j % showEvery !== 0 && j !== n - 1) continue;
-            var itemX = items[j];
-            var cx = Math.round(offsetX + j * (barW + gap) + barW / 2);
+        for (var k = 0; k < n; k++) {
+            if (k % showEvery !== 0 && k !== n - 1) continue;
+            var ptX = points[k];
             var xLabel = svgEl('text', {
-                'x': String(cx),
+                'x': String(Math.round(ptX.x)),
                 'y': String(CHART_SVG_VIEWBOX.h - PADDING.bottom + 14),
                 'text-anchor': 'middle',
                 'fill': 'rgba(74, 68, 61, 0.58)',
@@ -488,7 +551,7 @@ use App\Modules\Statistics\Services\StatisticsService;
                 'font-weight': '700',
                 'class': 'chart-x-label'
             });
-            xLabel.textContent = itemX.short_label || itemX.label;
+            xLabel.textContent = items[k].short_label || items[k].label;
             svg.appendChild(xLabel);
         }
     }
@@ -496,7 +559,6 @@ use App\Modules\Statistics\Services\StatisticsService;
     function showTooltip(e, item) {
         if (!tooltip) return;
         tooltip.removeAttribute('hidden');
-        var cfg = metricConfigs[currentMetric];
 
         tooltip.innerHTML =
             '<div style="font-weight:800;margin-bottom:3px;">' + item.label + '</div>' +
@@ -522,7 +584,6 @@ use App\Modules\Statistics\Services\StatisticsService;
         var x = e.clientX - bodyRect.left + 12;
         var y = e.clientY - bodyRect.top - 10;
 
-        // Clamp to panel
         var tw = tooltip.offsetWidth;
         var th = tooltip.offsetHeight;
         var maxX = bodyRect.width - tw - 4;
