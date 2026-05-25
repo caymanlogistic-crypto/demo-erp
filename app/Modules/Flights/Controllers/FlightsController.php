@@ -54,13 +54,7 @@ class FlightsController
 
         // Capture flights/index.php
         ob_start();
-        $data = [
-            'tab'        => $tab,
-            'tabCounts'  => $tabCounts,
-            'flights'    => $flights,
-            'statusMap'  => $statusMap,
-            'service'    => $this->service,
-        ];
+        $service = $this->service;
         require __DIR__ . '/../../../Views/flights/index.php';
         $content = ob_get_clean();
 
