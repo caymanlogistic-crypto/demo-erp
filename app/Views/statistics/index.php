@@ -127,7 +127,7 @@ use App\Modules\Statistics\Services\StatisticsService;
         </div>
 
         <div class="statistics-chart-body">
-            <svg class="statistics-chart-svg" viewBox="0 0 900 210" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+            <svg class="statistics-chart-svg" viewBox="0 0 900 180" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
             <div class="statistics-chart-tooltip" hidden></div>
 
@@ -257,15 +257,14 @@ use App\Modules\Statistics\Services\StatisticsService;
 
 <script>
 (function () {
-    var CHART_SVG_VIEWBOX = { w: 900, h: 210 };
-    var PADDING = { left: 44, right: 16, top: 16, bottom: 36 };
-    var BAR_RX = 4;
-    var BAR_RY = 4;
+    var CHART_SVG_VIEWBOX = { w: 900, h: 180 };
+    var PADDING = { left: 42, right: 18, top: 8, bottom: 26 };
+    var BAR_RX = 5;
+    var BAR_RY = 5;
     var MIN_BAR_HEIGHT = 3;
-    var MAX_BAR_WIDTH = 36;
-    var MIN_BAR_WIDTH = 6;
+    var MAX_BAR_WIDTH = 32;
+    var MIN_BAR_WIDTH = 8;
     var GRID_LINES = 4;
-    var Y_LABELS = 4;
 
     var metricConfigs = {
         weight: {
@@ -396,7 +395,7 @@ use App\Modules\Statistics\Services\StatisticsService;
         }
 
         // Bar dimensions
-        var gap = Math.max(4, pw / (n * 2.2));
+        var gap = Math.max(5, pw / (n * 2.0));
         var barW = Math.min(MAX_BAR_WIDTH, Math.max(MIN_BAR_WIDTH, (pw - gap * (n + 1)) / n));
         var totalW = barW * n + gap * (n + 1);
         var offsetX = PADDING.left + (pw - totalW) / 2 + gap;
@@ -448,7 +447,7 @@ use App\Modules\Statistics\Services\StatisticsService;
                 'rx': String(BAR_RX),
                 'ry': String(BAR_RY),
                 'fill': cfg.color,
-                'opacity': '0.84',
+                'opacity': '0.82',
                 'class': 'chart-bar',
                 'data-index': String(i)
             });
@@ -457,13 +456,13 @@ use App\Modules\Statistics\Services\StatisticsService;
                 var idx = parseInt(this.getAttribute('data-index'));
                 if (isNaN(idx) || !items[idx]) return;
                 this.setAttribute('fill', cfg.hover);
-                this.setAttribute('opacity', '1');
+                this.setAttribute('opacity', '0.96');
                 showTooltip(e, items[idx]);
             });
 
             bar.addEventListener('mouseleave', function() {
                 this.setAttribute('fill', cfg.color);
-                this.setAttribute('opacity', '0.84');
+                this.setAttribute('opacity', '0.82');
                 hideTooltip();
             });
 
@@ -482,7 +481,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             var cx = Math.round(offsetX + j * (barW + gap) + barW / 2);
             var xLabel = svgEl('text', {
                 'x': String(cx),
-                'y': String(CHART_SVG_VIEWBOX.h - PADDING.bottom + 16),
+                'y': String(CHART_SVG_VIEWBOX.h - PADDING.bottom + 14),
                 'text-anchor': 'middle',
                 'fill': 'rgba(74, 68, 61, 0.58)',
                 'font-size': '9',
