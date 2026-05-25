@@ -37,6 +37,15 @@
         <nav class="top-subnav" aria-label="Подразделы">
             <a class="top-subnav-link active" href="/demoERP/public/?module=statistics">Вывозы по периодам</a>
         </nav>
+        <?php elseif ($currentModule === 'reports'): ?>
+        <div class="crumbs">
+            <span>Отчётность</span>
+            <span class="sep">›</span>
+            <b>Сводные отчёты</b>
+        </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=reports">Сводные отчёты</a>
+        </nav>
         <?php else: ?>
         <div class="crumbs">
             <span>Основное</span>
@@ -72,6 +81,9 @@
         </a>
         <a class="rail-item<?= ($currentModule === 'statistics') ? ' active' : '' ?>" href="/demoERP/public/?module=statistics" title="Статистика">
             <span class="rail-label">С</span>
+        </a>
+        <a class="rail-item<?= ($currentModule === 'reports') ? ' active' : '' ?>" href="/demoERP/public/?module=reports" title="Отчётность">
+            <span class="rail-label">ОТ</span>
         </a>
         <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
             <span class="rail-label">К</span>
