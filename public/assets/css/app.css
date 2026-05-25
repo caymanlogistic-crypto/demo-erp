@@ -1595,6 +1595,7 @@ textarea { resize: vertical; }
 }
 
 .statistics-chart-heading {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1619,6 +1620,7 @@ textarea { resize: vertical; }
   background: rgba(255,255,255,.42);
   border-radius: 2px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .chart-metric-btn {
