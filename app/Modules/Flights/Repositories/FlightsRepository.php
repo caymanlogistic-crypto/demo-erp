@@ -76,7 +76,7 @@ class FlightsRepository
             $filterSQL = $this->buildFilterSQL($tab);
             $orderSQL  = $this->buildOrderSQL($tab);
 
-            $sql = $baseSQL . $filterSQL . $orderSQL . " LIMIT " . self::LIMIT;
+            $sql = $baseSql . $filterSQL . $orderSQL . " LIMIT " . self::LIMIT;
 
             $stmt = $pdo->query($sql);
             $flights = $stmt->fetchAll(PDO::FETCH_ASSOC);
