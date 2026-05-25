@@ -28,6 +28,15 @@
         <nav class="top-subnav" aria-label="Подразделы">
             <a class="top-subnav-link active" href="/demoERP/public/?module=flights">Таймлайн рейсов</a>
         </nav>
+        <?php elseif ($currentModule === 'statistics'): ?>
+        <div class="crumbs">
+            <span>Статистика</span>
+            <span class="sep">›</span>
+            <b>Вывозы по периодам</b>
+        </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=statistics">Вывозы по периодам</a>
+        </nav>
         <?php else: ?>
         <div class="crumbs">
             <span>Основное</span>
@@ -61,11 +70,14 @@
         <a class="rail-item<?= ($currentModule === 'flights') ? ' active' : '' ?>" href="/demoERP/public/?module=flights" title="Рейсы">
             <span class="rail-label">Р</span>
         </a>
+        <a class="rail-item<?= ($currentModule === 'statistics') ? ' active' : '' ?>" href="/demoERP/public/?module=statistics" title="Статистика">
+            <span class="rail-label">С</span>
+        </a>
         <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
             <span class="rail-label">К</span>
         </a>
         <a class="rail-item disabled" href="#" aria-disabled="true" title="Сервис">
-            <span class="rail-label">С</span>
+            <span class="rail-label">E</span>
         </a>
         <div class="nav-grow"></div>
     </div>
