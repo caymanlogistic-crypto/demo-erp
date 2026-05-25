@@ -131,7 +131,7 @@ use App\Modules\Statistics\Services\StatisticsService;
 
             <div class="statistics-chart-body">
                 <!-- statistics chart: viewBox=1200x210 innerMax=1200 currentMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?><?= ($chartData['enabled'] && !empty($chartData['scale_max'])) ? ' scaleMax=enabled' : '' ?> -->
-                <svg class="statistics-chart-svg" viewBox="0 0 1200 210" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+                <svg class="statistics-chart-svg" viewBox="0 0 1200 210" preserveAspectRatio="none" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="statistics-chart-tooltip" hidden></div>
 
