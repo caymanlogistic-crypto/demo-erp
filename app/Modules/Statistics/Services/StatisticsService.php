@@ -29,6 +29,7 @@ class StatisticsService
     public function normalizeFilters(): array
     {
         $period   = $this->normalizePeriod($_GET['period'] ?? 'week');
+        $dateType = $this->normalizeDateType($_GET['date_type'] ?? 'delivery');
         $dateFrom = $_GET['date_from'] ?? '';
         $dateTo   = $_GET['date_to'] ?? '';
         $warning  = null;
@@ -54,6 +55,7 @@ class StatisticsService
 
         return [
             'period'    => $period,
+            'date_type' => $dateType,
             'date_from' => $dateFrom,
             'date_to'   => $dateTo,
             'warning'   => $warning,
@@ -65,14 +67,15 @@ class StatisticsService
      *
      * @return array{filters: array, summary: array, rows: array}
      */
-    public function buildStatistics(string $period, string $dateFrom, string $dateTo): array
+    public function buildStatistics(string $period, string $dateType, string $dateFrom, string $dateTo): array
     {
-        $flights = $this->repository->getCompletedFlights($dateFrom, $dateTo);
+        $flights = $this->repository->getFlightsByEventDate($dateFrom, $dateTo, $dateType);
 
         if (empty($flights)) {
             return [
                 'filters' => [
                     'period'    => $period,
+                    'date_type' => $dateType,
                     'date_from' => $dateFrom,
                     'date_to'   => $dateTo,
                 ],
@@ -107,7 +110,7 @@ class StatisticsService
         // Группируем рейсы по периоду
         $grouped = [];
         foreach ($flights as $flight) {
-            $key = $this->getPeriodKey($flight['actual_end_date'], $period);
+            $key = $this->getPeriodKey($flight['event_date'], $period);
             if (!isset($grouped[$key])) {
                 $grouped[$key] = [
                     'flights'   => [],
@@ -175,6 +178,7 @@ class StatisticsService
         return [
             'filters' => [
                 'period'    => $period,
+                'date_type' => $dateType,
                 'date_from' => $dateFrom,
                 'date_to'   => $dateTo,
             ],
@@ -238,6 +242,11 @@ class StatisticsService
     private function normalizePeriod(string $period): string
     {
         return in_array($period, ['week', 'month'], true) ? $period : 'week';
+    }
+
+    private function normalizeDateType(string $dateType): string
+    {
+        return in_array($dateType, ['delivery', 'pickup'], true) ? $dateType : 'delivery';
     }
 
     private function isValidDate(string $date): bool

@@ -4,6 +4,7 @@
  *
  * Переменные:
  *   $period    — week|month
+ *   $dateType  — delivery|pickup
  *   $dateFrom  — YYYY-MM-DD
  *   $dateTo    — YYYY-MM-DD
  *   $warning   — string|null
@@ -15,6 +16,7 @@
 use App\Modules\Statistics\Services\StatisticsService;
 
 /** @var string $period */
+/** @var string $dateType */
 /** @var string $dateFrom */
 /** @var string $dateTo */
 /** @var string|null $warning */
@@ -27,7 +29,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     <div class="page-head-left">
         <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
         <div class="page-title">Статистика вывозов</div>
-        <div class="page-summary"><span>Количество заявок и масса по завершённым рейсам</span></div>
+        <div class="page-summary"><span>Количество заявок и масса по выбранной дате события</span></div>
     </div>
 </div>
 
@@ -43,6 +45,14 @@ use App\Modules\Statistics\Services\StatisticsService;
         </select>
     </div>
 
+    <div class="filter-field" style="width: 130px;">
+        <label for="filterDateType">Дата события</label>
+        <select id="filterDateType" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
+            <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>
+        </select>
+    </div>
+
     <div class="filter-field" style="width: 150px;">
         <label for="filterDateFrom">Дата с</label>
         <input type="date" id="filterDateFrom" name="date_from" value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>">
@@ -55,7 +65,7 @@ use App\Modules\Statistics\Services\StatisticsService;
 
     <div class="filter-actions">
         <button type="submit" class="btn btn-toolbar">Применить</button>
-        <a class="btn btn-toolbar" href="?module=statistics" style="text-decoration: none;">Сбросить</a>
+        <a class="btn btn-toolbar" href="?module=statistics&period=week&date_type=delivery" style="text-decoration: none;">Сбросить</a>
     </div>
 </form>
 
@@ -134,7 +144,7 @@ use App\Modules\Statistics\Services\StatisticsService;
         </table>
         <?php else: ?>
         <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
-            Нет завершённых вывозов за выбранный период
+            Нет данных за выбранный период
         </div>
         <?php endif; ?>
     </div>

@@ -14,26 +14,35 @@ use PDO;
  */
 class StatisticsRepository
 {
+    /** @var string[] Безопасный allowlist колонок дат */
+    private const ALLOWED_DATE_COLUMNS = ['actual_end_date', 'actual_start_date'];
+
     /**
-     * Получить завершённые рейсы за диапазон actual_end_date.
+     * Получить рейсы за диапазон по выбранной дате события.
      *
-     * @return array<int, array{id: int, zayavki_ids: string, actual_end_date: string}>
+     * @param string $dateType 'delivery' → actual_end_date, 'pickup' → actual_start_date
+     * @return array<int, array{id: int, zayavki_ids: string, event_date: string}>
      */
-    public function getCompletedFlights(string $dateFrom, string $dateTo): array
+    public function getFlightsByEventDate(string $dateFrom, string $dateTo, string $dateType = 'delivery'): array
     {
         $pdo = Connection::get();
         if ($pdo === null) {
             return [];
         }
 
+        $dateColumn = ($dateType === 'pickup') ? 'actual_start_date' : 'actual_end_date';
+
+        if (!in_array($dateColumn, self::ALLOWED_DATE_COLUMNS, true)) {
+            $dateColumn = 'actual_end_date';
+        }
+
         try {
             $stmt = $pdo->prepare("
-                SELECT id, zayavki_ids, actual_end_date
+                SELECT id, zayavki_ids, {$dateColumn} AS event_date
                 FROM flights
-                WHERE actual_end_date IS NOT NULL
-                  AND actual_start_date IS NOT NULL
-                  AND actual_end_date BETWEEN :date_from AND :date_to
-                ORDER BY actual_end_date ASC
+                WHERE {$dateColumn} IS NOT NULL
+                  AND {$dateColumn} BETWEEN :date_from AND :date_to
+                ORDER BY {$dateColumn} ASC
             ");
             $stmt->execute([
                 'date_from' => $dateFrom,
@@ -41,7 +50,7 @@ class StatisticsRepository
             ]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            error_log('StatisticsRepository getCompletedFlights error: ' . $e->getMessage());
+            error_log('StatisticsRepository getFlightsByEventDate error: ' . $e->getMessage());
             return [];
         }
     }

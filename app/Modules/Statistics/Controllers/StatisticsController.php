@@ -31,12 +31,14 @@ class StatisticsController
 
         $data = $this->service->buildStatistics(
             $filters['period'],
+            $filters['date_type'],
             $filters['date_from'],
             $filters['date_to']
         );
 
         ob_start();
         $period    = $filters['period'];
+        $dateType  = $filters['date_type'];
         $dateFrom  = $filters['date_from'];
         $dateTo    = $filters['date_to'];
         $warning   = $filters['warning'];
@@ -65,7 +67,7 @@ class StatisticsController
             <div class="page-head-left">
                 <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
                 <div class="page-title">Статистика вывозов</div>
-                <div class="page-summary"><span>Количество заявок и масса по завершённым рейсам</span></div>
+                <div class="page-summary"><span>Количество заявок и масса по выбранной дате события</span></div>
             </div>
         </div>
         <div class="form-alert alert-warning" style="margin: 0;">
