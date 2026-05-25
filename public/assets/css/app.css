@@ -98,6 +98,9 @@
   --flight-planned-border: #be9ecf;
   --flight-planned-dot:    #7c4898;
 
+  /* Unprocessed counter — muted amber, working remainder */
+  --amber-muted: #b89450;
+
   /* Layout dims */
   --sidebar:    44px;
   --topbar:     38px;
@@ -698,11 +701,12 @@ textarea { resize: vertical; }
 }
 
 /* Dot colours */
-.summary-chip-received .summary-chip-dot  { background: var(--accent-line); }
-.summary-chip-planned .summary-chip-dot   { background: var(--flight-planned-dot); }
-.summary-chip-found .summary-chip-dot     { background: var(--flight-found-dot); }
-.summary-chip-started .summary-chip-dot   { background: var(--flight-started-dot); }
-.summary-chip-completed .summary-chip-dot { background: var(--flight-completed-dot); }
+.summary-chip-received .summary-chip-dot   { background: var(--accent-line); }
+.summary-chip-planned .summary-chip-dot    { background: var(--flight-planned-dot); }
+.summary-chip-found .summary-chip-dot      { background: var(--flight-found-dot); }
+.summary-chip-started .summary-chip-dot    { background: var(--flight-started-dot); }
+.summary-chip-completed .summary-chip-dot  { background: var(--flight-completed-dot); }
+.summary-chip-unprocessed .summary-chip-dot { background: var(--amber-muted); }
 
 /* Keep legacy classes working */
 .found-label { display: none; }

@@ -207,6 +207,7 @@ class FeoRepository
     ): array {
         $counts = ['planned' => 0, 'found' => 0, 'started' => 0, 'completed' => 0];
         $receivedTotal = 0;
+        $unprocessedTotal = 0;
         try {
             $where   = [];
             $params  = [];
@@ -277,8 +278,10 @@ class FeoRepository
                     $receivedTotal++;
                 }
                 $fId = $flightData['flightMap'][$zId] ?? null;
-                $zId = (string) $zId;
-                $fId = $flightData['flightMap'][$zId] ?? null;
+                // unprocessed_total: ОТГРУЗКА заполнена AND СТАТУС пустой (нет рейса)
+                if (isset($availableBlockMap[$zId]) && $fId === null) {
+                    $unprocessedTotal++;
+                }
                 if ($fId !== null && isset($flightData['flightDetailsMap'][$fId])) {
                     $status = $flightData['flightDetailsMap'][$fId]['status'] ?? '';
                     switch ($status) {
@@ -293,6 +296,7 @@ class FeoRepository
             error_log('FeoRepository getStatusCounts error: ' . $e->getMessage());
         }
         $counts['received_total'] = $receivedTotal;
+        $counts['unprocessed_total'] = $unprocessedTotal;
         return $counts;
     }
 

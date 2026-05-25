@@ -80,6 +80,11 @@
                 <span>Груз сдан</span>
                 <b id="countCompleted">—</b>
             </span>
+            <span class="summary-chip summary-chip-unprocessed">
+                <span class="summary-chip-dot"></span>
+                <span>Не обработано</span>
+                <b id="countUnprocessed">—</b>
+            </span>
         </div>
     </div>
     <div class="table-scroll" id="tableWrapper">
@@ -235,6 +240,8 @@ function updateFoundLabel(data) {
     if (cs) cs.textContent = sc.started || 0;
     var cc = document.getElementById('countCompleted');
     if (cc) cc.textContent = sc.completed || 0;
+    var cu = document.getElementById('countUnprocessed');
+    if (cu) cu.textContent = sc.unprocessed_total || 0;
 }
 
 function updateFilterInfo(data) {
