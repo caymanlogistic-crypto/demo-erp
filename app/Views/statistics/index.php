@@ -289,7 +289,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             label: 'Масса',
             key: 'weight',
             unit: 'кг',
-            unitLabel: 'Масса, кг',
+            unitLabel: 'Масса, т',
             color: '#A1622A',
             hover: '#7A421C',
             soft: 'rgba(161, 98, 42, 0.055)'
@@ -510,7 +510,7 @@ use App\Modules\Statistics\Services\StatisticsService;
                 'font-weight': '700',
                 'class': 'chart-axis-label'
             });
-            yLabel.textContent = cfg.unit ? formatNumber(gv) + ' ' + cfg.unit : formatNumber(gv);
+            yLabel.textContent = (metric === 'weight') ? String(Math.round(gv / 1000)) : (cfg.unit ? formatNumber(gv) + ' ' + cfg.unit : formatNumber(gv));
             svg.appendChild(yLabel);
         }
 
