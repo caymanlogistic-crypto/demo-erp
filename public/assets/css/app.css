@@ -533,8 +533,9 @@ textarea { resize: vertical; }
   min-height: 34px;
   height: 34px;
   padding: 0 10px;
+  margin-bottom: 0;
   background: linear-gradient(180deg, #f6f4ef 0%, #e8e4da 100%);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-hair);
 }
 
 /* ============================================================
@@ -628,6 +629,8 @@ textarea { resize: vertical; }
 .table-scroll {
   overflow: auto;
   min-height: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* Table — ERP Grid */
@@ -635,6 +638,7 @@ textarea { resize: vertical; }
   min-width: 1510px;
   width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
   table-layout: fixed;
 }
 .table thead {
@@ -865,11 +869,20 @@ textarea { resize: vertical; }
    LOADING / EMPTY STATES
    ============================================================ */
 .loading-indicator {
-  text-align: center;
-  padding: 1rem;
+  margin-left: 8px;
   color: var(--text-faint);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Оставляем старый loading-indicator для совместимости */
+#loadingIndicator {
+  margin-left: 8px;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .no-more-data {
   text-align: center;

@@ -52,6 +52,7 @@
                 <b id="foundCount">—</b>
                 <span class="summary-main-unit">заявок</span>
             </span>
+            <span id="loadingIndicator" style="display: none; font-size: 10px; font-weight: 700; color: var(--text-faint);">Загрузка...</span>
         </div>
         <div class="summary-right" id="statusSummary">
             <span class="summary-chip summary-chip-received">
@@ -79,7 +80,6 @@
                 <span>Груз сдан</span>
                 <b id="countCompleted">—</b>
             </span>
-            <span id="loadingIndicator" style="display: none; font-size: 11px; color: var(--text-faint);">Загрузка...</span>
         </div>
     </div>
     <div class="table-scroll" id="tableWrapper">
