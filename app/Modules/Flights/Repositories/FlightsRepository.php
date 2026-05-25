@@ -102,11 +102,11 @@ class FlightsRepository
     {
         $pdo = Connection::get();
         if ($pdo === null) {
-            return ['all' => 0, 'planned' => 0, 'in_transit' => 0, 'unloaded' => 0, 'unassigned' => 0];
+            return ['planned' => 0, 'in_transit' => 0, 'unloaded' => 0];
         }
 
         $counts = [];
-        $tabs = ['all', 'planned', 'in_transit', 'unloaded', 'unassigned'];
+        $tabs = ['planned', 'in_transit', 'unloaded'];
 
         try {
             foreach ($tabs as $tab) {
@@ -117,7 +117,7 @@ class FlightsRepository
             }
         } catch (\Exception $e) {
             error_log('FlightsRepository getTabCounts error: ' . $e->getMessage());
-            return ['all' => 0, 'planned' => 0, 'in_transit' => 0, 'unloaded' => 0, 'unassigned' => 0];
+            return ['planned' => 0, 'in_transit' => 0, 'unloaded' => 0];
         }
 
         return $counts;
@@ -267,11 +267,18 @@ class FlightsRepository
     private function buildFilterSQL(string $tab): string
     {
         return match ($tab) {
-            'planned'     => " AND (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)",
+            'planned'     => " AND (
+                (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)
+                OR
+                (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL AND f.actual_start_date IS NULL)
+            )",
             'in_transit'  => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NULL",
             'unloaded'    => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NOT NULL",
-            'unassigned'  => " AND (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL) AND f.actual_start_date IS NULL",
-            default       => "",
+            default       => " AND (
+                (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)
+                OR
+                (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL AND f.actual_start_date IS NULL)
+            )",
         };
     }
 
@@ -281,28 +288,29 @@ class FlightsRepository
     private function buildOrderSQL(string $tab): string
     {
         return match ($tab) {
-            'all' => " ORDER BY
+            'planned' => " ORDER BY
                 CASE WHEN (
                     f.planned_start_date IS NULL
                     AND f.planned_start_date_from IS NULL
                     AND f.planned_start_date_to IS NULL
                     AND f.actual_start_date IS NULL
-                ) THEN 0 ELSE 1 END,
-                GREATEST(
-                    COALESCE(f.planned_start_date, '1970-01-01'),
-                    COALESCE(f.planned_start_date_from, '1970-01-01'),
-                    COALESCE(f.planned_start_date_to, '1970-01-01'),
-                    COALESCE(f.actual_start_date, '1970-01-01'),
-                    COALESCE(f.actual_end_date, '1970-01-01')
-                ) DESC",
+                ) THEN 1 ELSE 0 END ASC,
+                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date) ASC,
+                f.id ASC",
             'in_transit', 'unloaded' => " ORDER BY
                 GREATEST(
                     COALESCE(f.actual_start_date, '1970-01-01'),
                     COALESCE(f.actual_end_date, '1970-01-01')
                 ) DESC",
-            'unassigned' => " ORDER BY f.id ASC",
             default => " ORDER BY
-                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date, f.id) ASC",
+                CASE WHEN (
+                    f.planned_start_date IS NULL
+                    AND f.planned_start_date_from IS NULL
+                    AND f.planned_start_date_to IS NULL
+                    AND f.actual_start_date IS NULL
+                ) THEN 1 ELSE 0 END ASC,
+                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date) ASC,
+                f.id ASC",
         };
     }
 }

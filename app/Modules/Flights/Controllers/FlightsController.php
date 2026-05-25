@@ -33,11 +33,11 @@ class FlightsController
 
     private function renderIndex(): string
     {
-        // Таб
-        $allowedTabs = ['all', 'planned', 'in_transit', 'unloaded', 'unassigned'];
-        $tab = $_GET['tab'] ?? 'all';
+        // Таб (default: planned; all/unassigned нормализуются в planned)
+        $allowedTabs = ['planned', 'in_transit', 'unloaded'];
+        $tab = $_GET['tab'] ?? 'planned';
         if (!in_array($tab, $allowedTabs, true)) {
-            $tab = 'all';
+            $tab = 'planned';
         }
 
         // Данные

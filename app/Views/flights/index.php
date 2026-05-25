@@ -4,8 +4,8 @@
  * Вставляется в app/Views/layouts/main.php.
  *
  * Переменные, переданные из FlightsController:
- *   $tab        — активный таб (all|planned|in_transit|unloaded|unassigned)
- *   $tabCounts  — [all, planned, in_transit, unloaded, unassigned]
+ *   $tab        — активный таб (planned|in_transit|unloaded)
+ *   $tabCounts  — [planned, in_transit, unloaded]
  *   $flights    — обогащённые рейсы
  *   $statusMap  — [статус => [статус, наименование, style, ...]]
  *   $service    — FlightsTimelineService
@@ -22,11 +22,9 @@ use App\Modules\Flights\Services\FlightsTimelineService;
 /** @var array $summary */
 
 $allTabs = [
-    'all'        => 'Все рейсы',
     'planned'    => 'Планы на вывоз',
     'in_transit' => 'Рейсы в пути',
     'unloaded'   => 'Выгруженные рейсы',
-    'unassigned' => 'Нераспределенные',
 ];
 ?>
 <!-- Page header -->
@@ -279,11 +277,9 @@ $allTabs = [
 <?php else:
     // Empty state messages matching legacy
     $emptyMessages = [
-        'all'        => 'Рейсы не найдены',
         'planned'    => 'Планы на вывоз не найдены',
         'in_transit' => 'Рейсы в пути не найдены',
         'unloaded'   => 'Выгруженные рейсы не найдены',
-        'unassigned' => 'Нераспределенные рейсы не найдены',
     ];
     $emptyMsg = $emptyMessages[$tab] ?? 'Рейсы не найдены';
 ?>
