@@ -120,8 +120,8 @@ use App\Modules\Statistics\Services\StatisticsService;
             </div>
 
             <div class="statistics-chart-switch" role="group" aria-label="Метрика графика">
-                <button type="button" class="chart-metric-btn active" data-chart-metric="weight" aria-pressed="true">Масса</button>
-                <button type="button" class="chart-metric-btn" data-chart-metric="requests" aria-pressed="false">Заявки</button>
+                <button type="button" class="chart-metric-btn" data-chart-metric="weight" aria-pressed="false">Масса</button>
+                <button type="button" class="chart-metric-btn active" data-chart-metric="requests" aria-pressed="true">Заявки</button>
                 <button type="button" class="chart-metric-btn" data-chart-metric="flights" aria-pressed="false">Рейсы</button>
             </div>
         </div>
@@ -141,8 +141,10 @@ use App\Modules\Statistics\Services\StatisticsService;
 
     <div class="table-scroll">
         <?php if (!empty($rows)): ?>
+        <?php $showWeekCol = ($period === 'week'); ?>
         <table class="table statistics-table">
             <colgroup>
+                <?php if ($showWeekCol): ?><col class="col-stat-week"><?php endif; ?>
                 <col class="col-stat-period">
                 <col class="col-stat-requests">
                 <col class="col-stat-flights">
@@ -152,6 +154,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             </colgroup>
             <thead>
                 <tr>
+                    <?php if ($showWeekCol): ?><th>НЕД.</th><?php endif; ?>
                     <th>ПЕРИОД</th>
                     <th style="text-align: right;">ЗАЯВОК</th>
                     <th style="text-align: right;">РЕЙСОВ</th>
@@ -163,6 +166,9 @@ use App\Modules\Statistics\Services\StatisticsService;
             <tbody>
                 <?php foreach ($rows as $row): ?>
                 <tr>
+                    <?php if ($showWeekCol): ?>
+                    <td class="cell-num"><?= $row['week_number'] !== null ? (int) $row['week_number'] : '—' ?></td>
+                    <?php endif; ?>
                     <td><?= htmlspecialchars($row['period_label'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="cell-num"><?= number_format((int) $row['requests_count'], 0, '.', ' ') ?></td>
                     <td class="cell-num"><?= number_format((int) $row['flights_count'], 0, '.', ' ') ?></td>
@@ -263,7 +269,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     var LINE_WIDTH = 2.5;
     var DOT_RADIUS = 5;
     var DOT_HOVER_RADIUS = 7;
-    var SMOOTH_TENSION = 0.3;
+    var SMOOTH_TENSION = 0.12;
 
     var metricConfigs = {
         weight: {
@@ -315,7 +321,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     var emptyEl = chartPanel.querySelector('.statistics-chart-empty');
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
 
-    var currentMetric = 'weight';
+    var currentMetric = 'requests';
 
     function formatNumber(value) {
         if (value >= 1000000) {

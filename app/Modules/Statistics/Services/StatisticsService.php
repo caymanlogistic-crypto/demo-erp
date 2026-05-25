@@ -29,7 +29,7 @@ class StatisticsService
     public function normalizeFilters(): array
     {
         $period   = $this->normalizePeriod($_GET['period'] ?? 'week');
-        $dateType = $this->normalizeDateType($_GET['date_type'] ?? 'delivery');
+        $dateType = $this->normalizeDateType($_GET['date_type'] ?? 'pickup');
         $warning  = null;
 
         $defaultFrom = date('Y-m-d', strtotime('-12 weeks'));
@@ -166,9 +166,15 @@ class StatisticsService
 
             $label = $this->formatPeriodLabel($periodKey, $period);
 
+            $weekNumber = null;
+            if ($period === 'week' && preg_match('/-W(\d{2})$/', $periodKey, $wm)) {
+                $weekNumber = (int) $wm[1];
+            }
+
             $rows[] = [
                 'period_key'          => $periodKey,
                 'period_label'        => $label,
+                'week_number'         => $weekNumber,
                 'requests_count'      => $periodRequests,
                 'flights_count'       => $periodFlights,
                 'total_weight_kg'     => (int) round($periodWeight),
@@ -242,6 +248,7 @@ class StatisticsService
         $row = [
             'period_key'           => 'custom',
             'period_label'         => $label,
+            'week_number'          => null,
             'requests_count'       => $periodRequests,
             'flights_count'        => $periodFlights,
             'total_weight_kg'      => (int) round($periodWeight),
@@ -385,6 +392,7 @@ class StatisticsService
             $items[] = [
                 'label'       => $row['period_label'],
                 'short_label' => $shortLabel,
+                'week_number' => $row['week_number'] ?? null,
                 'requests'    => (int) $row['requests_count'],
                 'flights'     => (int) $row['flights_count'],
                 'weight'      => (int) $row['total_weight_kg'],
