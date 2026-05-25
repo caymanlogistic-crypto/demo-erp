@@ -31,9 +31,9 @@
         <input type="text" id="searchText" placeholder="Регион, МО, Отправитель, Адрес, Доступно, Маршрут, Рейс, Статус..." value="">
     </div>
     <div class="form-toggle">
-        <label class="toggle-box"><input type="checkbox" id="showOnlyAvailable"> Доступно</label>
-        <label class="toggle-box"><input type="checkbox" id="showOnlyMarshrut"> Маршрут</label>
-        <label class="toggle-box"><input type="checkbox" id="showOnlyFlight"> Рейс</label>
+        <label class="toggle-box"><input type="checkbox" id="showOnlyAvailable"> Готово к отгрузке</label>
+        <label class="toggle-box"><input type="checkbox" id="showOnlyMarshrut"> Ставка согласована</label>
+        <label class="toggle-box"><input type="checkbox" id="showOnlyFlight"> В работе</label>
     </div>
     <div class="filter-actions">
         <button id="clearFilterBtn" class="btn btn-toolbar">Очистить</button>
@@ -45,7 +45,7 @@
 <!-- Table card -->
 <div class="table-card">
     <div class="table-toolbar">
-        <div class="found-label">Заявки ФЭО</div>
+        <div class="found-label" id="foundLabel">Заявки ФЭО</div>
         <div class="toolbar-right">
             <span id="loadingIndicator" style="display: none; font-size: 11px; color: var(--text-faint);">Загрузка...</span>
         </div>
@@ -63,25 +63,27 @@
                 <col class="col-feo-route">
                 <col class="col-feo-flight">
                 <col class="col-feo-status">
-                <col class="col-feo-dates">
+                <col class="col-feo-date-from">
+                <col class="col-feo-date-to">
                 <col class="col-feo-price">
                 <col class="col-feo-pricekg">
             </colgroup>
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID ЗАЯВКИ</th>
-                    <th style="width: 90px; text-align: right;">МАССА, КГ</th>
-                    <th style="width: 150px;">МНО, РЕГИОН</th>
-                    <th style="width: 150px;">МНО, МО</th>
-                    <th style="width: 200px;">ГРУЗООТПРАВИТЕЛЬ</th>
+                    <th>ID ЗАЯВКИ</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th>МНО, РЕГИОН</th>
+                    <th>МНО, МО</th>
+                    <th>ГРУЗООТПРАВИТЕЛЬ</th>
                     <th style="text-align: left;">АДРЕС ПОГРУЗКИ</th>
-                    <th style="width: 100px; text-align: center;">ДОСТУПНО</th>
-                    <th style="width: 100px; text-align: center;">МАРШРУТ</th>
-                    <th style="width: 150px; text-align: center;">РЕЙС</th>
-                    <th style="width: 140px; text-align: center;">СТАТУС</th>
-                    <th style="width: 180px; text-align: center;">ДАТЫ</th>
-                    <th style="width: 100px; text-align: right;">СТОИМОСТЬ</th>
-                    <th style="width: 80px; text-align: right;">₽/КГ</th>
+                    <th style="text-align: center;">ОТГРУЗКА</th>
+                    <th style="text-align: center;">СТАВКА</th>
+                    <th style="text-align: center;">В РАБОТЕ</th>
+                    <th style="text-align: center;">СТАТУС</th>
+                    <th style="text-align: center;">ДАТА С</th>
+                    <th style="text-align: center;">ДАТА ПО</th>
+                    <th style="text-align: right;">СТОИМОСТЬ</th>
+                    <th style="text-align: right;">₽/КГ</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -163,19 +165,17 @@ function loadData(reset) {
                 }
 
                 updateFilterInfo(data);
-                // Update toolbar found label
-                var fl = document.querySelector('.found-label');
-                if (fl) fl.innerHTML = '<b>' + data.total + '</b> заявок';
+                updateFoundLabel(data);
 
                 parseRowsForSearch();
                 applyTextFilter();
             } else {
-                tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 40px; color: var(--danger);">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: var(--danger);">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
             }
         })
         .catch(function(error) {
             console.error('Ошибка загрузки:', error);
-            tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 40px; color: var(--danger);">Ошибка загрузки данных</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: var(--danger);">Ошибка загрузки данных</td></tr>';
         })
         .finally(function() {
             isLoading = false;
@@ -191,6 +191,19 @@ function escapeHtml(str) {
         if (m === '>') return '>';
         return m;
     });
+}
+
+function updateFoundLabel(data) {
+    var fl = document.getElementById('foundLabel');
+    if (!fl) return;
+    var sc = data.status_counts || {planned:0,found:0,started:0,completed:0};
+    fl.innerHTML = '<b>' + data.total + '</b> заявок'
+        + ' <span class="status-summary">'
+        + '<span class="status-count status-count-planned">Планируемый <b>' + sc.planned + '</b></span>'
+        + '<span class="status-count status-count-found">Рейс сформирован <b>' + sc.found + '</b></span>'
+        + '<span class="status-count status-count-started">Вывоз начался <b>' + sc.started + '</b></span>'
+        + '<span class="status-count status-count-completed">Груз сдан <b>' + sc.completed + '</b></span>'
+        + '</span>';
 }
 
 function updateFilterInfo(data) {
@@ -217,7 +230,7 @@ function updateFilterInfo(data) {
     } else if (data.has_filter && data.filter_count === 0) {
         filterStats.innerHTML = 'Не найдено корректных номеров заявок';
     } else {
-        filterStats.innerHTML = 'Всего заявок в базе' + availableText + ': <b>' + data.total + '</b>';
+        filterStats.innerHTML = '';
     }
 }
 
@@ -226,7 +239,7 @@ function parseRowsForSearch() {
     allRowsData = [];
     tableBody.querySelectorAll('tr').forEach(function(row) {
         var cells = row.querySelectorAll('td');
-        if (cells.length >= 10) {
+        if (cells.length >= 12) {
             allRowsData.push({
                 element: row,
                 searchText: [

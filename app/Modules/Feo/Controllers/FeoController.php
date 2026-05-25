@@ -88,10 +88,13 @@ class FeoController
 
         $zayavkaIds = $data['zayavkaIds'];
 
+        $statusCounts = $this->computeStatusCounts($data['rows'], $data['flightMap'], $data['flightDetailsMap']);
+
         $this->jsonResponse([
             'success'            => true,
             'html'               => $html,
             'total'              => $data['total'],
+            'status_counts'      => $statusCounts,
             'offset'             => $data['offset'],
             'limit'              => $data['limit'],
             'has_more'           => $data['hasMore'],
@@ -180,10 +183,14 @@ class FeoController
                 }
             }
 
-            // Даты рейса
-            $datesDisplay = '<span style="color: var(--text-faint);">—</span>';
+            // Даты рейса — split на ДАТА С и ДАТА ПО
+            $dateFrom = '—';
+            $dateTo   = '—';
             if ($flightIdRaw !== null && isset($flightDetailsMap[$flightIdRaw])) {
-                $datesDisplay = FeoStatusResolver::formatFlightDates($flightDetailsMap[$flightIdRaw]);
+                $datesFull = FeoStatusResolver::formatFlightDates($flightDetailsMap[$flightIdRaw]);
+                $split     = $this->splitDateRange($datesFull);
+                $dateFrom  = $split['date_from'];
+                $dateTo    = $split['date_to'];
             }
 
             // Стоимость
@@ -217,7 +224,8 @@ class FeoController
             $html .= '<td>' . $marshrutDisplay . '</td>';
             $html .= '<td>' . $flightDisplay . '</td>';
             $html .= '<td>' . $statusDisplay . '</td>';
-            $html .= '<td style="text-align: center; font-size: 12px;">' . $datesDisplay . '</td>';
+            $html .= '<td class="cell-date">' . htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') . '</td>';
+            $html .= '<td class="cell-date">' . htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') . '</td>';
             $html .= '<td class="cell-money">' . $costDisplay . '</td>';
             $html .= '<td class="cell-money">' . $pricePerKgDisplay . '</td>';
             $html .= '</tr>';
@@ -274,5 +282,52 @@ class FeoController
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
+    }
+
+    /**
+     * Разбирает строку дат на ДАТА С и ДАТА ПО.
+     */
+    private function splitDateRange(string $datesFull): array
+    {
+        if ($datesFull === '' || $datesFull === '—') {
+            return ['date_from' => '—', 'date_to' => '—'];
+        }
+        if (preg_match('/^с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})$/', $datesFull, $m)) {
+            return ['date_from' => $m[1], 'date_to' => $m[2]];
+        }
+        if (preg_match('/^с\s+(\d{2}\.\d{2}\.\d{4})$/', $datesFull, $m)) {
+            return ['date_from' => $m[1], 'date_to' => '—'];
+        }
+        if (preg_match('/^(\d{2}\.\d{2}\.\d{4})\s*[-–]\s*(\d{2}\.\d{2}\.\d{4})$/', $datesFull, $m)) {
+            return ['date_from' => $m[1], 'date_to' => $m[2]];
+        }
+        if (preg_match('/^по\s+(\d{2}\.\d{2}\.\d{4})$/', $datesFull, $m)) {
+            return ['date_from' => '—', 'date_to' => $m[1]];
+        }
+        if (preg_match('/^(\d{2}\.\d{2}\.\d{4})$/', $datesFull, $m)) {
+            return ['date_from' => $m[1], 'date_to' => '—'];
+        }
+        return ['date_from' => $datesFull, 'date_to' => '—'];
+    }
+
+    /**
+     * Подсчёт статусов для текущего набора строк.
+     */
+    private function computeStatusCounts(array $rows, array $flightMap, array $flightDetailsMap): array
+    {
+        $counts = ['planned' => 0, 'found' => 0, 'started' => 0, 'completed' => 0];
+        foreach ($rows as $row) {
+            $zId = (string) ($row['zayavka_id'] ?? '');
+            $fId = $flightMap[$zId] ?? null;
+            if ($fId === null || !isset($flightDetailsMap[$fId])) continue;
+            $status = $flightDetailsMap[$fId]['status'] ?? '';
+            switch ($status) {
+                case 'planned_route': case 'planned-route': $counts['planned']++; break;
+                case 'found': $counts['found']++; break;
+                case 'started': $counts['started']++; break;
+                case 'completed': $counts['completed']++; break;
+            }
+        }
+        return $counts;
     }
 }

@@ -529,14 +529,18 @@ textarea { resize: vertical; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px;
+  min-height: 30px;
+  height: 30px;
   background: linear-gradient(180deg, #f6f4ef 0%, #e8e4da 100%);
   border-bottom: 1px solid var(--line);
 }
 .found-label {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
@@ -547,9 +551,43 @@ textarea { resize: vertical; }
   width: 5px; height: 5px;
   background: var(--accent-line);
   border-radius: 1px;
+  flex-shrink: 0;
 }
 .found-label b { color: var(--text-main); font-weight: 700; }
 .toolbar-right { display: flex; gap: 5px; align-items: center; }
+
+/* Status summary chips in toolbar */
+.status-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.status-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.status-count b {
+  color: var(--text-main);
+  font-weight: 800;
+}
+.status-count-planned { border-left: 2px solid var(--flight-planned-dot); }
+.status-count-found   { border-left: 2px solid var(--flight-found-dot); }
+.status-count-started { border-left: 2px solid var(--flight-started-dot); }
+.status-count-completed { border-left: 2px solid var(--neutral); }
 
 /* Table scroll */
 .table-scroll {
@@ -559,7 +597,7 @@ textarea { resize: vertical; }
 
 /* Table — ERP Grid */
 .table {
-  min-width: 1440px;
+  min-width: 1512px;
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
@@ -810,21 +848,28 @@ textarea { resize: vertical; }
 .empty-cell { color: #9a948c; font-weight: 600; }
 
 /* ============================================================
-   FEO COLUMN WIDTHS (colgroup) — compact
+   FEO COLUMN WIDTHS (colgroup) — 14 cols
    ============================================================ */
 .col-feo-id        { width: 70px; }
 .col-feo-mass      { width: 62px; }
 .col-feo-region    { width: 122px; }
 .col-feo-mo        { width: 145px; }
 .col-feo-sender    { width: 235px; }
-.col-feo-address   { width: 340px; }
-.col-feo-available { width: 72px; }
-.col-feo-route     { width: 62px; }
-.col-feo-flight    { width: 58px; }
-.col-feo-status    { width: 118px; }
-.col-feo-dates     { width: 122px; }
+.col-feo-address   { width: 320px; }
+.col-feo-available { width: 78px; }
+.col-feo-route     { width: 70px; }
+.col-feo-flight    { width: 72px; }
+.col-feo-status    { width: 122px; }
+.col-feo-date-from { width: 82px; }
+.col-feo-date-to   { width: 82px; }
 .col-feo-price     { width: 78px; }
 .col-feo-pricekg   { width: 54px; }
+
+.cell-date {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* ============================================================
    CELL ELLIPSIS
