@@ -1657,13 +1657,13 @@ textarea { resize: vertical; }
 
 .statistics-chart-body {
   position: relative;
-  min-height: 175px;
+  min-height: 165px;
 }
 
 .statistics-chart-svg {
   display: block;
   width: 100%;
-  height: 175px;
+  height: 160px;
 }
 
 .statistics-chart-tooltip {
@@ -1719,4 +1719,52 @@ textarea { resize: vertical; }
 
 .chart-area {
   pointer-events: none;
+}
+
+.chart-guide-line {
+  pointer-events: none;
+}
+
+/* Micro-summary under chart */
+.statistics-chart-micro-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 24px;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(76, 70, 62, 0.08);
+  margin-top: 2px;
+  user-select: none;
+}
+
+.statistics-chart-micro-summary[hidden] {
+  display: none;
+}
+
+.micro-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+}
+
+.micro-label {
+  font-weight: 700;
+  color: var(--text-faint);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.micro-stat b {
+  font-weight: 800;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.micro-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(76, 70, 62, 0.12);
 }

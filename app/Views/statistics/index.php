@@ -134,6 +134,14 @@ use App\Modules\Statistics\Services\StatisticsService;
                 <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
                     <?= $period === 'custom' ? 'Для графика выберите группировку по неделям или месяцам.' : 'Нет данных для графика.' ?>
                 </div>
+
+                <div class="statistics-chart-micro-summary" data-chart-micro-summary<?= $chartData['enabled'] ? '' : ' hidden' ?>>
+                    <span class="micro-stat"><span class="micro-label">Мин.</span> <b data-chart-min>—</b></span>
+                    <span class="micro-sep"></span>
+                    <span class="micro-stat"><span class="micro-label">Макс.</span> <b data-chart-max>—</b></span>
+                    <span class="micro-sep"></span>
+                    <span class="micro-stat"><span class="micro-label">Сред.</span> <b data-chart-avg>—</b></span>
+                </div>
             </div>
         </div>
 
@@ -265,37 +273,40 @@ use App\Modules\Statistics\Services\StatisticsService;
 <script>
 (function () {
     var CHART_SVG_VIEWBOX = { w: 900, h: 180 };
-    var PADDING = { left: 44, right: 16, top: 12, bottom: 30 };
+    var PADDING = { left: 52, right: 16, top: 16, bottom: 30 };
     var GRID_LINES = 4;
     var LINE_WIDTH = 2.5;
     var DOT_RADIUS = 3.5;
     var DOT_HOVER_RADIUS = 5;
-    var SMOOTH_TENSION = 0.12;
+    var SMOOTH_TENSION = 0.18;
 
     var metricConfigs = {
         weight: {
             label: 'Масса',
             key: 'weight',
             unit: 'кг',
+            unitLabel: 'Масса, кг',
             color: '#A1622A',
             hover: '#7A421C',
-            soft: 'rgba(161, 98, 42, 0.08)'
+            soft: 'rgba(161, 98, 42, 0.055)'
         },
         requests: {
             label: 'Заявки',
             key: 'requests',
             unit: '',
+            unitLabel: 'Заявки, шт.',
             color: '#4E6F86',
             hover: '#35566B',
-            soft: 'rgba(78, 111, 134, 0.08)'
+            soft: 'rgba(78, 111, 134, 0.055)'
         },
         flights: {
             label: 'Рейсы',
             key: 'flights',
             unit: '',
+            unitLabel: 'Рейсы, шт.',
             color: '#6F7458',
             hover: '#54593F',
-            soft: 'rgba(111, 116, 88, 0.08)'
+            soft: 'rgba(111, 116, 88, 0.055)'
         }
     };
 
@@ -320,9 +331,14 @@ use App\Modules\Statistics\Services\StatisticsService;
     var svg = chartPanel.querySelector('.statistics-chart-svg');
     var tooltip = chartPanel.querySelector('.statistics-chart-tooltip');
     var emptyEl = chartPanel.querySelector('.statistics-chart-empty');
+    var microSummary = chartPanel.querySelector('[data-chart-micro-summary]');
+    var microMin = chartPanel.querySelector('[data-chart-min]');
+    var microMax = chartPanel.querySelector('[data-chart-max]');
+    var microAvg = chartPanel.querySelector('[data-chart-avg]');
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
 
     var currentMetric = 'requests';
+    var guideLine = null;
 
     function formatNumber(value) {
         if (value >= 1000000) {
@@ -442,6 +458,20 @@ use App\Modules\Statistics\Services\StatisticsService;
             points[0].x = PADDING.left + pw / 2;
         }
 
+        // Unit label
+        if (cfg.unitLabel) {
+            var unitText = svgEl('text', {
+                'x': String(PADDING.left),
+                'y': '14',
+                'fill': 'rgba(74, 68, 61, 0.48)',
+                'font-size': '9',
+                'font-weight': '700',
+                'class': 'chart-axis-label'
+            });
+            unitText.textContent = cfg.unitLabel;
+            svg.appendChild(unitText);
+        }
+
         // Grid
         var gridStep = Math.ceil(maxVal / GRID_LINES);
         for (var gi = 0; gi <= GRID_LINES; gi++) {
@@ -505,6 +535,18 @@ use App\Modules\Statistics\Services\StatisticsService;
             svg.appendChild(path);
         }
 
+        // Guide line element (hidden by default)
+        guideLine = svgEl('line', {
+            'x1': '0', 'y1': '0', 'x2': '0', 'y2': '0',
+            'stroke': 'rgba(74, 68, 61, 0.16)',
+            'stroke-width': '1',
+            'stroke-linecap': 'round',
+            'stroke-dasharray': '2 3',
+            'class': 'chart-guide-line'
+        });
+        guideLine.setAttribute('hidden', '');
+        svg.appendChild(guideLine);
+
         // Dots
         for (var j = 0; j < n; j++) {
             var pt = points[j];
@@ -527,6 +569,14 @@ use App\Modules\Statistics\Services\StatisticsService;
                 this.setAttribute('r', String(DOT_HOVER_RADIUS));
                 this.setAttribute('stroke', cfg.hover);
                 this.setAttribute('stroke-width', '2');
+                // Show guide-line
+                if (guideLine) {
+                    guideLine.removeAttribute('hidden');
+                    guideLine.setAttribute('x1', String(Math.round(pt.x)));
+                    guideLine.setAttribute('y1', String(Math.round(pt.y) + DOT_HOVER_RADIUS + 2));
+                    guideLine.setAttribute('x2', String(Math.round(pt.x)));
+                    guideLine.setAttribute('y2', String(PADDING.top + ph));
+                }
                 showTooltip(e, items[idx]);
             });
 
@@ -534,6 +584,7 @@ use App\Modules\Statistics\Services\StatisticsService;
                 this.setAttribute('r', String(DOT_RADIUS));
                 this.setAttribute('stroke', cfg.color);
                 this.setAttribute('stroke-width', '1.5');
+                if (guideLine) guideLine.setAttribute('hidden', '');
                 hideTooltip();
             });
 
@@ -609,6 +660,35 @@ use App\Modules\Statistics\Services\StatisticsService;
         if (tooltip) tooltip.setAttribute('hidden', '');
     }
 
+    function updateMicroSummary(metric) {
+        if (!microMin || !microMax || !microAvg || !microSummary) return;
+        var items = chartData.items;
+        if (!items || items.length === 0) {
+            microSummary.setAttribute('hidden', '');
+            return;
+        }
+        microSummary.removeAttribute('hidden');
+        var cfg = metricConfigs[metric];
+        var min = Infinity, max = -Infinity, sum = 0, count = 0;
+        for (var i = 0; i < items.length; i++) {
+            var v = items[i][cfg.key];
+            if (v < min) min = v;
+            if (v > max) max = v;
+            sum += v;
+            count++;
+        }
+        if (count === 0) {
+            microMin.textContent = '\u2014';
+            microMax.textContent = '\u2014';
+            microAvg.textContent = '\u2014';
+            return;
+        }
+        var avg = Math.round(sum / count);
+        microMin.textContent = cfg.unit ? min.toLocaleString('ru-RU') + ' ' + cfg.unit : min.toLocaleString('ru-RU');
+        microMax.textContent = cfg.unit ? max.toLocaleString('ru-RU') + ' ' + cfg.unit : max.toLocaleString('ru-RU');
+        microAvg.textContent = cfg.unit ? avg.toLocaleString('ru-RU') + ' ' + cfg.unit : avg.toLocaleString('ru-RU');
+    }
+
     function setActiveMetric(metric) {
         currentMetric = metric;
         switchBtns.forEach(function (btn) {
@@ -617,6 +697,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
         renderChart(metric);
+        updateMicroSummary(metric);
     }
 
     switchBtns.forEach(function (btn) {
@@ -627,5 +708,6 @@ use App\Modules\Statistics\Services\StatisticsService;
 
     // Initial render
     renderChart(currentMetric);
+    updateMicroSummary(currentMetric);
 })();
 </script>

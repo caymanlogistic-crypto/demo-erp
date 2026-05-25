@@ -381,7 +381,7 @@ class StatisticsService
         foreach ($rows as $row) {
             $shortLabel = $row['period_key'];
             if ($period === 'week' && preg_match('/-W(\d{2})$/', $row['period_key'], $m)) {
-                $shortLabel = (int) $m[1] . ' нед';
+                $shortLabel = (string) (int) $m[1];
             } elseif ($period === 'month') {
                 $parts = explode('-', $row['period_key']);
                 $month = (int) ($parts[1] ?? 0);
