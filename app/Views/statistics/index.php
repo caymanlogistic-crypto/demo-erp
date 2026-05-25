@@ -31,7 +31,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     <div class="page-head-left">
         <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
         <div class="page-title">Статистика вывозов</div>
-        <div class="page-summary"><span>Количество заявок и масса по выбранной дате события</span></div>
+        <div class="page-summary"><span>Количество заявок и масса по выбранной дате</span></div>
     </div>
 </div>
 
@@ -49,7 +49,7 @@ use App\Modules\Statistics\Services\StatisticsService;
     </div>
 
     <div class="filter-field" style="width: 130px;">
-        <label for="dateTypeSelect">Дата события</label>
+        <label for="dateTypeSelect">Считать по дате</label>
         <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
             <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
             <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>

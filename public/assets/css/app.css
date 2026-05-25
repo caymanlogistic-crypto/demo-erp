@@ -578,6 +578,10 @@ textarea { resize: vertical; }
   gap: 6px;
 }
 
+.filter-actions[hidden] {
+  display: none;
+}
+
 /* Toggle — checkbox styled as button */
 .form-toggle {
   display: flex;
@@ -1531,6 +1535,10 @@ textarea { resize: vertical; }
   display: flex;
   align-items: flex-end;
   gap: 6px;
+}
+
+.statistics-filters .filter-actions[hidden] {
+  display: none;
 }
 
 /* Statistics table */
