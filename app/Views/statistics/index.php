@@ -130,7 +130,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             </div>
 
             <div class="statistics-chart-body">
-                <!-- statistics chart: viewBox=1200x210 innerMax=1200 currentMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> -->
+                <!-- statistics chart: viewBox=1200x210 innerMax=1200 currentMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?><?= ($chartData['enabled'] && !empty($chartData['scale_max'])) ? ' scaleMax=enabled' : '' ?> -->
                 <svg class="statistics-chart-svg" viewBox="0 0 1200 210" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="statistics-chart-tooltip" hidden></div>
@@ -440,7 +440,13 @@ use App\Modules\Statistics\Services\StatisticsService;
         var ph = CHART_SVG_VIEWBOX.h - PADDING.top - PADDING.bottom;
         var n = items.length;
 
-        var maxVal = findNiceMax(items, metric);
+        // Use unified scale_max if available, else fallback to local nice max
+        var maxVal;
+        if (chartData.scale_max && typeof chartData.scale_max[metric] === 'number' && chartData.scale_max[metric] > 0) {
+            maxVal = chartData.scale_max[metric];
+        } else {
+            maxVal = findNiceMax(items, metric);
+        }
         if (maxVal <= 0) {
             svg.setAttribute('hidden', '');
             if (emptyEl) {

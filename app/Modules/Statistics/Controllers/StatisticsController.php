@@ -42,6 +42,15 @@ class StatisticsController
             $filters['date_type']
         );
 
+        // Единая Y-шкала по обоим основаниям (pickup + delivery)
+        if ($chartData['enabled']) {
+            $chartData['scale_max'] = $this->service->buildScaleMax(
+                $filters['period'],
+                $filters['date_from'],
+                $filters['date_to']
+            );
+        }
+
         $chartMetric = $this->service->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
 
         ob_start();

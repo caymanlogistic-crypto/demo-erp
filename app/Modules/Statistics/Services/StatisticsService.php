@@ -413,4 +413,53 @@ class StatisticsService
             'items'           => $items,
         ];
     }
+
+    /**
+     * Построить общий scale_max для единой Y-шкалы.
+     *
+     * Учитывает данные по обоим основаниям (pickup + delivery)
+     * в рамках одного периода/диапазона, чтобы при переключении
+     * «Строить по» между Вывоз/Доставка шкала Y не прыгала.
+     *
+     * @return array{requests: int, flights: int, weight: int}
+     */
+    public function buildScaleMax(string $period, string $dateFrom, string $dateTo): array
+    {
+        $dataPickup   = $this->buildStatistics($period, 'pickup', $dateFrom, $dateTo);
+        $dataDelivery = $this->buildStatistics($period, 'delivery', $dateFrom, $dateTo);
+
+        $maxRequests = 0;
+        $maxFlights  = 0;
+        $maxWeight   = 0;
+
+        foreach ([$dataPickup['rows'], $dataDelivery['rows']] as $rows) {
+            foreach ($rows as $row) {
+                $r = (int) ($row['requests_count'] ?? 0);
+                $f = (int) ($row['flights_count'] ?? 0);
+                $w = (int) ($row['total_weight_kg'] ?? 0);
+                if ($r > $maxRequests) $maxRequests = $r;
+                if ($f > $maxFlights)  $maxFlights  = $f;
+                if ($w > $maxWeight)   $maxWeight   = $w;
+            }
+        }
+
+        return [
+            'requests' => $this->niceMax($maxRequests),
+            'flights'  => $this->niceMax($maxFlights),
+            'weight'   => $this->niceMax($maxWeight),
+        ];
+    }
+
+    /**
+     * Округлить значение до «красивого» максимума шкалы
+     * (аналог findNiceMax в JS).
+     */
+    private function niceMax(int $value): int
+    {
+        if ($value <= 0) {
+            return 0;
+        }
+        $magnitude = (int) pow(10, floor(log10($value)));
+        return (int) (ceil($value / $magnitude) * $magnitude);
+    }
 }

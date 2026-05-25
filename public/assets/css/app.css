@@ -1600,8 +1600,8 @@ textarea { resize: vertical; }
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 6px;
-    padding-left: 48px;
-    padding-right: 24px;
+    padding-left: 4%;
+    padding-right: 2%;
     box-sizing: border-box;
 }
 
