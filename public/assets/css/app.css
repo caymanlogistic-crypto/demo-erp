@@ -520,7 +520,7 @@ textarea { resize: vertical; }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-rows: 36px 1fr;
+  grid-template-rows: auto 1fr;
   background: var(--surface-strong);
   border: 1px solid var(--line);
   overflow: hidden;
@@ -650,6 +650,7 @@ textarea { resize: vertical; }
   height: var(--thead-h);
   padding: 0 10px;
   background: linear-gradient(180deg, #e0dbd2 0%, #d4cfc5 100%);
+  border-top: 0;
   border-bottom: 1px solid #b0a89c;
   border-right: 1px solid rgba(160,152,140,.28);
   color: #343028;
