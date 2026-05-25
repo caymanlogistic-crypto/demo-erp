@@ -123,14 +123,14 @@ use App\Modules\Statistics\Services\StatisticsService;
                 </div>
 
                 <div class="statistics-chart-switch" role="group" aria-label="Метрика графика">
-                    <button type="button" class="chart-metric-btn" data-chart-metric="weight" aria-pressed="false">Масса</button>
-                    <button type="button" class="chart-metric-btn active" data-chart-metric="requests" aria-pressed="true">Заявки</button>
-                    <button type="button" class="chart-metric-btn" data-chart-metric="flights" aria-pressed="false">Рейсы</button>
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Масса</button>
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'requests' ? ' active' : '' ?>" data-chart-metric="requests" aria-pressed="<?= $chartMetric === 'requests' ? 'true' : 'false' ?>">Заявки</button>
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'flights' ? ' active' : '' ?>" data-chart-metric="flights" aria-pressed="<?= $chartMetric === 'flights' ? 'true' : 'false' ?>">Рейсы</button>
                 </div>
             </div>
 
             <div class="statistics-chart-body">
-                <!-- statistics chart: viewBox=1200x210 innerMax=1200 defaultMetric=requests -->
+                <!-- statistics chart: viewBox=1200x210 innerMax=1200 currentMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> -->
                 <svg class="statistics-chart-svg" viewBox="0 0 1200 210" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="statistics-chart-tooltip" hidden></div>
@@ -556,7 +556,6 @@ use App\Modules\Statistics\Services\StatisticsService;
         // Dots
         for (var j = 0; j < n; j++) {
             var pt = points[j];
-            var item = items[j];
 
             var circle = svgEl('circle', {
                 'cx': String(Math.round(pt.x)),
@@ -570,17 +569,20 @@ use App\Modules\Statistics\Services\StatisticsService;
             });
 
             circle.addEventListener('mouseenter', function(e) {
-                var idx = parseInt(this.getAttribute('data-index'));
-                if (isNaN(idx) || !items[idx]) return;
+                var idx = parseInt(this.getAttribute('data-index'), 10);
+                if (isNaN(idx) || !items[idx] || !points[idx]) return;
+
+                var hoverPoint = points[idx];
+
                 this.setAttribute('r', String(DOT_HOVER_RADIUS));
                 this.setAttribute('stroke', cfg.hover);
                 this.setAttribute('stroke-width', '2');
-                // Show guide-line
+                // Show guide-line under the hovered point
                 if (guideLine) {
                     guideLine.removeAttribute('hidden');
-                    guideLine.setAttribute('x1', String(Math.round(pt.x)));
-                    guideLine.setAttribute('y1', String(Math.round(pt.y) + DOT_HOVER_RADIUS + 2));
-                    guideLine.setAttribute('x2', String(Math.round(pt.x)));
+                    guideLine.setAttribute('x1', String(Math.round(hoverPoint.x)));
+                    guideLine.setAttribute('y1', String(Math.round(hoverPoint.y) + DOT_HOVER_RADIUS + 2));
+                    guideLine.setAttribute('x2', String(Math.round(hoverPoint.x)));
                     guideLine.setAttribute('y2', String(PADDING.top + ph));
                 }
                 showTooltip(e, items[idx]);
@@ -713,8 +715,7 @@ use App\Modules\Statistics\Services\StatisticsService;
         });
     });
 
-    // Initial render
-    renderChart(currentMetric);
-    updateMicroSummary(currentMetric);
+    // Initial render — must sync active state, chart, micro-summary and hidden input
+    setActiveMetric(currentMetric);
 })();
 </script>
