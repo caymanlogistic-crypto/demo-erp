@@ -113,26 +113,28 @@ use App\Modules\Statistics\Services\StatisticsService;
 
     <!-- Chart panel -->
     <section class="statistics-chart-panel" data-statistics-chart>
-        <div class="statistics-chart-head">
-            <div class="statistics-chart-heading">
-                <div class="statistics-chart-title">Динамика по периодам</div>
-                <div class="statistics-chart-subtitle">Масса, заявки и рейсы по выбранной дате события</div>
+        <div class="statistics-chart-inner">
+            <div class="statistics-chart-head">
+                <div class="statistics-chart-heading">
+                    <div class="statistics-chart-title">Динамика по периодам</div>
+                    <div class="statistics-chart-subtitle">Масса, заявки и рейсы по выбранной дате события</div>
+                </div>
+
+                <div class="statistics-chart-switch" role="group" aria-label="Метрика графика">
+                    <button type="button" class="chart-metric-btn" data-chart-metric="weight" aria-pressed="false">Масса</button>
+                    <button type="button" class="chart-metric-btn active" data-chart-metric="requests" aria-pressed="true">Заявки</button>
+                    <button type="button" class="chart-metric-btn" data-chart-metric="flights" aria-pressed="false">Рейсы</button>
+                </div>
             </div>
 
-            <div class="statistics-chart-switch" role="group" aria-label="Метрика графика">
-                <button type="button" class="chart-metric-btn" data-chart-metric="weight" aria-pressed="false">Масса</button>
-                <button type="button" class="chart-metric-btn active" data-chart-metric="requests" aria-pressed="true">Заявки</button>
-                <button type="button" class="chart-metric-btn" data-chart-metric="flights" aria-pressed="false">Рейсы</button>
-            </div>
-        </div>
+            <div class="statistics-chart-body">
+                <svg class="statistics-chart-svg" viewBox="0 0 900 180" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
-        <div class="statistics-chart-body">
-            <svg class="statistics-chart-svg" viewBox="0 0 900 180" role="img" aria-label="График статистики по периодам"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+                <div class="statistics-chart-tooltip" hidden></div>
 
-            <div class="statistics-chart-tooltip" hidden></div>
-
-            <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
-                <?= $period === 'custom' ? 'Для графика выберите группировку по неделям или месяцам.' : 'Нет данных для графика.' ?>
+                <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
+                    <?= $period === 'custom' ? 'Для графика выберите группировку по неделям или месяцам.' : 'Нет данных для графика.' ?>
+                </div>
             </div>
         </div>
 
@@ -264,11 +266,11 @@ use App\Modules\Statistics\Services\StatisticsService;
 <script>
 (function () {
     var CHART_SVG_VIEWBOX = { w: 900, h: 180 };
-    var PADDING = { left: 48, right: 22, top: 12, bottom: 28 };
+    var PADDING = { left: 44, right: 16, top: 12, bottom: 30 };
     var GRID_LINES = 4;
     var LINE_WIDTH = 2.5;
-    var DOT_RADIUS = 5;
-    var DOT_HOVER_RADIUS = 7;
+    var DOT_RADIUS = 3.5;
+    var DOT_HOVER_RADIUS = 5;
     var SMOOTH_TENSION = 0.12;
 
     var metricConfigs = {
@@ -278,7 +280,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             unit: 'кг',
             color: '#A1622A',
             hover: '#7A421C',
-            soft: 'rgba(161, 98, 42, 0.14)'
+            soft: 'rgba(161, 98, 42, 0.08)'
         },
         requests: {
             label: 'Заявки',
@@ -286,7 +288,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             unit: '',
             color: '#4E6F86',
             hover: '#35566B',
-            soft: 'rgba(78, 111, 134, 0.14)'
+            soft: 'rgba(78, 111, 134, 0.08)'
         },
         flights: {
             label: 'Рейсы',
@@ -294,7 +296,7 @@ use App\Modules\Statistics\Services\StatisticsService;
             unit: '',
             color: '#6F7458',
             hover: '#54593F',
-            soft: 'rgba(111, 116, 88, 0.14)'
+            soft: 'rgba(111, 116, 88, 0.08)'
         }
     };
 
@@ -513,9 +515,9 @@ use App\Modules\Statistics\Services\StatisticsService;
                 'cx': String(Math.round(pt.x)),
                 'cy': String(Math.round(pt.y)),
                 'r': String(DOT_RADIUS),
-                'fill': '#ffffff',
+                'fill': '#fefdf8',
                 'stroke': cfg.color,
-                'stroke-width': '2',
+                'stroke-width': '1.5',
                 'class': 'chart-dot',
                 'data-index': String(j)
             });
@@ -525,14 +527,14 @@ use App\Modules\Statistics\Services\StatisticsService;
                 if (isNaN(idx) || !items[idx]) return;
                 this.setAttribute('r', String(DOT_HOVER_RADIUS));
                 this.setAttribute('stroke', cfg.hover);
-                this.setAttribute('stroke-width', '2.5');
+                this.setAttribute('stroke-width', '2');
                 showTooltip(e, items[idx]);
             });
 
             circle.addEventListener('mouseleave', function() {
                 this.setAttribute('r', String(DOT_RADIUS));
                 this.setAttribute('stroke', cfg.color);
-                this.setAttribute('stroke-width', '2');
+                this.setAttribute('stroke-width', '1.5');
                 hideTooltip();
             });
 
