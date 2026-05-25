@@ -36,6 +36,12 @@ class StatisticsController
             $filters['date_to']
         );
 
+        $chartData = $this->service->buildChartData(
+            $data['rows'],
+            $filters['period'],
+            $filters['date_type']
+        );
+
         ob_start();
         $period    = $filters['period'];
         $dateType  = $filters['date_type'];
@@ -44,6 +50,7 @@ class StatisticsController
         $warning   = $filters['warning'];
         $summary   = $data['summary'];
         $rows      = $data['rows'];
+        $chartData = $chartData;
         $service   = $this->service;
         require __DIR__ . '/../../../Views/statistics/index.php';
         $content = ob_get_clean();

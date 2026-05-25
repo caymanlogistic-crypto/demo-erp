@@ -46,6 +46,19 @@
   --accent-line:  #a06830;
   --accent-bg:    #e8dbc8;
 
+  /* Chart — semantic palette */
+  --chart-weight:        #A1622A;
+  --chart-weight-hover:  #7A421C;
+  --chart-weight-soft:   rgba(161, 98, 42, 0.14);
+  --chart-requests:        #4E6F86;
+  --chart-requests-hover:  #35566B;
+  --chart-requests-soft:   rgba(78, 111, 134, 0.14);
+  --chart-flights:         #6F7458;
+  --chart-flights-hover:   #54593F;
+  --chart-flights-soft:    rgba(111, 116, 88, 0.14);
+  --chart-grid:  rgba(76, 70, 62, 0.12);
+  --chart-axis:  rgba(74, 68, 61, 0.58);
+
   /* Table */
   --table-head:          #d9d4cb;
   --table-head-border:   #a69e92;
@@ -1546,4 +1559,135 @@ textarea { resize: vertical; }
 /* Statistics custom period visibility */
 .statistics-date-range-field.is-hidden {
   display: none;
+}
+
+/* ============================================================
+   STATISTICS CHART PANEL
+   ============================================================ */
+
+.statistics-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.statistics-chart-panel {
+  border-top: 1px solid var(--line-hair);
+  border-bottom: 1px solid var(--line-hair);
+  background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.14));
+  padding: 8px 10px 10px;
+  flex-shrink: 0;
+}
+
+.statistics-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.statistics-chart-heading {
+  min-width: 0;
+}
+
+.statistics-chart-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.statistics-chart-subtitle {
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.statistics-chart-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255,255,255,.42);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.chart-metric-btn {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 100ms, border-color 100ms, color 100ms;
+}
+
+.chart-metric-btn:hover {
+  background: rgba(255,255,255,.5);
+  border-color: var(--line-soft);
+}
+
+.chart-metric-btn.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+  color: var(--accent-deep);
+}
+
+.statistics-chart-body {
+  position: relative;
+  min-height: 198px;
+}
+
+.statistics-chart-svg {
+  display: block;
+  width: 100%;
+  height: 198px;
+}
+
+.statistics-chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 150px;
+  max-width: 240px;
+  padding: 7px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--surface-strong);
+  box-shadow: 0 8px 18px rgba(0,0,0,.12);
+  font-size: 10.5px;
+  color: var(--text-main);
+  pointer-events: none;
+}
+
+.statistics-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 198px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chart-grid-line {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.chart-axis-label,
+.chart-x-label {
+  fill: var(--chart-axis);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.chart-bar {
+  transition: fill .12s ease, opacity .12s ease;
 }

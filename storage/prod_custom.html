@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200, initial-scale=1">
+    <title>Статистика вывозов — Demo ERP</title>
+    <link rel="stylesheet" href="/demoERP/public/assets/css/app.css">
+</head>
+<body>
+<div class="app">
+    <!-- ============================================================
+         TOPBAR
+         ============================================================ -->
+    <div class="topbar">
+        <div class="brand-mark">
+            <div class="logo"></div>
+        </div>
+        <div class="brand">TransportERP</div>
+                <div class="crumbs">
+            <span>Статистика</span>
+            <span class="sep">›</span>
+            <b>Вывозы по периодам</b>
+        </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=statistics">Вывозы по периодам</a>
+        </nav>
+                <div class="top-actions">
+            <div class="user">
+                <div class="avatar">LS</div>
+                <div class="user-info">
+                    <strong>Логист</strong>
+                    <span>Оператор</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SIDEBAR — rail navigation
+         ============================================================ -->
+    <div class="sidebar">
+        <a class="rail-item" href="/demoERP/public/?module=feo" title="Основное">
+            <span class="rail-label">О</span>
+        </a>
+        <a class="rail-item" href="/demoERP/public/?module=flights" title="Рейсы">
+            <span class="rail-label">Р</span>
+        </a>
+        <a class="rail-item active" href="/demoERP/public/?module=statistics" title="Статистика">
+            <span class="rail-label">С</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
+            <span class="rail-label">К</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Сервис">
+            <span class="rail-label">E</span>
+        </a>
+        <div class="nav-grow"></div>
+    </div>
+
+    <!-- ============================================================
+         PAGE CONTENT
+         ============================================================ -->
+    <div class="page">
+        <!-- Page header -->
+<div class="page-head">
+    <div class="page-head-left">
+        <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
+        <div class="page-title">Статистика вывозов</div>
+        <div class="page-summary"><span>Количество заявок и масса по выбранной дате события</span></div>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<form class="statistics-filters" data-statistics-filter-form method="get" action="">
+    <input type="hidden" name="module" value="statistics">
+
+    <div class="filter-field" style="width: 140px;">
+        <label for="periodSelect">Группировка</label>
+        <select id="periodSelect" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="week"   >По неделям</option>
+            <option value="month"  >По месяцам</option>
+            <option value="custom" selected>Произвольный период</option>
+        </select>
+    </div>
+
+    <div class="filter-field" style="width: 130px;">
+        <label for="dateTypeSelect">Дата события</label>
+        <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="delivery" >Доставка</option>
+            <option value="pickup"   selected>Вывоз</option>
+        </select>
+    </div>
+
+    <div class="filter-field statistics-date-range-field" data-custom-period-field style="width: 150px;">
+        <label for="filterDateFrom">Дата с</label>
+        <input type="date" id="filterDateFrom" name="date_from" value="2026-03-02">
+    </div>
+
+    <div class="filter-field statistics-date-range-field" data-custom-period-field style="width: 150px;">
+        <label for="filterDateTo">Дата по</label>
+        <input type="date" id="filterDateTo" name="date_to" value="2026-05-25">
+    </div>
+
+    <div class="filter-actions" data-custom-period-action>
+        <button type="submit" class="btn btn-toolbar">Применить</button>
+        <a class="btn btn-toolbar" href="?module=statistics" style="text-decoration: none;">Сбросить</a>
+    </div>
+</form>
+
+
+<!-- Table card -->
+<div class="table-card" style="flex: 1; min-height: 0;">
+    <div class="table-toolbar">
+        <div class="summary-left">
+            <span class="summary-main">
+                <span class="summary-main-dot"></span>
+                <span class="summary-main-label">Найдено:</span>
+                <b>1</b>
+                <span class="summary-main-unit">периодов</span>
+            </span>
+        </div>
+        <div class="summary-right">
+            <span class="summary-chip summary-chip-requests">
+                <span class="summary-chip-dot"></span>
+                <span>Заявок</span>
+                <b>453</b>
+            </span>
+            <span class="summary-chip summary-chip-flights">
+                <span class="summary-chip-dot"></span>
+                <span>Рейсов</span>
+                <b>49</b>
+            </span>
+            <span class="summary-chip summary-chip-weight">
+                <span class="summary-chip-dot"></span>
+                <span>Масса</span>
+                <b>543 117 кг</b>
+            </span>
+            <span class="summary-chip summary-chip-avg">
+                <span class="summary-chip-dot"></span>
+                <span>Средняя заявка</span>
+                <b>1 199 кг</b>
+            </span>
+        </div>
+    </div>
+
+    <div class="table-scroll">
+                <table class="table statistics-table">
+            <colgroup>
+                <col class="col-stat-period">
+                <col class="col-stat-requests">
+                <col class="col-stat-flights">
+                <col class="col-stat-weight">
+                <col class="col-stat-avg-request">
+                <col class="col-stat-avg-flight">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>ПЕРИОД</th>
+                    <th style="text-align: right;">ЗАЯВОК</th>
+                    <th style="text-align: right;">РЕЙСОВ</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
+                    <th style="text-align: right;">СР. РЕЙС, КГ</th>
+                </tr>
+            </thead>
+            <tbody>
+                                <tr>
+                    <td>02.03.2026–25.05.2026</td>
+                    <td class="cell-num">453</td>
+                    <td class="cell-num">49</td>
+                    <td class="cell-weight">543 117 кг</td>
+                    <td class="cell-weight">1 199 кг</td>
+                    <td class="cell-weight">11 084 кг</td>
+                </tr>
+                            </tbody>
+        </table>
+            </div>
+</div>
+
+<script>
+(function () {
+    var form = document.querySelector('[data-statistics-filter-form]');
+    var periodSelect = document.getElementById('periodSelect');
+    var dateTypeSelect = document.getElementById('dateTypeSelect');
+    var customFields = document.querySelectorAll('[data-custom-period-field]');
+    var customActions = document.querySelectorAll('[data-custom-period-action]');
+
+    function isCustom() {
+        return periodSelect && periodSelect.value === 'custom';
+    }
+
+    function updateCustomVisibility() {
+        var visible = isCustom();
+
+        customFields.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+
+            var input = el.querySelector('input, select, textarea');
+            if (input) {
+                input.disabled = !visible;
+            }
+        });
+
+        customActions.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+        });
+    }
+
+    function submitAuto() {
+        if (!form || isCustom()) {
+            return;
+        }
+
+        var dateFrom = form.querySelector('[name="date_from"]');
+        var dateTo = form.querySelector('[name="date_to"]');
+
+        if (dateFrom) {
+            dateFrom.disabled = true;
+        }
+
+        if (dateTo) {
+            dateTo.disabled = true;
+        }
+
+        form.submit();
+    }
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function () {
+            updateCustomVisibility();
+
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    if (dateTypeSelect) {
+        dateTypeSelect.addEventListener('change', function () {
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    // Initial visibility is already set by server-side hidden/disabled attributes.
+    // But ensure JS state matches on first load:
+    updateCustomVisibility();
+})();
+</script>
+    </div>
+</div>
+</body>
+</html>

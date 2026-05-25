@@ -346,4 +346,58 @@ class StatisticsService
         $d = \DateTime::createFromFormat('Y-m-d', $date);
         return $d !== false && $d->format('Y-m-d') === $date;
     }
+
+    /**
+     * Подготовить данные для SVG-графика.
+     *
+     * @param array $rows    Строки статистики из buildStatistics()
+     * @param string $period week|month|custom
+     * @return array{enabled: bool, period: string, date_type: string, date_type_label: string, period_label: string, items: array}
+     */
+    public function buildChartData(array $rows, string $period, string $dateType): array
+    {
+        if ($period === 'custom' || empty($rows)) {
+            return [
+                'enabled'         => false,
+                'period'          => $period,
+                'date_type'       => $dateType,
+                'date_type_label' => '',
+                'period_label'    => '',
+                'items'           => [],
+            ];
+        }
+
+        $dateTypeLabel = $dateType === 'pickup' ? 'по дате вывоза' : 'по дате доставки';
+        $periodLabel   = $period === 'month' ? 'по месяцам' : 'по неделям';
+
+        $items = [];
+        foreach ($rows as $row) {
+            $shortLabel = $row['period_key'];
+            if ($period === 'week' && preg_match('/-W(\d{2})$/', $row['period_key'], $m)) {
+                $shortLabel = (int) $m[1] . ' нед';
+            } elseif ($period === 'month') {
+                $parts = explode('-', $row['period_key']);
+                $month = (int) ($parts[1] ?? 0);
+                $monNames = ['', 'Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+                $shortLabel = $monNames[$month] ?? $row['period_key'];
+            }
+
+            $items[] = [
+                'label'       => $row['period_label'],
+                'short_label' => $shortLabel,
+                'requests'    => (int) $row['requests_count'],
+                'flights'     => (int) $row['flights_count'],
+                'weight'      => (int) $row['total_weight_kg'],
+            ];
+        }
+
+        return [
+            'enabled'         => true,
+            'period'          => $period,
+            'date_type'       => $dateType,
+            'date_type_label' => $dateTypeLabel,
+            'period_label'    => $periodLabel,
+            'items'           => $items,
+        ];
+    }
 }

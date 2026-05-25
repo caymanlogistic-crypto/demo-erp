@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200, initial-scale=1">
+    <title>Статистика вывозов — Demo ERP</title>
+    <link rel="stylesheet" href="/demoERP/public/assets/css/app.css">
+</head>
+<body>
+<div class="app">
+    <!-- ============================================================
+         TOPBAR
+         ============================================================ -->
+    <div class="topbar">
+        <div class="brand-mark">
+            <div class="logo"></div>
+        </div>
+        <div class="brand">TransportERP</div>
+                <div class="crumbs">
+            <span>Статистика</span>
+            <span class="sep">›</span>
+            <b>Вывозы по периодам</b>
+        </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=statistics">Вывозы по периодам</a>
+        </nav>
+                <div class="top-actions">
+            <div class="user">
+                <div class="avatar">LS</div>
+                <div class="user-info">
+                    <strong>Логист</strong>
+                    <span>Оператор</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SIDEBAR — rail navigation
+         ============================================================ -->
+    <div class="sidebar">
+        <a class="rail-item" href="/demoERP/public/?module=feo" title="Основное">
+            <span class="rail-label">О</span>
+        </a>
+        <a class="rail-item" href="/demoERP/public/?module=flights" title="Рейсы">
+            <span class="rail-label">Р</span>
+        </a>
+        <a class="rail-item active" href="/demoERP/public/?module=statistics" title="Статистика">
+            <span class="rail-label">С</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
+            <span class="rail-label">К</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Сервис">
+            <span class="rail-label">E</span>
+        </a>
+        <div class="nav-grow"></div>
+    </div>
+
+    <!-- ============================================================
+         PAGE CONTENT
+         ============================================================ -->
+    <div class="page">
+        <!-- Page header -->
+<div class="page-head">
+    <div class="page-head-left">
+        <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
+        <div class="page-title">Статистика вывозов</div>
+        <div class="page-summary"><span>Количество заявок и масса по выбранной дате события</span></div>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<form class="statistics-filters" data-statistics-filter-form method="get" action="">
+    <input type="hidden" name="module" value="statistics">
+
+    <div class="filter-field" style="width: 140px;">
+        <label for="periodSelect">Группировка</label>
+        <select id="periodSelect" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="week"   selected>По неделям</option>
+            <option value="month"  >По месяцам</option>
+            <option value="custom" >Произвольный период</option>
+        </select>
+    </div>
+
+    <div class="filter-field" style="width: 130px;">
+        <label for="dateTypeSelect">Дата события</label>
+        <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="delivery" selected>Доставка</option>
+            <option value="pickup"   >Вывоз</option>
+        </select>
+    </div>
+
+    <div class="filter-field statistics-date-range-field" data-custom-period-field hidden style="width: 150px;">
+        <label for="filterDateFrom">Дата с</label>
+        <input type="date" id="filterDateFrom" name="date_from" value="2026-03-02" disabled>
+    </div>
+
+    <div class="filter-field statistics-date-range-field" data-custom-period-field hidden style="width: 150px;">
+        <label for="filterDateTo">Дата по</label>
+        <input type="date" id="filterDateTo" name="date_to" value="2026-05-25" disabled>
+    </div>
+
+    <div class="filter-actions" data-custom-period-action hidden>
+        <button type="submit" class="btn btn-toolbar">Применить</button>
+        <a class="btn btn-toolbar" href="?module=statistics" style="text-decoration: none;">Сбросить</a>
+    </div>
+</form>
+
+
+<!-- Table card -->
+<div class="table-card" style="flex: 1; min-height: 0;">
+    <div class="table-toolbar">
+        <div class="summary-left">
+            <span class="summary-main">
+                <span class="summary-main-dot"></span>
+                <span class="summary-main-label">Найдено:</span>
+                <b>9</b>
+                <span class="summary-main-unit">периодов</span>
+            </span>
+        </div>
+        <div class="summary-right">
+            <span class="summary-chip summary-chip-requests">
+                <span class="summary-chip-dot"></span>
+                <span>Заявок</span>
+                <b>436</b>
+            </span>
+            <span class="summary-chip summary-chip-flights">
+                <span class="summary-chip-dot"></span>
+                <span>Рейсов</span>
+                <b>47</b>
+            </span>
+            <span class="summary-chip summary-chip-weight">
+                <span class="summary-chip-dot"></span>
+                <span>Масса</span>
+                <b>532 483 кг</b>
+            </span>
+            <span class="summary-chip summary-chip-avg">
+                <span class="summary-chip-dot"></span>
+                <span>Средняя заявка</span>
+                <b>1 221 кг</b>
+            </span>
+        </div>
+    </div>
+
+    <div class="table-scroll">
+                <table class="table statistics-table">
+            <colgroup>
+                <col class="col-stat-period">
+                <col class="col-stat-requests">
+                <col class="col-stat-flights">
+                <col class="col-stat-weight">
+                <col class="col-stat-avg-request">
+                <col class="col-stat-avg-flight">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>ПЕРИОД</th>
+                    <th style="text-align: right;">ЗАЯВОК</th>
+                    <th style="text-align: right;">РЕЙСОВ</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
+                    <th style="text-align: right;">СР. РЕЙС, КГ</th>
+                </tr>
+            </thead>
+            <tbody>
+                                <tr>
+                    <td>23.03–29.03.2026</td>
+                    <td class="cell-num">15</td>
+                    <td class="cell-num">6</td>
+                    <td class="cell-weight">70 534 кг</td>
+                    <td class="cell-weight">4 702 кг</td>
+                    <td class="cell-weight">11 756 кг</td>
+                </tr>
+                                <tr>
+                    <td>30.03–05.04.2026</td>
+                    <td class="cell-num">26</td>
+                    <td class="cell-num">4</td>
+                    <td class="cell-weight">11 969 кг</td>
+                    <td class="cell-weight">460 кг</td>
+                    <td class="cell-weight">2 992 кг</td>
+                </tr>
+                                <tr>
+                    <td>06.04–12.04.2026</td>
+                    <td class="cell-num">60</td>
+                    <td class="cell-num">9</td>
+                    <td class="cell-weight">137 969 кг</td>
+                    <td class="cell-weight">2 299 кг</td>
+                    <td class="cell-weight">15 330 кг</td>
+                </tr>
+                                <tr>
+                    <td>13.04–19.04.2026</td>
+                    <td class="cell-num">46</td>
+                    <td class="cell-num">3</td>
+                    <td class="cell-weight">34 601 кг</td>
+                    <td class="cell-weight">752 кг</td>
+                    <td class="cell-weight">11 534 кг</td>
+                </tr>
+                                <tr>
+                    <td>20.04–26.04.2026</td>
+                    <td class="cell-num">10</td>
+                    <td class="cell-num">2</td>
+                    <td class="cell-weight">39 753 кг</td>
+                    <td class="cell-weight">3 975 кг</td>
+                    <td class="cell-weight">19 877 кг</td>
+                </tr>
+                                <tr>
+                    <td>27.04–03.05.2026</td>
+                    <td class="cell-num">103</td>
+                    <td class="cell-num">7</td>
+                    <td class="cell-weight">77 231 кг</td>
+                    <td class="cell-weight">750 кг</td>
+                    <td class="cell-weight">11 033 кг</td>
+                </tr>
+                                <tr>
+                    <td>04.05–10.05.2026</td>
+                    <td class="cell-num">67</td>
+                    <td class="cell-num">8</td>
+                    <td class="cell-weight">88 922 кг</td>
+                    <td class="cell-weight">1 327 кг</td>
+                    <td class="cell-weight">11 115 кг</td>
+                </tr>
+                                <tr>
+                    <td>11.05–17.05.2026</td>
+                    <td class="cell-num">48</td>
+                    <td class="cell-num">3</td>
+                    <td class="cell-weight">35 102 кг</td>
+                    <td class="cell-weight">731 кг</td>
+                    <td class="cell-weight">11 701 кг</td>
+                </tr>
+                                <tr>
+                    <td>18.05–24.05.2026</td>
+                    <td class="cell-num">61</td>
+                    <td class="cell-num">5</td>
+                    <td class="cell-weight">36 402 кг</td>
+                    <td class="cell-weight">597 кг</td>
+                    <td class="cell-weight">7 280 кг</td>
+                </tr>
+                            </tbody>
+        </table>
+            </div>
+</div>
+
+<script>
+(function () {
+    var form = document.querySelector('[data-statistics-filter-form]');
+    var periodSelect = document.getElementById('periodSelect');
+    var dateTypeSelect = document.getElementById('dateTypeSelect');
+    var customFields = document.querySelectorAll('[data-custom-period-field]');
+    var customActions = document.querySelectorAll('[data-custom-period-action]');
+
+    function isCustom() {
+        return periodSelect && periodSelect.value === 'custom';
+    }
+
+    function updateCustomVisibility() {
+        var visible = isCustom();
+
+        customFields.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+
+            var input = el.querySelector('input, select, textarea');
+            if (input) {
+                input.disabled = !visible;
+            }
+        });
+
+        customActions.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+        });
+    }
+
+    function submitAuto() {
+        if (!form || isCustom()) {
+            return;
+        }
+
+        var dateFrom = form.querySelector('[name="date_from"]');
+        var dateTo = form.querySelector('[name="date_to"]');
+
+        if (dateFrom) {
+            dateFrom.disabled = true;
+        }
+
+        if (dateTo) {
+            dateTo.disabled = true;
+        }
+
+        form.submit();
+    }
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function () {
+            updateCustomVisibility();
+
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    if (dateTypeSelect) {
+        dateTypeSelect.addEventListener('change', function () {
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    // Initial visibility is already set by server-side hidden/disabled attributes.
+    // But ensure JS state matches on first load:
+    updateCustomVisibility();
+})();
+</script>
+    </div>
+</div>
+</body>
+</html>
