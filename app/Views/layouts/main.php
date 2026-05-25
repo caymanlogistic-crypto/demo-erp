@@ -22,7 +22,6 @@
             <b><?= htmlspecialchars($pageTitle ?? 'Заявки ФЭО', ENT_QUOTES, 'UTF-8') ?></b>
         </div>
         <div class="top-actions">
-            <div class="top-search">Поиск по системе…</div>
             <div class="user">
                 <div class="avatar">LS</div>
                 <div class="user-info">

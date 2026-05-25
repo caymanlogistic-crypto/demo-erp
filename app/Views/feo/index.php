@@ -197,12 +197,13 @@ function updateFoundLabel(data) {
     var fl = document.getElementById('foundLabel');
     if (!fl) return;
     var sc = data.status_counts || {planned:0,found:0,started:0,completed:0};
-    fl.innerHTML = '<b>' + data.total + '</b> заявок'
-        + ' <span class="status-summary">'
-        + '<span class="status-count status-count-planned">Планируемый <b>' + sc.planned + '</b></span>'
-        + '<span class="status-count status-count-found">Рейс сформирован <b>' + sc.found + '</b></span>'
-        + '<span class="status-count status-count-started">Вывоз начался <b>' + sc.started + '</b></span>'
-        + '<span class="status-count status-count-completed">Груз сдан <b>' + sc.completed + '</b></span>'
+    fl.innerHTML = '<span class="found-marker"></span>'
+        + '<span class="found-main">Найдено: <b>' + data.total + '</b> заявок</span>'
+        + '<span class="status-summary">'
+        + '<span class="status-count status-count-planned"><span class="status-count-dot"></span>Планируемый <b>' + sc.planned + '</b></span>'
+        + '<span class="status-count status-count-found"><span class="status-count-dot"></span>Рейс сформирован <b>' + sc.found + '</b></span>'
+        + '<span class="status-count status-count-started"><span class="status-count-dot"></span>Вывоз начался <b>' + sc.started + '</b></span>'
+        + '<span class="status-count status-count-completed"><span class="status-count-dot"></span>Груз сдан <b>' + sc.completed + '</b></span>'
         + '</span>';
 }
 

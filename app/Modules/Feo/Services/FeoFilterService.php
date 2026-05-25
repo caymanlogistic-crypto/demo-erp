@@ -68,6 +68,7 @@ class FeoFilterService
             'flightDetailsMap'  => $result['flightDetailsMap'],
             'priceMap'          => $result['priceMap'],
             'pricePerKgMap'     => $result['pricePerKgMap'],
+            'statusCounts'      => $result['statusCounts'],
             'offset'            => $offset,
             'limit'             => $limit,
             'hasMore'           => $hasMore,

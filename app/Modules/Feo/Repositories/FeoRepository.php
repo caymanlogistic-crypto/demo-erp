@@ -140,6 +140,9 @@ class FeoRepository
 
         $missingZayavki = $hasNums ? array_values(array_diff($zayavkaIds, $foundZayavki)) : [];
 
+        // --- 6b. Статусные счётчики по полному набору (без LIMIT) ---
+        $statusCounts = $this->getStatusCounts($pdo, $zayavkaIds, $showOnlyAvailable, $showOnlyMarshrut, $showOnlyFlight);
+
         // --- 7. Данные (LIMIT/OFFSET) ---
         try {
             $dataSQL = "SELECT * FROM feo {$whereSQL} ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}";
@@ -170,7 +173,84 @@ class FeoRepository
             'flightDetailsMap'  => $flightMapData['flightDetailsMap'],
             'priceMap'          => $priceData['price'],
             'pricePerKgMap'     => $priceData['price_per_kg'],
+            'statusCounts'      => $statusCounts,
         ];
+    }
+
+    /**
+     * Подсчёт статусов по полному отфильтрованному набору (без LIMIT).
+     * Повторяет WHERE-логику getFilteredRows, но возвращает только агрегаты.
+     */
+    private function getStatusCounts(
+        PDO $pdo,
+        array $zayavkaIds,
+        bool $showOnlyAvailable,
+        bool $showOnlyMarshrut,
+        bool $showOnlyFlight
+    ): array {
+        $counts = ['planned' => 0, 'found' => 0, 'started' => 0, 'completed' => 0];
+        try {
+            $where   = [];
+            $params  = [];
+            $hasNums = !empty($zayavkaIds);
+
+            if ($hasNums) {
+                $placeholders = implode(',', array_fill(0, count($zayavkaIds), '?'));
+                $where[] = "f.zayavka_id IN ($placeholders)";
+                $params = array_merge($params, $zayavkaIds);
+            }
+
+            if ($showOnlyAvailable) {
+                $ids = $this->getZayavkaIdsFromStatusBlocks($pdo, 'dostupno');
+                if (empty($ids)) return $counts;
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $where[] = "f.zayavka_id IN ($placeholders)";
+                $params = array_merge($params, $ids);
+            }
+            if ($showOnlyMarshrut) {
+                $ids = $this->getZayavkaIdsFromStatusBlocks($pdo, 'marshrut');
+                if (empty($ids)) return $counts;
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $where[] = "f.zayavka_id IN ($placeholders)";
+                $params = array_merge($params, $ids);
+            }
+            if ($showOnlyFlight) {
+                $ids = $this->getZayavkaIdsFromFlights($pdo);
+                if (empty($ids)) return $counts;
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $where[] = "f.zayavka_id IN ($placeholders)";
+                $params = array_merge($params, $ids);
+            }
+
+            $whereSQL = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+            // JOIN to flights to get statuses
+            $flightData = $this->buildFlightMaps($pdo);
+            $flightIdsForFilter = [];
+            $zayavkaToStatus = [];
+
+            $allSQL = "SELECT f.zayavka_id FROM feo f {$whereSQL}";
+            $stmt = $pdo->prepare($allSQL);
+            $stmt->execute($params);
+            $allZIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($allZIds as $zId) {
+                $zId = (string) $zId;
+                $fId = $flightData['flightMap'][$zId] ?? null;
+                if ($fId !== null && isset($flightData['flightDetailsMap'][$fId])) {
+                    $status = $flightData['flightDetailsMap'][$fId]['status'] ?? '';
+                    switch ($status) {
+                        case 'planned_route': case 'planned-route': $counts['planned']++; break;
+                        case 'found': $counts['found']++; break;
+                        case 'started': $counts['started']++; break;
+                        case 'completed': $counts['completed']++; break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('FeoRepository getStatusCounts error: ' . $e->getMessage());
+        }
+        return $counts;
     }
 
     /**

@@ -545,13 +545,23 @@ textarea { resize: vertical; }
   font-size: 12px;
   font-weight: 500;
 }
-.found-label::before {
-  content: "";
-  display: block;
+.found-marker {
   width: 5px; height: 5px;
+  flex: 0 0 5px;
   background: var(--accent-line);
   border-radius: 1px;
-  flex-shrink: 0;
+}
+.found-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.found-main b {
+  color: var(--text-main);
+  font-weight: 800;
 }
 .found-label b { color: var(--text-main); font-weight: 700; }
 .toolbar-right { display: flex; gap: 5px; align-items: center; }
@@ -560,14 +570,14 @@ textarea { resize: vertical; }
 .status-summary {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   overflow: hidden;
 }
 .status-count {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   height: 18px;
   padding: 0 6px;
   border: 1px solid var(--line-soft);
@@ -584,10 +594,15 @@ textarea { resize: vertical; }
   color: var(--text-main);
   font-weight: 800;
 }
-.status-count-planned { border-left: 2px solid var(--flight-planned-dot); }
-.status-count-found   { border-left: 2px solid var(--flight-found-dot); }
-.status-count-started { border-left: 2px solid var(--flight-started-dot); }
-.status-count-completed { border-left: 2px solid var(--neutral); }
+.status-count-dot {
+  width: 6px; height: 6px;
+  flex: 0 0 6px;
+  border-radius: 1px;
+}
+.status-count-planned .status-count-dot { background: var(--flight-planned-dot); }
+.status-count-found .status-count-dot   { background: var(--flight-found-dot); }
+.status-count-started .status-count-dot { background: var(--flight-started-dot); }
+.status-count-completed .status-count-dot { background: var(--flight-completed-dot); }
 
 /* Table scroll */
 .table-scroll {
@@ -597,7 +612,7 @@ textarea { resize: vertical; }
 
 /* Table — ERP Grid */
 .table {
-  min-width: 1512px;
+  min-width: 1510px;
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
@@ -850,16 +865,16 @@ textarea { resize: vertical; }
 /* ============================================================
    FEO COLUMN WIDTHS (colgroup) — 14 cols
    ============================================================ */
-.col-feo-id        { width: 70px; }
+.col-feo-id        { width: 68px; }
 .col-feo-mass      { width: 62px; }
-.col-feo-region    { width: 122px; }
-.col-feo-mo        { width: 145px; }
-.col-feo-sender    { width: 235px; }
-.col-feo-address   { width: 320px; }
-.col-feo-available { width: 78px; }
-.col-feo-route     { width: 70px; }
+.col-feo-region    { width: 118px; }
+.col-feo-mo        { width: 135px; }
+.col-feo-sender    { width: 230px; }
+.col-feo-address   { width: 330px; }
+.col-feo-available { width: 76px; }
+.col-feo-route     { width: 66px; }
 .col-feo-flight    { width: 72px; }
-.col-feo-status    { width: 122px; }
+.col-feo-status    { width: 118px; }
 .col-feo-date-from { width: 82px; }
 .col-feo-date-to   { width: 82px; }
 .col-feo-price     { width: 78px; }

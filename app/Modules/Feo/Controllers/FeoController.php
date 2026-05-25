@@ -88,13 +88,11 @@ class FeoController
 
         $zayavkaIds = $data['zayavkaIds'];
 
-        $statusCounts = $this->computeStatusCounts($data['rows'], $data['flightMap'], $data['flightDetailsMap']);
-
         $this->jsonResponse([
             'success'            => true,
             'html'               => $html,
             'total'              => $data['total'],
-            'status_counts'      => $statusCounts,
+            'status_counts'      => $data['statusCounts'],
             'offset'             => $data['offset'],
             'limit'              => $data['limit'],
             'has_more'           => $data['hasMore'],
