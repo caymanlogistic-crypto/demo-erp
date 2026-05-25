@@ -31,6 +31,7 @@ class FeoFilterService
      * @param bool   $showOnlyFlight     Чекбокс «Рейс»
      * @param int    $offset             Смещение для бесконечной прокрутки
      * @param int    $limit              Элементов на странице
+     * @param string $contentSearch      Строка поиска по содержимому (серверный LIKE)
      * @return array
      */
     public function execute(
@@ -39,7 +40,8 @@ class FeoFilterService
         bool $showOnlyMarshrut = false,
         bool $showOnlyFlight = false,
         int $offset = 0,
-        int $limit = 50
+        int $limit = 50,
+        string $contentSearch = ''
     ): array {
         $zayavkaIds = FeoRepository::parseZayavkaNumbers($numbers);
         $limit      = min(100, max(10, $limit));
@@ -51,7 +53,8 @@ class FeoFilterService
             $showOnlyMarshrut,
             $showOnlyFlight,
             $offset,
-            $limit
+            $limit,
+            $contentSearch
         );
 
         $hasMore = ($offset + $limit) < $result['total'];

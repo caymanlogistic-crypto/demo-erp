@@ -136,12 +136,9 @@ var showOnlyAvailableCheckbox = document.getElementById('showOnlyAvailable');
 var showOnlyMarshrutCheckbox = document.getElementById('showOnlyMarshrut');
 var showOnlyFlightCheckbox = document.getElementById('showOnlyFlight');
 
-// Поиск по содержимому
+// Поиск по содержимому (СЕРВЕРНЫЙ)
 var searchInput = document.getElementById('searchText');
 var clearSearchBtn = document.getElementById('clearSearchBtn');
-var currentSearch = '';
-var allRowsData = [];
-var lastAjaxData = null;
 
 var currentOffset = 0;
 var currentLimit = 50;
@@ -151,6 +148,7 @@ var isLoading = false;
 var hasMore = true;
 var loadTimeout = null;
 var scrollTimeout = null;
+var searchTimeout = null;
 
 function loadData(reset) {
     if (reset === undefined) reset = true;
@@ -164,11 +162,13 @@ function loadData(reset) {
     var showOnlyAvailable = showOnlyAvailableCheckbox.checked ? '1' : '0';
     var showOnlyMarshrut = showOnlyMarshrutCheckbox.checked ? '1' : '0';
     var showOnlyFlight = showOnlyFlightCheckbox.checked ? '1' : '0';
+    var contentSearch = searchInput ? searchInput.value.trim() : '';
 
     var url = '?module=feo&action=list&ajax=get_zayavki'
         + '&offset=' + currentOffset
         + '&limit=' + currentLimit
         + '&filter_zayavki=' + encodeURIComponent(filterValue)
+        + '&content_search=' + encodeURIComponent(contentSearch)
         + '&show_only_available=' + showOnlyAvailable
         + '&show_only_marshrut=' + showOnlyMarshrut
         + '&show_only_flight=' + showOnlyFlight;
@@ -185,7 +185,6 @@ function loadData(reset) {
                 currentTotal = data.total;
                 currentFilter = filterValue;
                 hasMore = data.has_more;
-                lastAjaxData = data;
 
                 var rowsCount = tableBody.querySelectorAll('tr').length;
                 currentOffset = rowsCount;
@@ -198,9 +197,6 @@ function loadData(reset) {
 
                 updateFilterInfo(data);
                 updateFoundLabel(data);
-
-                parseRowsForSearch();
-                applyTextFilter();
             } else {
                 tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 40px; color: var(--danger);">Ошибка: ' + escapeHtml(data.message) + '</td></tr>';
             }
@@ -269,52 +265,6 @@ function updateFilterInfo(data) {
     }
 }
 
-// Логика поиска по содержимому (из index22.php)
-function parseRowsForSearch() {
-    allRowsData = [];
-    tableBody.querySelectorAll('tr').forEach(function(row) {
-        var cells = row.querySelectorAll('td');
-        if (cells.length >= 12) {
-            allRowsData.push({
-                element: row,
-                searchText: [
-                    cells[2] ? cells[2].textContent : '',
-                    cells[3] ? cells[3].textContent : '',
-                    cells[4] ? cells[4].textContent : '',
-                    cells[5] ? cells[5].textContent : '',
-                    cells[6] ? cells[6].textContent : '',
-                    cells[7] ? cells[7].textContent : '',
-                    cells[8] ? cells[8].textContent : '',
-                    cells[9] ? cells[9].textContent : ''
-                ].join(' ').toLowerCase()
-            });
-        }
-    });
-}
-
-function applyTextFilter() {
-    var searchValue = currentSearch.trim().toLowerCase();
-    if (!searchValue) {
-        allRowsData.forEach(function(item) { item.element.style.display = ''; });
-        if (lastAjaxData) updateFilterInfo(lastAjaxData);
-        return;
-    }
-    var visibleCount = 0;
-    allRowsData.forEach(function(item) {
-        if (item.searchText.indexOf(searchValue) !== -1) {
-            item.element.style.display = '';
-            visibleCount++;
-        } else {
-            item.element.style.display = 'none';
-        }
-    });
-    if (lastAjaxData) {
-        var html = filterStats.innerHTML.replace(/ Найдено по тексту: \d+/, '');
-        html += ' Найдено по тексту: ' + visibleCount;
-        filterStats.innerHTML = html;
-    }
-}
-
 function handleScroll() {
     if (!tableWrapper) return;
     if (scrollTimeout) clearTimeout(scrollTimeout);
@@ -353,19 +303,19 @@ function clearFilter() {
     if (tableWrapper) tableWrapper.scrollTop = 0;
 }
 
+// Серверный поиск по содержимому: debounce 500ms, сброс offset, AJAX reload
 function handleSearchInput() {
-    currentSearch = searchInput.value.trim();
-    if (allRowsData.length > 0) {
-        applyTextFilter();
-    } else {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
         loadData(true);
-    }
+        if (tableWrapper) tableWrapper.scrollTop = 0;
+    }, 500);
 }
 
 function clearSearch() {
     searchInput.value = '';
-    currentSearch = '';
-    if (allRowsData.length > 0) applyTextFilter();
+    loadData(true);
+    if (tableWrapper) tableWrapper.scrollTop = 0;
 }
 
 // Event listeners

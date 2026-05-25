@@ -53,6 +53,7 @@ class FeoController
         $offset             = isset($_GET['offset']) ? (int) $_GET['offset'] : 0;
         $limit              = isset($_GET['limit']) ? min(100, max(10, (int) $_GET['limit'])) : 50;
         $filterZayavki      = isset($_GET['filter_zayavki']) ? trim($_GET['filter_zayavki']) : '';
+        $contentSearch      = isset($_GET['content_search']) ? trim($_GET['content_search']) : '';
         $showOnlyAvailable  = isset($_GET['show_only_available']) && $_GET['show_only_available'] === '1';
         $showOnlyMarshrut   = isset($_GET['show_only_marshrut']) && $_GET['show_only_marshrut'] === '1';
         $showOnlyFlight     = isset($_GET['show_only_flight']) && $_GET['show_only_flight'] === '1';
@@ -66,7 +67,8 @@ class FeoController
                 $showOnlyMarshrut,
                 $showOnlyFlight,
                 $offset,
-                $limit
+                $limit,
+                $contentSearch
             );
         } catch (\Exception $e) {
             error_log('FeoController::list error: ' . $e->getMessage());

@@ -37,7 +37,8 @@ class FeoRepository
         bool $showOnlyMarshrut,
         bool $showOnlyFlight,
         int $offset = 0,
-        int $limit = 50
+        int $limit = 50,
+        string $contentSearch = ''
     ): array {
         $pdo = Connection::get();
 
@@ -109,6 +110,21 @@ class FeoRepository
             $params = array_merge($params, $flightZayavkiIds);
         }
 
+        // Серверный поиск по содержимому (LIKE с prepared statement)
+        $contentSearch = trim($contentSearch);
+        if ($contentSearch !== '') {
+            $searchParam = '%' . $contentSearch . '%';
+            $where[] = "(
+                CAST(zayavka_id AS CHAR) LIKE ?
+                OR mno_region LIKE ?
+                OR mno_mo LIKE ?
+                OR naim_oo_gruzootpravitel LIKE ?
+                OR mno_adres_pogruzki LIKE ?
+                OR CAST(mass_netto AS CHAR) LIKE ?
+            )";
+            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
+        }
+
         $whereSQL = '';
         if (!empty($where)) {
             $whereSQL = 'WHERE ' . implode(' AND ', $where);
@@ -141,7 +157,7 @@ class FeoRepository
         $missingZayavki = $hasNums ? array_values(array_diff($zayavkaIds, $foundZayavki)) : [];
 
         // --- 6b. Статусные счётчики по полному набору (без LIMIT) ---
-        $statusCounts = $this->getStatusCounts($pdo, $zayavkaIds, $showOnlyAvailable, $showOnlyMarshrut, $showOnlyFlight);
+        $statusCounts = $this->getStatusCounts($pdo, $zayavkaIds, $showOnlyAvailable, $showOnlyMarshrut, $showOnlyFlight, $contentSearch);
 
         // --- 7. Данные (LIMIT/OFFSET) ---
         try {
@@ -186,7 +202,8 @@ class FeoRepository
         array $zayavkaIds,
         bool $showOnlyAvailable,
         bool $showOnlyMarshrut,
-        bool $showOnlyFlight
+        bool $showOnlyFlight,
+        string $contentSearch = ''
     ): array {
         $counts = ['planned' => 0, 'found' => 0, 'started' => 0, 'completed' => 0];
         $receivedTotal = 0;
@@ -221,6 +238,21 @@ class FeoRepository
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $where[] = "f.zayavka_id IN ($placeholders)";
                 $params = array_merge($params, $ids);
+            }
+
+            // Серверный поиск по содержимому (тот же набор полей, что и в getFilteredRows)
+            $contentSearch = trim($contentSearch);
+            if ($contentSearch !== '') {
+                $searchParam = '%' . $contentSearch . '%';
+                $where[] = "(
+                    CAST(f.zayavka_id AS CHAR) LIKE ?
+                    OR f.mno_region LIKE ?
+                    OR f.mno_mo LIKE ?
+                    OR f.naim_oo_gruzootpravitel LIKE ?
+                    OR f.mno_adres_pogruzki LIKE ?
+                    OR CAST(f.mass_netto AS CHAR) LIKE ?
+                )";
+                $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
             }
 
             $whereSQL = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
