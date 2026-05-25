@@ -1,0 +1,308 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Flights\Repositories;
+
+use App\Core\Database\Connection;
+use PDO;
+
+/**
+ * Репозиторий для чтения данных рейсов (flights) и связанных сущностей.
+ *
+ * Повторяет логику legacy timeline.php:
+ *  - flights + contractors + drivers + users
+ *  - статусы из таблицы status
+ *  - заявки из feo по zayavki_ids
+ *  - табы: all, planned, in_transit, unloaded, unassigned
+ */
+class FlightsRepository
+{
+    private const LIMIT = 500;
+
+    /**
+     * Получить список статусов.
+     *
+     * @return array<string, array> статус → [статус, наименование, style, ...]
+     */
+    public function getStatuses(): array
+    {
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return [];
+        }
+
+        try {
+            $stmt = $pdo->query("SELECT * FROM status ORDER BY id");
+            $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $map = [];
+            foreach ($statuses as $s) {
+                $map[$s['статус']] = $s;
+            }
+            return $map;
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getStatuses error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Получить рейсы с фильтром по табу.
+     *
+     * @param string $tab all|planned|in_transit|unloaded|unassigned
+     * @return array{flights: array, count: int}
+     */
+    public function getFlights(string $tab = 'all'): array
+    {
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return ['flights' => [], 'count' => 0];
+        }
+
+        try {
+            $baseSql = "
+                SELECT f.*,
+                    c.name AS contractor_name,
+                    d.full_name AS driver_name,
+                    d.vehicle_make_plate,
+                    CONCAT(u.Фамилия, ' ', u.Имя) AS manager_name
+                FROM flights f
+                LEFT JOIN contractors c ON f.contractor_id = c.id
+                LEFT JOIN drivers d ON f.driver_id = d.id
+                LEFT JOIN users u ON f.assigned_manager_id = u.id
+                WHERE 1=1
+            ";
+
+            $filterSQL = $this->buildFilterSQL($tab);
+            $orderSQL  = $this->buildOrderSQL($tab);
+
+            $sql = $baseSQL . $filterSQL . $orderSQL . " LIMIT " . self::LIMIT;
+
+            $stmt = $pdo->query($sql);
+            $flights = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Count — тот же запрос без LIMIT
+            $countSQL = "SELECT COUNT(*) AS cnt FROM flights f WHERE 1=1" . $filterSQL;
+            $countStmt = $pdo->query($countSQL);
+            $count = (int) $countStmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+
+            return ['flights' => $flights, 'count' => $count];
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getFlights error: ' . $e->getMessage());
+            return ['flights' => [], 'count' => 0];
+        }
+    }
+
+    /**
+     * Получить количество рейсов для каждого таба.
+     *
+     * @return array{all: int, planned: int, in_transit: int, unloaded: int, unassigned: int}
+     */
+    public function getTabCounts(): array
+    {
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return ['all' => 0, 'planned' => 0, 'in_transit' => 0, 'unloaded' => 0, 'unassigned' => 0];
+        }
+
+        $counts = [];
+        $tabs = ['all', 'planned', 'in_transit', 'unloaded', 'unassigned'];
+
+        try {
+            foreach ($tabs as $tab) {
+                $filterSQL = $this->buildFilterSQL($tab);
+                $sql = "SELECT COUNT(*) AS cnt FROM flights f WHERE 1=1" . $filterSQL;
+                $stmt = $pdo->query($sql);
+                $counts[$tab] = (int) $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+            }
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getTabCounts error: ' . $e->getMessage());
+            return ['all' => 0, 'planned' => 0, 'in_transit' => 0, 'unloaded' => 0, 'unassigned' => 0];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Получить данные заявок по их ID.
+     *
+     * @param string[] $zayavkaIds
+     * @return array<string, array> zayavka_id → данные заявки
+     */
+    public function getZayavkiData(array $zayavkaIds): array
+    {
+        if (empty($zayavkaIds)) {
+            return [];
+        }
+
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return [];
+        }
+
+        try {
+            $placeholders = implode(',', array_fill(0, count($zayavkaIds), '?'));
+            $stmt = $pdo->prepare("
+                SELECT zayavka_id, mass_netto, naim_oo_gruzootpravitel,
+                       mno_adres_pogruzki, kontakt_tel, tel_dopolnitelnyy, kontakt_email
+                FROM feo
+                WHERE zayavka_id IN ({$placeholders})
+            ");
+            $stmt->execute($zayavkaIds);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $map = [];
+            foreach ($rows as $row) {
+                $map[(string) $row['zayavka_id']] = $row;
+            }
+            return $map;
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getZayavkiData error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Получить price_per_kg для заявок (логика из FeoRepository::calculatePrices).
+     *
+     * Использует status_blocks (marshrut) с cost для расчёта цены за кг.
+     *
+     * @param string[] $zayavkaIds
+     * @return array<string, float> zayavka_id → price_per_kg
+     */
+    public function getPricePerKg(array $zayavkaIds): array
+    {
+        if (empty($zayavkaIds)) {
+            return [];
+        }
+
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return [];
+        }
+
+        $pricePerKg = [];
+
+        try {
+            // Берём все блоки со стоимостью
+            $stmt = $pdo->prepare("
+                SELECT id, zayavki_ids, cost
+                FROM status_blocks
+                WHERE status_type = 'marshrut'
+                  AND cost IS NOT NULL
+                  AND cost > 0
+                  AND zayavki_ids != ''
+            ");
+            $stmt->execute();
+            $blocks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($blocks)) {
+                return [];
+            }
+
+            // Собираем все уникальные zayavka_id из блоков
+            $allBlockIds = [];
+            foreach ($blocks as $block) {
+                $ids = array_filter(array_map('trim', explode(',', $block['zayavki_ids'])));
+                foreach ($ids as $id) {
+                    $allBlockIds[$id] = true;
+                }
+            }
+            $uniqueBlockIds = array_keys($allBlockIds);
+
+            // Получаем массу нетто
+            $weightMap = [];
+            if (!empty($uniqueBlockIds)) {
+                $placeholders = implode(',', array_fill(0, count($uniqueBlockIds), '?'));
+                $stmtFeo = $pdo->prepare("
+                    SELECT zayavka_id, mass_netto
+                    FROM feo
+                    WHERE zayavka_id IN ({$placeholders})
+                ");
+                $stmtFeo->execute($uniqueBlockIds);
+                foreach ($stmtFeo->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $weightKg = (float) $row['mass_netto'] * 1000;
+                    if ($weightKg > 0) {
+                        $weightMap[$row['zayavka_id']] = $weightKg;
+                    }
+                }
+            }
+
+            // Обрабатываем каждый блок
+            foreach ($blocks as $block) {
+                $blockCost = (float) $block['cost'];
+                $ids = array_filter(array_map('trim', explode(',', $block['zayavki_ids'])));
+
+                $totalWeight = 0.0;
+                foreach ($ids as $zId) {
+                    if (isset($weightMap[$zId])) {
+                        $totalWeight += $weightMap[$zId];
+                    }
+                }
+
+                if ($totalWeight <= 0) {
+                    continue;
+                }
+
+                $ppk = $blockCost / $totalWeight;
+
+                foreach ($ids as $zId) {
+                    if (in_array($zId, $zayavkaIds, true) && isset($weightMap[$zId])) {
+                        if (!isset($pricePerKg[$zId])) {
+                            $pricePerKg[$zId] = $ppk;
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getPricePerKg error: ' . $e->getMessage());
+        }
+
+        return $pricePerKg;
+    }
+
+    /**
+     * Построить SQL-условие фильтра для таба.
+     */
+    private function buildFilterSQL(string $tab): string
+    {
+        return match ($tab) {
+            'planned'     => " AND (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)",
+            'in_transit'  => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NULL",
+            'unloaded'    => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NOT NULL",
+            'unassigned'  => " AND (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL) AND f.actual_start_date IS NULL",
+            default       => "",
+        };
+    }
+
+    /**
+     * Построить SQL-сортировку для таба.
+     */
+    private function buildOrderSQL(string $tab): string
+    {
+        return match ($tab) {
+            'all' => " ORDER BY
+                CASE WHEN (
+                    f.planned_start_date IS NULL
+                    AND f.planned_start_date_from IS NULL
+                    AND f.planned_start_date_to IS NULL
+                    AND f.actual_start_date IS NULL
+                ) THEN 0 ELSE 1 END,
+                GREATEST(
+                    COALESCE(f.planned_start_date, '1970-01-01'),
+                    COALESCE(f.planned_start_date_from, '1970-01-01'),
+                    COALESCE(f.planned_start_date_to, '1970-01-01'),
+                    COALESCE(f.actual_start_date, '1970-01-01'),
+                    COALESCE(f.actual_end_date, '1970-01-01')
+                ) DESC",
+            'in_transit', 'unloaded' => " ORDER BY
+                GREATEST(
+                    COALESCE(f.actual_start_date, '1970-01-01'),
+                    COALESCE(f.actual_end_date, '1970-01-01')
+                ) DESC",
+            'unassigned' => " ORDER BY f.id ASC",
+            default => " ORDER BY
+                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date, f.id) ASC",
+        };
+    }
+}

@@ -16,6 +16,19 @@
             <div class="logo"></div>
         </div>
         <div class="brand">TransportERP</div>
+        <?php
+        $currentModule = $pageModule ?? 'feo';
+        if ($currentModule === 'flights'):
+        ?>
+        <div class="crumbs">
+            <span>Рейсы</span>
+            <span class="sep">›</span>
+            <b>Таймлайн рейсов</b>
+        </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=flights">Таймлайн рейсов</a>
+        </nav>
+        <?php else: ?>
         <div class="crumbs">
             <span>Основное</span>
             <span class="sep">›</span>
@@ -26,6 +39,7 @@
             <a class="top-subnav-link disabled" href="#" aria-disabled="true">Заявки регионы</a>
             <a class="top-subnav-link disabled" href="#" aria-disabled="true">Планирование и вывоз</a>
         </nav>
+        <?php endif; ?>
         <div class="top-actions">
             <div class="user">
                 <div class="avatar">LS</div>
@@ -41,10 +55,10 @@
          SIDEBAR — rail navigation
          ============================================================ -->
     <div class="sidebar">
-        <a class="rail-item active" href="/demoERP/public/?module=feo" title="Основное">
+        <a class="rail-item<?= ($currentModule === 'feo') ? ' active' : '' ?>" href="/demoERP/public/?module=feo" title="Основное">
             <span class="rail-label">О</span>
         </a>
-        <a class="rail-item disabled" href="#" aria-disabled="true" title="Рейсы">
+        <a class="rail-item<?= ($currentModule === 'flights') ? ' active' : '' ?>" href="/demoERP/public/?module=flights" title="Рейсы">
             <span class="rail-label">Р</span>
         </a>
         <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">

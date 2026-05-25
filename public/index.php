@@ -24,7 +24,7 @@ date_default_timezone_set('Europe/Warsaw');
 $module = $_GET['module'] ?? 'home';
 $action = $_GET['action'] ?? 'index';
 
-$allowedModules = ['home', 'feo'];
+$allowedModules = ['home', 'feo', 'flights'];
 
 if (!in_array($module, $allowedModules, true)) {
     $module = 'home';
@@ -38,6 +38,11 @@ try {
                 $controller->list();
                 exit;
             }
+            echo $controller->index();
+            break;
+
+        case 'flights':
+            $controller = new \App\Modules\Flights\Controllers\FlightsController();
             echo $controller->index();
             break;
 
