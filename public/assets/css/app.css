@@ -1542,3 +1542,8 @@ textarea { resize: vertical; }
 /* Summary chip — flights & avg (reuses existing .summary-chip) */
 .summary-chip-flights .summary-chip-dot { background: #5c6b7a; }
 .summary-chip-avg .summary-chip-dot     { background: var(--text-faint); }
+
+/* Statistics custom period visibility */
+.statistics-date-range-field.is-hidden {
+  display: none;
+}

@@ -9,8 +9,8 @@ use App\Modules\Statistics\Repositories\StatisticsRepository;
 /**
  * Сервис для группировки статистики вывозов по периодам.
  *
- * Группировка: week (ISO), month.
- * Основная дата: actual_end_date.
+ * Группировка: week (ISO), month, custom.
+ * Основная дата: actual_end_date (delivery) или actual_start_date (pickup).
  */
 class StatisticsService
 {
@@ -24,33 +24,39 @@ class StatisticsService
     /**
      * Нормализовать фильтры и вернуть безопасные значения.
      *
-     * @return array{period: string, date_from: string, date_to: string, warning: string|null}
+     * @return array{period: string, date_type: string, date_from: string, date_to: string, warning: string|null}
      */
     public function normalizeFilters(): array
     {
         $period   = $this->normalizePeriod($_GET['period'] ?? 'week');
         $dateType = $this->normalizeDateType($_GET['date_type'] ?? 'delivery');
-        $dateFrom = $_GET['date_from'] ?? '';
-        $dateTo   = $_GET['date_to'] ?? '';
         $warning  = null;
 
         $defaultFrom = date('Y-m-d', strtotime('-12 weeks'));
         $defaultTo   = date('Y-m-d');
 
-        // Validate date_from
-        if ($dateFrom === '' || !$this->isValidDate($dateFrom)) {
-            if ($dateFrom !== '') {
-                $warning = 'Период был скорректирован автоматически';
-            }
-            $dateFrom = $defaultFrom;
-        }
+        if ($period === 'custom') {
+            // Для custom используем date_from/date_to из GET
+            $dateFrom = $_GET['date_from'] ?? '';
+            $dateTo   = $_GET['date_to'] ?? '';
 
-        // Validate date_to
-        if ($dateTo === '' || !$this->isValidDate($dateTo)) {
-            if ($dateTo !== '') {
-                $warning = 'Период был скорректирован автоматически';
+            if ($dateFrom === '' || !$this->isValidDate($dateFrom)) {
+                if ($dateFrom !== '') {
+                    $warning = 'Период был скорректирован автоматически';
+                }
+                $dateFrom = $defaultFrom;
             }
-            $dateTo = $defaultTo;
+
+            if ($dateTo === '' || !$this->isValidDate($dateTo)) {
+                if ($dateTo !== '') {
+                    $warning = 'Период был скорректирован автоматически';
+                }
+                $dateTo = $defaultTo;
+            }
+        } else {
+            // Для week/month используем системный default, игнорируем GET date_from/date_to
+            $dateFrom = $defaultFrom;
+            $dateTo   = $defaultTo;
         }
 
         return [
@@ -72,6 +78,7 @@ class StatisticsService
         $flights = $this->repository->getFlightsByEventDate($dateFrom, $dateTo, $dateType);
 
         if (empty($flights)) {
+            $periodsCount = 0;
             return [
                 'filters' => [
                     'period'    => $period,
@@ -80,7 +87,7 @@ class StatisticsService
                     'date_to'   => $dateTo,
                 ],
                 'summary' => [
-                    'periods_count'         => 0,
+                    'periods_count'         => $periodsCount,
                     'requests_total'        => 0,
                     'flights_total'         => 0,
                     'weight_total_kg'       => 0,
@@ -89,6 +96,11 @@ class StatisticsService
                 ],
                 'rows' => [],
             ];
+        }
+
+        // custom: одна строка, не группируем
+        if ($period === 'custom') {
+            return $this->buildCustomPeriodRow($flights, $period, $dateType, $dateFrom, $dateTo);
         }
 
         // Собираем все zayavka_id из рейсов
@@ -195,6 +207,68 @@ class StatisticsService
     }
 
     /**
+     * Построить одну строку для произвольного периода (custom).
+     */
+    private function buildCustomPeriodRow(array $flights, string $period, string $dateType, string $dateFrom, string $dateTo): array
+    {
+        // Собираем уникальные zayavka_id
+        $zayavkaIds = [];
+        foreach ($flights as $flight) {
+            $ids = array_filter(explode(',', $flight['zayavki_ids']));
+            foreach ($ids as $id) {
+                $id = trim($id);
+                if ($id !== '') {
+                    $zayavkaIds[$id] = true;
+                }
+            }
+        }
+        $uniqueZIds = array_keys($zayavkaIds);
+
+        $massMap = $this->repository->getZayavkiMass($uniqueZIds);
+
+        $periodFlights  = count($flights);
+        $periodRequests = count($uniqueZIds);
+        $periodWeight   = 0.0;
+
+        foreach ($uniqueZIds as $zId) {
+            $periodWeight += ($massMap[$zId] ?? 0) * 1000;
+        }
+
+        $avgRequestWeight = $periodRequests > 0 ? (int) round($periodWeight / $periodRequests) : 0;
+        $avgFlightWeight  = $periodFlights > 0 ? (int) round($periodWeight / $periodFlights) : 0;
+
+        $label = $this->formatPeriodLabel('custom', $period, $dateFrom, $dateTo);
+
+        $row = [
+            'period_key'           => 'custom',
+            'period_label'         => $label,
+            'requests_count'       => $periodRequests,
+            'flights_count'        => $periodFlights,
+            'total_weight_kg'      => (int) round($periodWeight),
+            'avg_request_weight_kg' => $avgRequestWeight,
+            'avg_flight_weight_kg'  => $avgFlightWeight,
+        ];
+
+        return [
+            'filters' => [
+                'period'    => $period,
+                'date_type' => $dateType,
+                'date_from' => $dateFrom,
+                'date_to'   => $dateTo,
+            ],
+            'summary' => [
+                'periods_count'         => 1,
+                'requests_total'        => $periodRequests,
+                'flights_total'         => $periodFlights,
+                'weight_total_kg'       => (int) round($periodWeight),
+                'avg_request_weight_kg' => $avgRequestWeight,
+                'avg_flight_weight_kg'  => $avgFlightWeight,
+            ],
+            'rows' => [$row],
+        ];
+    }
+
+    /**
      * Ключ периода: "2026-W21" или "2026-05".
      */
     private function getPeriodKey(string $date, string $period): string
@@ -209,9 +283,27 @@ class StatisticsService
 
     /**
      * Человекочитаемый label периода.
+     *
+     * @param string $dateFrom Используется только для custom
+     * @param string $dateTo   Используется только для custom
      */
-    public function formatPeriodLabel(string $periodKey, string $period): string
+    public function formatPeriodLabel(string $periodKey, string $period, string $dateFrom = '', string $dateTo = ''): string
     {
+        if ($period === 'custom') {
+            if (!$this->isValidDate($dateFrom) || !$this->isValidDate($dateTo)) {
+                return 'Произвольный период';
+            }
+
+            $dFrom = new \DateTime($dateFrom);
+            $dTo   = new \DateTime($dateTo);
+
+            if ($dateFrom === $dateTo) {
+                return $dFrom->format('d.m.Y');
+            }
+
+            return $dFrom->format('d.m.Y') . '–' . $dTo->format('d.m.Y');
+        }
+
         if ($period === 'month') {
             $parts = explode('-', $periodKey);
             $year  = (int) ($parts[0] ?? 0);
@@ -241,7 +333,7 @@ class StatisticsService
 
     private function normalizePeriod(string $period): string
     {
-        return in_array($period, ['week', 'month'], true) ? $period : 'week';
+        return in_array($period, ['week', 'month', 'custom'], true) ? $period : 'week';
     }
 
     private function normalizeDateType(string $dateType): string

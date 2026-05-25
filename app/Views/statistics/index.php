@@ -34,38 +34,39 @@ use App\Modules\Statistics\Services\StatisticsService;
 </div>
 
 <!-- Filter bar -->
-<form class="statistics-filters" method="get" action="">
+<form class="statistics-filters" data-statistics-filter-form method="get" action="">
     <input type="hidden" name="module" value="statistics">
 
-    <div class="filter-field" style="width: 120px;">
-        <label for="filterPeriod">Группировка</label>
-        <select id="filterPeriod" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
-            <option value="week"  <?= $period === 'week'  ? 'selected' : '' ?>>По неделям</option>
-            <option value="month" <?= $period === 'month' ? 'selected' : '' ?>>По месяцам</option>
+    <div class="filter-field" style="width: 140px;">
+        <label for="periodSelect">Группировка</label>
+        <select id="periodSelect" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="week"   <?= $period === 'week'   ? 'selected' : '' ?>>По неделям</option>
+            <option value="month"  <?= $period === 'month'  ? 'selected' : '' ?>>По месяцам</option>
+            <option value="custom" <?= $period === 'custom' ? 'selected' : '' ?>>Произвольный период</option>
         </select>
     </div>
 
     <div class="filter-field" style="width: 130px;">
-        <label for="filterDateType">Дата события</label>
-        <select id="filterDateType" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+        <label for="dateTypeSelect">Дата события</label>
+        <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
             <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
             <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>
         </select>
     </div>
 
-    <div class="filter-field" style="width: 150px;">
+    <div class="filter-field statistics-date-range-field" data-custom-period-field<?= $period !== 'custom' ? ' hidden' : '' ?> style="width: 150px;">
         <label for="filterDateFrom">Дата с</label>
-        <input type="date" id="filterDateFrom" name="date_from" value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="date" id="filterDateFrom" name="date_from" value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>"<?= $period !== 'custom' ? ' disabled' : '' ?>>
     </div>
 
-    <div class="filter-field" style="width: 150px;">
+    <div class="filter-field statistics-date-range-field" data-custom-period-field<?= $period !== 'custom' ? ' hidden' : '' ?> style="width: 150px;">
         <label for="filterDateTo">Дата по</label>
-        <input type="date" id="filterDateTo" name="date_to" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="date" id="filterDateTo" name="date_to" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>"<?= $period !== 'custom' ? ' disabled' : '' ?>>
     </div>
 
-    <div class="filter-actions">
+    <div class="filter-actions" data-custom-period-action<?= $period !== 'custom' ? ' hidden' : '' ?>>
         <button type="submit" class="btn btn-toolbar">Применить</button>
-        <a class="btn btn-toolbar" href="?module=statistics&period=week&date_type=delivery" style="text-decoration: none;">Сбросить</a>
+        <a class="btn btn-toolbar" href="?module=statistics" style="text-decoration: none;">Сбросить</a>
     </div>
 </form>
 
@@ -149,3 +150,77 @@ use App\Modules\Statistics\Services\StatisticsService;
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+(function () {
+    var form = document.querySelector('[data-statistics-filter-form]');
+    var periodSelect = document.getElementById('periodSelect');
+    var dateTypeSelect = document.getElementById('dateTypeSelect');
+    var customFields = document.querySelectorAll('[data-custom-period-field]');
+    var customActions = document.querySelectorAll('[data-custom-period-action]');
+
+    function isCustom() {
+        return periodSelect && periodSelect.value === 'custom';
+    }
+
+    function updateCustomVisibility() {
+        var visible = isCustom();
+
+        customFields.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+
+            var input = el.querySelector('input, select, textarea');
+            if (input) {
+                input.disabled = !visible;
+            }
+        });
+
+        customActions.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+        });
+    }
+
+    function submitAuto() {
+        if (!form || isCustom()) {
+            return;
+        }
+
+        var dateFrom = form.querySelector('[name="date_from"]');
+        var dateTo = form.querySelector('[name="date_to"]');
+
+        if (dateFrom) {
+            dateFrom.disabled = true;
+        }
+
+        if (dateTo) {
+            dateTo.disabled = true;
+        }
+
+        form.submit();
+    }
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function () {
+            updateCustomVisibility();
+
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    if (dateTypeSelect) {
+        dateTypeSelect.addEventListener('change', function () {
+            if (!isCustom()) {
+                submitAuto();
+            }
+        });
+    }
+
+    // Initial visibility is already set by server-side hidden/disabled attributes.
+    // But ensure JS state matches on first load:
+    updateCustomVisibility();
+})();
+</script>
