@@ -1,57 +1,16 @@
 # PROJECT_RULES.md
 
-# Demo ERP — базовые правила архитектуры, разработки, проверок, команд и уведомлений
+# Demo ERP — правила архитектуры, разработки, проверки и уведомлений
 
 Проект: **Demo ERP**  
 Назначение: мини ERP-система для демонстрации части функционала клиенту.  
-Цель: быстро собрать стабильный, понятный и расширяемый демо-контур без тяжёлых фреймворков и без архитектурного усложнения.
-
-Главный принцип:
-
-```text
-Сначала стабильный рабочий функционал.
-Потом дизайн.
-Каждое изменение проверяется в runtime.
-```
+Цель: быстро собрать стабильный, визуально аккуратный и понятный демо-контур без тяжёлых фреймворков и без архитектурного усложнения.
 
 ---
 
-## 0. Обязательное правило для кодера перед каждой задачей
+## 1. Текущий контур проекта
 
-Перед началом любой новой задачи кодер обязан заново открыть и полностью перечитать:
-
-```text
-C:\demoERP\PROJECT_RULES.md
-```
-
-Работать строго по этому файлу.
-
-Если текущий промт конфликтует с `PROJECT_RULES.md`, кодер обязан:
-
-```text
-1. остановиться;
-2. явно написать, в чём конфликт;
-3. не выполнять спорное действие без уточнения владельца.
-```
-
-Особенно обязательно соблюдать:
-
-```text
-runtime-first проверки
-правила Windows PowerShell
-запрет Linux-команд в PowerShell
-запрет curl без .exe
-запрет Support/max_notify.php как endpoint
-правильный MAX endpoint notify_max.php
-запрет коммита .env, vendor, токенов, ключей и секретов
-обязательный commit + push + GitHub Actions + production check + MAX notification
-```
-
----
-
-## 1. Контур проекта
-
-### Локальная папка проекта
+### Локальная папка
 
 ```text
 C:\demoERP
@@ -63,22 +22,22 @@ C:\demoERP
 https://github.com/caymanlogistic-crypto/demo-erp
 ```
 
-### Рабочая ветка
-
-```text
-main
-```
-
 ### Сервер
 
 ```text
 /home/s/spugovxsim/public_html/demoERP
 ```
 
-### Production URL
+### Публичная ссылка
 
 ```text
 https://mg-log.ru/demoERP/public/
+```
+
+### Основная ветка
+
+```text
+main
 ```
 
 ### Автодеплой
@@ -102,8 +61,6 @@ PHP >=8.4 <8.6
 Composer
 PSR-4 autoload
 vlucas/phpdotenv
-PDO
-MySQL
 Vanilla PHP
 Vanilla CSS
 Vanilla JavaScript
@@ -127,7 +84,7 @@ ORM
 сложные frontend-сборщики
 ```
 
-Главный технический принцип:
+Главный принцип:
 
 ```text
 Предсказуемая простота важнее архитектурной красоты.
@@ -135,13 +92,15 @@ ORM
 
 ---
 
-## 3. Базовая структура проекта
+## 3. Текущая структура проекта
 
 ```text
 demoERP/
 ├── app/
 │   ├── Core/
 │   ├── Modules/
+│   │   ├── Auth/
+│   │   └── Home/
 │   └── Views/
 ├── bootstrap/
 ├── config/
@@ -157,23 +116,14 @@ demoERP/
 ├── .gitignore
 ├── composer.json
 ├── composer.lock
-├── PROJECT_RULES.md
-└── README.md
-```
-
-Фактическая структура может отличаться по мере развития проекта, но архитектурный принцип сохраняется:
-
-```text
-public/ — только публичная точка входа и assets
-app/ — весь PHP-код приложения
-storage/ — логи и runtime-файлы
+└── PROJECT_RULES.md
 ```
 
 ---
 
 ## 4. Главные архитектурные правила
 
-### 4.1. Единственная публичная точка входа
+### 4.1. Entry point
 
 Единственная публичная точка входа:
 
@@ -195,11 +145,9 @@ public/index.php
 public/clients.php
 public/orders.php
 public/test.php
-public/index22.php
-public/feo.php
-public/ajax.php
-public/import.php
 ```
+
+---
 
 ### 4.2. Public directory
 
@@ -214,6 +162,8 @@ assets/img/
 
 Вся бизнес-логика должна быть вне `public/`.
 
+---
+
 ### 4.3. App directory
 
 В `app/` хранится основная логика проекта:
@@ -224,26 +174,32 @@ app/Modules     функциональные модули
 app/Views       шаблоны
 ```
 
+---
+
 ### 4.4. Modules
 
 Каждый функциональный блок оформлять как модуль:
 
 ```text
-app/Modules/<ModuleName>
+app/Modules/Clients
+app/Modules/Orders
+app/Modules/Flights
+app/Modules/Documents
 ```
 
 Пример структуры модуля:
 
 ```text
-app/Modules/<ModuleName>/
+app/Modules/Clients/
 ├── Controllers/
 ├── Repositories/
 ├── Services/
-├── Support/
 └── Validators/
 ```
 
 Не смешивать весь код в одном файле.
+
+---
 
 ### 4.5. Views
 
@@ -257,8 +213,10 @@ app/Views/
 
 ```text
 app/Views/layouts/main.php
-app/Views/<module>/index.php
-app/Views/<module>/_table.php
+app/Views/home/index.php
+app/Views/clients/index.php
+app/Views/clients/create.php
+app/Views/clients/edit.php
 ```
 
 В шаблонах нельзя размещать тяжёлую бизнес-логику.
@@ -307,7 +265,7 @@ composer validate
 
 ---
 
-## 6. ENV-настройки и секреты
+## 6. ENV-настройки
 
 Файл `.env` не коммитить.
 
@@ -317,7 +275,7 @@ composer validate
 .env.example
 ```
 
-Базовые параметры:
+Текущие базовые параметры:
 
 ```env
 APP_NAME="Demo ERP"
@@ -332,30 +290,7 @@ DB_USER=root
 DB_PASS=
 ```
 
-Все доступы к базе, ключи и секреты хранить только в:
-
-```text
-.env
-серверном окружении
-GitHub Secrets
-```
-
-Запрещено коммитить:
-
-```text
-.env
-vendor/
-storage/logs/*.log
-временные файлы
-архивы
-дампы БД
-личные ключи
-секретные токены
-MAX token
-MAX notify key
-DB-пароли
-API-ключи
-```
+Все доступы к базе, ключи и секреты хранить только в `.env` или GitHub Secrets.
 
 ---
 
@@ -384,20 +319,23 @@ git push
 Формат сообщений:
 
 ```text
-feat(module): add feature
-fix(module): fix behavior
-docs(project): update coder workflow rules
+feat(clients): add client list screen
+fix(auth): handle invalid login
+ui(layout): polish sidebar and dashboard
 ci(deploy): update deployment workflow
+docs(project): add architecture rules
 ```
 
-Запрещено без отдельного разрешения владельца:
+Не коммитить:
 
-```powershell
-git reset --hard
-git clean -fd
-git checkout -- .
-git restore .
-git revert ...
+```text
+.env
+vendor/
+storage/logs/*.log
+временные файлы
+архивы
+дампы БД
+личные ключи
 ```
 
 ---
@@ -455,28 +393,26 @@ SSH_PRIVATE_KEY
 
 ```text
 1. Проверить синтаксис PHP.
-2. Проверить Composer/autoload.
-3. Проверить локальный запуск.
-4. Проверить страницу в браузере или HTTP-проверкой.
-5. Сделать commit.
-6. Сделать push.
-7. Проверить GitHub Actions.
-8. Проверить страницу на production.
-9. Отправить MAX-уведомление или зафиксировать ошибку MAX в отчёте.
+2. Проверить локальный запуск.
+3. Проверить страницу в браузере.
+4. Запушить.
+5. Проверить GitHub Actions.
+6. Проверить страницу на сервере.
+7. Отправить уведомление в MAX.
 ```
 
 ---
 
 ## 10. Минимальный набор проверок
 
-### 10.1. Composer
+### 10.1. Проверка Composer
 
 ```powershell
 composer validate
 composer dump-autoload
 ```
 
-### 10.2. PHP syntax
+### 10.2. Проверка PHP
 
 Для каждого изменённого PHP-файла:
 
@@ -496,23 +432,19 @@ php -l public\index.php
 php -S localhost:8000 -t public
 ```
 
-Проверить:
+Открыть:
 
 ```text
 http://localhost:8000
 ```
 
-Если задача добавляет модуль, проверить URL модуля, указанный в промте.
+### 10.4. Проверка после деплоя
 
-### 10.4. Production check
-
-Проверить:
+Открыть:
 
 ```text
 https://mg-log.ru/demoERP/public/
 ```
-
-Если задача добавляет модуль, проверить production URL модуля, указанный в промте.
 
 Страница не должна давать:
 
@@ -525,73 +457,31 @@ PHP Fatal error
 
 ---
 
-## 11. Локально БД может быть не настроена
+## 11. Серверные проверки
 
-На локальной машине БД по умолчанию может быть не настроена.
+На сервере PHP 8.4:
 
-Поэтому локальная проверка не должна требовать реального подключения к MySQL.
-
-Код должен быть написан так, чтобы при отсутствии локальной БД:
-
-```text
-не было PHP Fatal error
-не было белого экрана
-не было 500 из-за отсутствия подключения
-главная страница продолжала работать
-модульная страница открывалась
-пользователь видел понятное сообщение
+```bash
+/usr/bin/php8.4 -v
 ```
 
-Пример понятного сообщения:
+Проверка файла:
 
-```text
-База данных не подключена. Проверьте параметры .env.
+```bash
+cd /home/s/spugovxsim/public_html/demoERP
+/usr/bin/php8.4 -l public/index.php
 ```
 
-или:
+Проверка структуры:
 
-```text
-Функционал требует подключения к БД.
-```
-
-Реальную проверку выборки из БД выполнять после push на production/server.
-
----
-
-## 12. Работа с базой данных
-
-Использовать:
-
-```text
-PDO
-prepared statements
-.env для доступов
-```
-
-Не использовать:
-
-```text
-ORM
-SQL через конкатенацию пользовательского ввода
-реальные DB-доступы в Git
-```
-
-Правильно:
-
-```php
-$stmt = $pdo->prepare('SELECT * FROM clients WHERE id = :id');
-$stmt->execute(['id' => $id]);
-```
-
-Неправильно:
-
-```php
-$pdo->query("SELECT * FROM clients WHERE id = " . $_GET['id']);
+```bash
+ls -la /home/s/spugovxsim/public_html/demoERP
+ls -la /home/s/spugovxsim/public_html/demoERP/public
 ```
 
 ---
 
-## 13. Логи
+## 12. Логи
 
 Папка логов:
 
@@ -611,62 +501,7 @@ tail -50 /home/s/spugovxsim/public_html/demoERP/storage/logs/app.log
 
 ---
 
-## 14. Правила переноса функционала из старой ERP
-
-Этот раздел описывает общий подход. Конкретная текущая задача, конкретные файлы и конкретные колонки должны быть указаны в отдельном промте, а не в `PROJECT_RULES.md`.
-
-Главное правило:
-
-```text
-НЕ копировать старый файл целиком в public/.
-```
-
-Правильный процесс:
-
-```text
-старый ERP-файл
-        ↓
-анализ фактической логики
-        ↓
-выделение функционала
-        ↓
-адаптация под app/Modules/...
-        ↓
-подключение через public/index.php / routing
-        ↓
-runtime-проверка
-        ↓
-commit + push + deploy
-```
-
-Сначала переносится голый функционал.
-
-Не переносить как отдельную тему:
-
-```text
-старый CSS
-старые украшательства
-старую навигацию
-визуальную тему
-```
-
-Но функциональное поведение экрана переносить полностью, если это указано в промте задачи.
-
-Запрещено:
-
-```text
-придумывать новые колонки
-переименовывать колонки “для красоты”
-менять порядок колонок без задания
-делать “по смыслу”, если есть исходный файл
-заменять старый UX упрощённой таблицей без разрешения
-```
-
-Если чего-то нельзя перенести без дополнительного файла/таблицы — написать это в отчёте.
-
----
-
-## 15. UI-правила
+## 13. UI-правила
 
 Цель интерфейса:
 
@@ -674,11 +509,15 @@ commit + push + deploy
 мини ERP должна выглядеть как рабочая B2B-система, а не как учебный шаблон.
 ```
 
-Но при переносе старого функционала действует отдельное правило:
+Стиль:
 
 ```text
-сначала переносится голый функционал без отдельного дизайн-этапа;
-дизайн натягивается отдельным этапом после проверки логики.
+desktop-first
+плотная операционная сетка
+понятная навигация
+аккуратные таблицы
+строгие формы
+умеренно современный внешний вид
 ```
 
 Не делать:
@@ -707,390 +546,235 @@ CSS variables
 
 ---
 
-## 16. Правила команд для Windows PowerShell
+## 14. Базовые UI-компоненты
 
-Кодер по умолчанию работает в **Windows PowerShell**.
+В системе должны постепенно появиться единые компоненты:
 
-Запрещено использовать Linux-команды в PowerShell.
+```text
+sidebar
+topbar
+page header
+buttons
+forms
+inputs
+selects
+tables
+status badges
+cards
+alerts
+empty states
+pagination
+modal/confirm
+```
 
-### 16.1. Переход по папкам
+Не создавать каждый экран своим стилем.
 
-Разрешено:
+Все визуальные решения выносить в:
+
+```text
+public/assets/css/app.css
+```
+
+JS — в:
+
+```text
+public/assets/js/app.js
+```
+
+---
+
+## 15. Безопасность
+
+Обязательно:
+
+```text
+экранировать HTML-вывод
+не выводить сырые пользовательские данные
+не хранить секреты в Git
+не коммитить приватные ключи
+не показывать stack trace на production
+```
+
+Для вывода HTML использовать:
+
+```php
+htmlspecialchars($value, ENT_QUOTES, 'UTF-8')
+```
+
+Позже можно добавить общий helper:
+
+```php
+e($value)
+```
+
+---
+
+## 16. Работа с базой данных
+
+Пока БД может быть не подключена.
+
+Когда будет добавлена БД:
+
+```text
+использовать PDO
+не использовать ORM
+использовать prepared statements
+не собирать SQL через конкатенацию пользовательского ввода
+```
+
+Правильно:
+
+```php
+$stmt = $pdo->prepare('SELECT * FROM clients WHERE id = :id');
+$stmt->execute(['id' => $id]);
+```
+
+Неправильно:
+
+```php
+$pdo->query("SELECT * FROM clients WHERE id = " . $_GET['id']);
+```
+
+---
+
+## 17. Приоритет разработки
+
+Сначала делаем демонстрационный контур:
+
+```text
+1. Главный экран
+2. Клиенты / контрагенты
+3. Заявки
+4. Рейсы
+5. Документы
+6. Авторизация
+7. Простая роль администратора
+```
+
+Не начинать с чрезмерной архитектуры.
+
+Сначала:
+
+```text
+видимый рабочий функционал
+понятная навигация
+стабильный runtime
+```
+
+Потом:
+
+```text
+расширение модулей
+валидация
+права
+сложные связи
+отчёты
+```
+
+---
+
+## 18. Запрещённые действия
+
+Кодеру запрещено:
+
+```text
+ломать автодеплой
+менять DEPLOY_PATH без согласования
+коммитить .env
+коммитить vendor/
+добавлять Laravel/Symfony
+добавлять frontend-сборщик
+создавать хаотичные PHP-файлы в public/
+удалять рабочий public/index.php без замены
+оставлять проект в состоянии 500
+пушить без локальной проверки
+считать работу завершённой без MAX-уведомления
+```
+
+---
+
+## 19. Обязательный порядок работы кодера
+
+Перед началом:
 
 ```powershell
 cd C:\demoERP
-cd "C:\ТЕСТ УДАЛИТЬ"
-cd C:\fregat\map
-Get-Location
-pwd
-```
-
-Команды выполнять отдельно. Не склеивать через `&&`.
-
-Запрещено:
-
-```powershell
-cd "C:\demoERP" && git status
-```
-
-### 16.2. Git
-
-Разрешено:
-
-```powershell
 git status
-git log --oneline -5
-git diff --stat
-git diff -- path\to\file.php
-git add path\to\file.php
-git add .
-git commit -m "message"
-git push
 git pull
 ```
 
-### 16.3. Composer
-
-Разрешено:
-
-```powershell
-composer validate
-composer dump-autoload
-composer install
-```
-
-Запрещено без отдельного разрешения:
-
-```powershell
-composer require ...
-composer update
-composer remove ...
-```
-
-### 16.4. PHP
-
-Разрешено:
-
-```powershell
-php -v
-php -l public\index.php
-php -l path\to\changed-file.php
-php -S localhost:8000 -t public
-```
-
-Если запускается `php -S`, после проверки сервер нужно остановить через `Ctrl+C` или использовать отдельный терминал.
-
-### 16.5. Поиск по файлам
-
-Запрещено в PowerShell:
-
-```text
-grep
-head
-tail
-sed
-awk
-cat с Linux-синтаксисом
-find с Linux-синтаксисом
-```
-
-Использовать `Select-String`:
-
-```powershell
-Select-String -Path ".\file.php" -Pattern "search_text"
-```
-
-```powershell
-Select-String -Path ".\file.php" -Pattern "SELECT","JOIN" | Select-Object -First 100
-```
-
-Посмотреть начало файла:
-
-```powershell
-Get-Content ".\file.php" | Select-Object -First 120
-```
-
-Посмотреть часть файла:
-
-```powershell
-Get-Content ".\file.php" | Select-Object -Skip 300 -First 120
-```
-
-Найти PHP-файлы:
-
-```powershell
-Get-ChildItem -Recurse -File -Filter "*.php"
-```
-
-### 16.6. HTTP-проверки в PowerShell
-
-В Windows PowerShell запрещено использовать `curl` без `.exe`.
-
-Запрещено:
-
-```powershell
-curl -s ...
-curl -L ...
-curl -w ...
-curl -I ...
-curl "url"
-```
-
-Причина: в PowerShell `curl` часто является alias для `Invoke-WebRequest`, из-за этого команды зависают и спрашивают `Uri`.
-
-Разрешено только `curl.exe`:
-
-```powershell
-curl.exe -k -s -L "https://mg-log.ru/demoERP/public/"
-```
-
-```powershell
-curl.exe -s -k -L -w "%{http_code}" "http://localhost:8000/" -o NUL
-```
-
-Или `Invoke-WebRequest`:
-
-```powershell
-$response = Invoke-WebRequest "http://localhost:8000/" -UseBasicParsing
-$response.StatusCode
-```
-
-Не использовать `-SkipCertificateCheck`, потому что в текущей версии PowerShell этот параметр может отсутствовать.
-
-Для HTTPS production использовать:
-
-```powershell
-curl.exe -k -s -L "https://mg-log.ru/demoERP/public/"
-```
-
----
-
-## 17. Запрещённые команды в Windows PowerShell
-
-Не использовать:
-
-```text
-head -100
-tail -50
-grep -R
-sed -n
-awk
-curl -s
-curl -L
-curl -w
-curl -I
-rm -rf
-chmod
-chown
-sudo
-TEXT=$(...)
-команда && команда && команда
-```
-
-Эти команды допустимы только на Linux-сервере по SSH, но не в Windows PowerShell.
-
-Если команда предназначена для сервера, явно написать:
-
-```text
-Эту команду нужно выполнить на сервере SSH, не в PowerShell.
-```
-
----
-
-## 18. Серверные команды
-
-На сервере Linux разрешены Linux-команды.
-
-Примеры:
-
-```bash
-cd /home/s/spugovxsim/public_html/demoERP
-/usr/bin/php8.4 -v
-/usr/bin/php8.4 -l public/index.php
-ls -la
-tail -50 storage/logs/app.log
-```
-
-Не выполнять серверные команды в Windows PowerShell.
-
----
-
-## 19. MAX-уведомления
-
-MAX-уведомления обязательны в двух случаях:
-
-```text
-1. Работа завершена.
-2. Требуется участие Владимира.
-```
-
-### 19.1. Запрещённый URL
-
-Запрещено вызывать:
-
-```text
-http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
-```
-
-Это PHP-библиотека функций, а не публичный endpoint. Даже если она возвращает `200 OK`, сообщение не отправляется.
-
-### 19.2. Правильный endpoint
-
-Использовать только:
-
-```text
-http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php
-```
-
-Параметры:
-
-```text
-key
-text
-format=markdown
-```
-
-Ключ не коммитить в Git. В документации использовать placeholder:
-
-```text
-<MAX_NOTIFY_KEY>
-```
-
-### 19.3. PowerShell-вызов MAX
-
-Команды выполнять отдельно.
-
-Команда 1:
-
-```powershell
-$Text = [uri]::EscapeDataString("Demo ERP: задача завершена. Push выполнен, GitHub Actions зелёный, production проверен.")
-```
-
-Команда 2:
-
-```powershell
-Invoke-WebRequest "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=<MAX_NOTIFY_KEY>&text=$Text&format=markdown" -UseBasicParsing
-```
-
-Если MAX не отправился с первого раза:
-
-```text
-не зависать
-не повторять бесконечно
-зафиксировать ошибку
-продолжить финальный отчёт
-```
-
----
-
-## 20. Проверки до commit
-
-Обязательно выполнить:
+После изменений:
 
 ```powershell
 composer validate
 composer dump-autoload
 php -l public\index.php
-```
-
-Проверить все изменённые PHP-файлы:
-
-```powershell
-php -l path\to\changed-file.php
-```
-
-Запустить локально:
-
-```powershell
 php -S localhost:8000 -t public
 ```
 
-Проверить:
+Проверить в браузере:
 
-```powershell
-curl.exe -s -k -L -w "%{http_code}" "http://localhost:8000/" -o NUL
+```text
+http://localhost:8000
 ```
 
-Если задача добавляет модуль, проверить URL модуля, указанный в промте задачи.
+Затем:
+
+```powershell
+git status
+git add .
+git commit -m "type(scope): description"
+git push
+```
+
+После push:
+
+```text
+1. Проверить GitHub Actions.
+2. Убедиться, что workflow зелёный.
+3. Открыть production-ссылку.
+4. Убедиться, что страница работает.
+5. Отправить MAX-уведомление.
+```
+
+Production-ссылка:
+
+```text
+https://mg-log.ru/demoERP/public/
+```
 
 ---
 
-## 21. Проверки после push
+## 20. Правило завершения задачи
 
-Дождаться зелёного GitHub Actions.
-
-Проверить production:
-
-```powershell
-curl.exe -k -s -L "https://mg-log.ru/demoERP/public/"
-```
-
-Если задача добавляет модуль, проверить production URL модуля, указанный в промте задачи.
-
-Также проверить страницу в браузере.
-
-Если GitHub Actions красный — задача не завершена.
-
----
-
-## 22. Правило завершения задачи
-
-Задача завершена только если:
+Задача считается завершённой только если:
 
 ```text
 код написан
-локальные проверки пройдены
+локально работает
 php -l проходит
 composer validate проходит
-composer dump-autoload проходит
-commit сделан
-push сделан
+изменения закоммичены
+изменения запушены
 GitHub Actions зелёный
-production работает
-нет 500
-нет PHP Fatal error
-MAX-уведомление отправлено или ошибка MAX явно зафиксирована
+production-ссылка открывается
+нет 500 ошибки
+отправлено MAX-уведомление
 ```
 
-Если что-то сломалось — не скрывать. Сообщить:
+Если что-то сломалось — не скрывать. Сразу сообщить:
 
 ```text
 что изменено
 что проверено
 где ошибка
 какой лог/вывод команды
-что нужно от Владимира
+что нужно исправить
 ```
 
 ---
 
-## 23. Финальный отчёт кодера
-
-Финальный отчёт обязан содержать:
-
-```text
-1. Что сделано.
-2. Какие файлы изменены.
-3. Какие проверки выполнены.
-4. Commit hash.
-5. GitHub Actions status.
-6. Production URL.
-7. MAX notification status.
-8. Что требует участия Владимира, если есть.
-```
-
-Если задача по переносу старого функционала, дополнительно:
-
-```text
-1. Какие элементы старого экрана перенесены.
-2. Какие фильтры/поиск/действия работают.
-3. Что не удалось перенести и почему.
-4. Какие дополнительные файлы/таблицы нужны, если есть.
-```
-
----
-
-## 24. Рекомендация по coding agent
+## 21. Рекомендация по coding agent
 
 Для задач по этому проекту использовать:
 
@@ -1112,7 +796,7 @@ deepseek-v4-pro
 deepseek-v4-flash
 ```
 
-Но для архитектуры, автодеплоя, модулей, миграции старой ERP и runtime-стабильности предпочтительно:
+Но для архитектуры, автодеплоя, модулей и runtime-стабильности предпочтительно:
 
 ```text
 deepseek-v4-pro
@@ -1120,75 +804,475 @@ deepseek-v4-pro
 
 ---
 
-## 25. Главное правило
+## 22. Обязательные уведомления в MAX
+
+В проект `demoERP` **не добавлять локальный `max_notify.php`**.
+
+Для уведомлений использовать уже существующий рабочий внешний MAX-уведомитель:
 
 ```text
-Не фантазировать.
-Не проектировать новый экран вместо переноса.
-Текущую задачу писать в промте, а не в PROJECT_RULES.md.
-Не использовать Linux-команды в Windows PowerShell.
-Не использовать curl без .exe.
-Не вызывать Support/max_notify.php как endpoint.
-Всегда перечитывать PROJECT_RULES.md перед началом новой задачи.
+http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
+```
+
+Кодер обязан отправлять уведомление в MAX в двух случаях:
+
+```text
+1. Работа завершена.
+2. Требуется участие Владимира.
 ```
 
 ---
 
-## Production runtime checks via SSH
+### 22.1. Когда отправлять уведомление о завершении
 
-Production check MUST NOT be limited to HTTP 200 OK.
-HTTP 200 can still contain an application error inside HTML.
+Перед отправкой уведомления кодер обязан выполнить:
 
-After every deploy, especially after changes in layout, views, controllers, routing, CSS links or AJAX, the coder MUST check:
+```text
+1. Проверить код локально.
+2. Выполнить composer validate.
+3. Выполнить composer dump-autoload.
+4. Выполнить php -l для изменённых PHP-файлов.
+5. Проверить локальный запуск.
+6. Сделать commit.
+7. Сделать push.
+8. Проверить GitHub Actions.
+9. Проверить production-ссылку.
+10. Только после этого отправить MAX-уведомление.
+```
 
-1. HTTP status.
-2. HTML content for runtime errors.
-3. Server state and logs through SSH.
+Production-ссылка:
 
-Production path:
-/home/s/spugovxsim/public_html/demoERP
+```text
+https://mg-log.ru/demoERP/public/
+```
 
-SSH login command from Windows:
-ssh spugovxsim@77.222.40.251
+---
 
-Commands on server:
-cd /home/s/spugovxsim/public_html/demoERP
-git status
-git log --oneline -5
-/usr/bin/php8.4 -v
-/usr/bin/php8.4 -l public/index.php
-tail -50 storage/logs/app.log
+### 22.2. PowerShell-вызов уведомления о завершении
 
-If PHP files were changed, every changed PHP file MUST be checked with /usr/bin/php8.4 -l.
+Пример:
 
-Required HTML error check:
-curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep -E "Fatal error^|Warning^|Notice^|Error^|Object of class^|Stack trace^|Parse error^|Deprecated"
+```powershell
+$Message = [uri]::EscapeDataString("Demo ERP: задача завершена. Проверки пройдены, push выполнен, GitHub Actions зелёный, production открывается: https://mg-log.ru/demoERP/public/")
+Invoke-WebRequest "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=$Message"
+```
 
-If this command prints anything, production check FAILED.
+---
 
-Required key text checks:
-curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep "TransportERP"
-curl -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | grep "Zayavki"
+### 22.3. PowerShell-вызов, если нужно участие владельца
 
-One-command SSH check from Windows:
-ssh spugovxsim@77.222.40.251 "cd /home/s/spugovxsim/public_html/demoERP && git status && git log --oneline -5 && /usr/bin/php8.4 -l public/index.php && tail -50 storage/logs/app.log"
+Если задача заблокирована или требуется решение владельца, кодер обязан сразу отправить уведомление:
 
-One-command HTML error check through SSH:
-ssh spugovxsim@77.222.40.251 "curl -k -s -L 'https://mg-log.ru/demoERP/public/?module=feo' ^| grep -E 'Fatal error^|Warning^|Notice^|Error^|Object of class^|Stack trace^|Parse error^|Deprecated'"
+```powershell
+$Message = [uri]::EscapeDataString("Demo ERP: требуется участие Владимира. Причина: нужно подтвердить UI / добавить secret / дать доступ / проверить production.")
+Invoke-WebRequest "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=$Message"
+```
 
-Task is NOT complete if:
-- only HTTP 200 was checked;
-- HTML content was not checked;
-- server logs were not checked through SSH;
-- HTML contains Fatal error, Warning, Notice, Error, Object of class, Stack trace, Parse error or Deprecated;
-- key page text is missing;
-- production URL opens but shows an application error.
+---
 
-Final report MUST include:
-1. Production HTTP status.
-2. HTML error check result.
-3. SSH log check result.
-4. Server php -l result.
-5. Whether Fatal/Warning/Notice/Error/Object of class was found.
+### 22.4. Linux/server curl-вариант
 
-Main rule: production is confirmed only after HTTP check + HTML content check + SSH logs check.
+На сервере можно использовать:
+
+```bash
+curl "http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php?message=Demo%20ERP%3A%20task%20finished"
+```
+
+Для русских сообщений предпочтительно использовать PowerShell-вариант с `[uri]::EscapeDataString(...)`, чтобы не сломать кодировку.
+
+---
+
+### 22.5. Формат сообщения о завершении
+
+Сообщение должно содержать:
+
+```text
+Проект: Demo ERP
+Задача:
+Что сделано:
+Какие файлы изменены:
+Проверки:
+Commit:
+GitHub Actions:
+Production URL:
+Что нужно проверить владельцу:
+```
+
+Пример полного сообщения:
+
+```text
+Проект: Demo ERP
+Задача: добавить главный экран мини ERP
+Что сделано: обновлён public/index.php, добавлен базовый layout и CSS
+Файлы: public/index.php, app/Views/layouts/main.php, public/assets/css/app.css
+Проверки: composer validate OK, php -l OK, локально OK, GitHub Actions зелёный
+Commit: abc1234
+Production URL: https://mg-log.ru/demoERP/public/
+Что проверить владельцу: внешний вид главного экрана
+```
+
+---
+
+### 22.6. Запрещено
+
+Нельзя считать работу завершённой без MAX-уведомления.
+
+Нельзя отправлять сообщение `готово`, если:
+
+```text
+не выполнен push
+не проверен GitHub Actions
+production не открывается
+есть PHP Fatal error
+есть 500 Internal Server Error
+```
+
+Нельзя добавлять в `demoERP` локальный `support/max_notify.php`, если отдельно не согласовано. Используется внешний рабочий URL.
+
+---
+
+## 23. Главный принцип проекта
+
+```text
+Сначала стабильный работающий demo ERP.
+Потом расширение.
+Не ломать рабочее ради красоты.
+Не усложнять без необходимости.
+Каждое изменение проверять в runtime.
+Финальный шаг любой задачи — MAX-уведомление владельцу.
+```
+
+---
+
+## 26. Строгие правила MAX key через локальный `.env.local`
+
+Этот раздел имеет приоритет над разделом `19. MAX-уведомления`.
+
+Реальный `MAX_NOTIFY_KEY` запрещено хранить в Git и запрещено вписывать в файлы проекта, которые коммитятся.
+
+Запрещено записывать реальный MAX key в:
+
+```text
+PROJECT_RULES.md
+README.md
+.env.example
+PHP-файлы
+JS-файлы
+CSS-файлы
+GitHub-tracked файлы
+коммиты
+логи
+финальные отчёты
+```
+
+Разрешённое место для локальной разработки:
+
+```text
+C:\demoERP\.env.local
+```
+
+Формат файла:
+
+```env
+MAX_NOTIFY_KEY=<real_key>
+```
+
+Файл `.env.local` обязан быть добавлен в `.gitignore`.
+
+Если `.env.local` отсутствует или ключ недоступен, кодер обязан написать:
+
+```text
+MAX status: BLOCKED, real key unavailable.
+```
+
+Кодер не имеет права использовать placeholder как реальный ключ.
+
+Запрещённые значения ключа:
+
+```text
+<MAX_NOTIFY_KEY>
+CHANGE_ME
+YOUR_KEY
+placeholder
+```
+
+Если endpoint вернул:
+
+```json
+{"success":false,"message":"Forbidden"}
+```
+
+это означает:
+
+```text
+MAX НЕ отправлен.
+```
+
+В таком случае нельзя писать:
+
+```text
+MAX отправлен
+задача полностью завершена
+DONE
+```
+
+Нужно писать:
+
+```text
+MAX: BLOCKED / FAILED
+Overall: PARTIAL, not DONE
+```
+
+---
+
+## 27. Как кодеру отправлять MAX из `cmd.exe`
+
+Если кодер работает в Roo Code через `cmd.exe`, использовать только cmd-compatible команды.
+
+Endpoint:
+
+```text
+http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php
+```
+
+Запрещённый endpoint:
+
+```text
+http://mg-log.ru/fregat/feo/map_files/Support/max_notify.php
+```
+
+Пример чтения ключа из `.env.local` в `cmd.exe`:
+
+```cmd
+for /f "tokens=2 delims==" %A in ('findstr /B "MAX_NOTIFY_KEY=" .env.local') do set MAX_NOTIFY_KEY=%A
+```
+
+Проверка, что переменная установлена:
+
+```cmd
+echo %MAX_NOTIFY_KEY%
+```
+
+Если вывод пустой — MAX отправлять нельзя.
+
+Пример отправки сообщения через `curl.exe`:
+
+```cmd
+curl.exe -k -s "http://spugovxsim.temp.swtest.ru/fregat/feo/notify_max.php?key=%MAX_NOTIFY_KEY%&text=Demo%20ERP%3A%20task%20completed%20-%20production%20checked&format=markdown"
+```
+
+Ожидаемый успешный ответ:
+
+```json
+{"success":true}
+```
+
+Если ответ не содержит `"success":true`, MAX не считается отправленным.
+
+---
+
+## 28. Запрет ложного завершения задачи
+
+Кодер не имеет права писать `Задача завершена`, если обязательные проверки не выполнены.
+
+Финальный статус должен быть одним из:
+
+```text
+DONE — все проверки выполнены, production clean, SSH clean, MAX sent.
+PARTIAL — код сделан и push выполнен, но часть проверок недоступна.
+BLOCKED — невозможно завершить задачу из-за отсутствия доступа/ключа/ошибки окружения.
+FAILED — проверка показала ошибку.
+```
+
+Запрещено писать `DONE`, если:
+
+```text
+SSH checks не выполнены;
+production HTML content не проверен;
+server logs не проверены;
+GitHub Actions не проверен;
+MAX не отправлен;
+MAX вернул Forbidden;
+использовался placeholder вместо реального ключа;
+production URL содержит Fatal error / Warning / Notice / Ошибка / Object of class / Stack trace.
+```
+
+Если SSH недоступен, кодер обязан написать:
+
+```text
+SSH check: BLOCKED, local SSH key/access unavailable.
+Overall: PARTIAL, not DONE.
+```
+
+Если MAX key недоступен, кодер обязан написать:
+
+```text
+MAX: BLOCKED, real key unavailable.
+Overall: PARTIAL, not DONE.
+```
+
+---
+
+## 29. Обязательный финальный блок отчёта
+
+Каждый финальный отчёт должен заканчиваться блоком:
+
+```text
+FINAL STATUS:
+- Code changes:
+- Commit:
+- Push:
+- GitHub Actions:
+- Production HTTP:
+- Production HTML error check:
+- SSH check:
+- Server logs:
+- MAX:
+- Overall:
+```
+
+Пример полного успешного завершения:
+
+```text
+FINAL STATUS:
+- Code changes: done
+- Commit: abc1234
+- Push: done
+- GitHub Actions: green
+- Production HTTP: 200 OK
+- Production HTML error check: clean
+- SSH check: clean
+- Server logs: clean
+- MAX: sent
+- Overall: DONE
+```
+
+Пример частичного завершения:
+
+```text
+FINAL STATUS:
+- Code changes: done
+- Commit: abc1234
+- Push: done
+- GitHub Actions: not checked
+- Production HTTP: checked
+- Production HTML error check: clean
+- SSH check: BLOCKED, local SSH key unavailable
+- Server logs: not checked
+- MAX: BLOCKED, real key unavailable
+- Overall: PARTIAL, not DONE
+```
+
+Главное правило:
+
+```text
+Если проверка не выполнена — это не успех.
+Если ключа нет — не использовать placeholder.
+Если SSH недоступен — не писать DONE.
+```
+
+---
+
+## 30. Правило для таблиц с infinite scroll и summary/counters
+
+Если таблица использует AJAX, pagination, limit/offset или infinite scroll, все summary/counters должны считаться на сервере по полному текущему набору данных, а не по DOM и не по первой загруженной странице.
+
+Запрещено считать summary/counters:
+
+```text
+по текущим строкам DOM
+по первой странице infinite scroll
+по текущим 50/100 загруженным строкам
+только в JavaScript без серверного total
+```
+
+Правильно:
+
+```text
+1. Основной SQL/filter строит полный набор.
+2. Для таблицы применяется limit/offset.
+3. Для total/summary/status counters limit/offset НЕ применяется.
+4. AJAX response возвращает total и counters отдельно.
+```
+
+Если пользователь применил фильтры/чекбоксы, summary/counters должны считаться по тому же фильтру, что и total.
+
+Если поиск по содержимому работает только client-side, кодер обязан явно написать в отчёте, участвует ли этот поиск в серверных summary/counters.
+
+---
+
+## 31. Правило production HTML check
+
+Production check не может ограничиваться HTTP `200 OK`.
+
+Обязательно проверить содержимое HTML на ошибки:
+
+```cmd
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Object of class Closure"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Fatal error"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Warning"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Notice"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Ошибка"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Stack trace"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Parse error"
+curl.exe -k -s -L "https://mg-log.ru/demoERP/public/?module=feo" | findstr /C:"Deprecated"
+```
+
+Если любая из этих команд нашла ошибку — production check не пройден.
+
+Также нужно проверить наличие ключевых элементов страницы, указанных в текущем промте задачи.
+
+---
+
+## 32. Правило shell-среды Roo Code
+
+Перед выполнением команд Roo/Coding Agent обязан понять, в какой оболочке он работает.
+
+Если работает `cmd.exe`, использовать cmd-compatible команды:
+
+```text
+cd
+dir
+type
+findstr
+git
+composer
+php
+curl.exe
+ssh
+```
+
+Если работает Windows PowerShell, использовать PowerShell-compatible команды:
+
+```text
+Get-Location
+Get-Content
+Select-String
+Get-ChildItem
+Invoke-WebRequest
+curl.exe
+```
+
+Запрещено в `cmd.exe`:
+
+```text
+Get-Location
+Select-String
+Get-Content
+Get-ChildItem
+Invoke-WebRequest
+```
+
+Запрещено в Windows PowerShell:
+
+```text
+curl без .exe
+grep
+head
+tail
+sed
+awk
+Linux-style command chains
+```
+
+Если shell-команда не выполнилась из-за неправильной оболочки, кодер обязан остановиться, определить shell и продолжить только совместимыми командами.

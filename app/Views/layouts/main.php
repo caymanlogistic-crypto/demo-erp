@@ -19,8 +19,13 @@
         <div class="crumbs">
             <span>Основное</span>
             <span class="sep">›</span>
-            <b><?= htmlspecialchars($pageTitle ?? 'Заявки ФЭО', ENT_QUOTES, 'UTF-8') ?></b>
+            <b>База заявок ФГИС</b>
         </div>
+        <nav class="top-subnav" aria-label="Подразделы">
+            <a class="top-subnav-link active" href="/demoERP/public/?module=feo">База заявок ФГИС</a>
+            <a class="top-subnav-link disabled" href="#" aria-disabled="true">Заявки регионы</a>
+            <a class="top-subnav-link disabled" href="#" aria-disabled="true">Планирование и вывоз</a>
+        </nav>
         <div class="top-actions">
             <div class="user">
                 <div class="avatar">LS</div>
@@ -33,15 +38,22 @@
     </div>
 
     <!-- ============================================================
-         SIDEBAR
+         SIDEBAR — rail navigation
          ============================================================ -->
     <div class="sidebar">
-        <button class="nav active" title="Основное">□</button>
-        <button class="nav" title="Рейсы">⇌</button>
-        <button class="nav" title="Водители">⊡</button>
-        <button class="nav" title="Транспорт">⊞</button>
+        <a class="rail-item active" href="/demoERP/public/?module=feo" title="Основное">
+            <span class="rail-label">О</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Рейсы">
+            <span class="rail-label">Р</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
+            <span class="rail-label">К</span>
+        </a>
+        <a class="rail-item disabled" href="#" aria-disabled="true" title="Сервис">
+            <span class="rail-label">С</span>
+        </a>
         <div class="nav-grow"></div>
-        <button class="nav" title="Настройки">⚙</button>
     </div>
 
     <!-- ============================================================
