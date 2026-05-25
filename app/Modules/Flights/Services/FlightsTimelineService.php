@@ -16,19 +16,28 @@ use App\Modules\Flights\Repositories\FlightsRepository;
 class FlightsTimelineService
 {
     private FlightsRepository $repository;
+    private GoogleSheetsTimelineService $googleSheets;
 
     /**
-     * Google Sheets данные (fallback — пустые).
-     * В legacy брались из include/googleSheetsHelper.php → getGoogleSheetsData().
-     * В Demo ERP Google Sheets пока не интегрирован.
+     * Google Sheets данные, проиндексированные по zayavka_id.
      *
-     * @var array<string, array>
+     * @var array<string, array{route: string, comments: string, driver_info: string, prep_time: string}>
      */
-    private array $googleData = [];
+    private array $googleData;
 
     public function __construct()
     {
-        $this->repository = new FlightsRepository();
+        $this->repository   = new FlightsRepository();
+        $this->googleSheets = new GoogleSheetsTimelineService();
+        $this->googleData   = $this->googleSheets->getIndexedByZayavkaId();
+    }
+
+    /**
+     * Получить googleData (для summary-подсчётов).
+     */
+    public function getGoogleData(): array
+    {
+        return $this->googleData;
     }
 
     /**
@@ -87,7 +96,7 @@ class FlightsTimelineService
 
                     $enrichedZ = $zData;
 
-                    // Google Sheets данные
+                    // Google Sheets данные (реальные, не fallback)
                     $gsData = $this->googleData[$zid] ?? null;
                     $prepTime = $gsData['prep_time'] ?? '';
                     $comments = $gsData['comments'] ?? '';

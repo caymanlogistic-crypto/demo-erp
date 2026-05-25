@@ -9,6 +9,7 @@
  *   $flights    — обогащённые рейсы
  *   $statusMap  — [статус => [статус, наименование, style, ...]]
  *   $service    — FlightsTimelineService
+ *   $summary    — [requests_total: int, weight_total_kg: float]
  */
 
 use App\Modules\Flights\Services\FlightsTimelineService;
@@ -18,6 +19,7 @@ use App\Modules\Flights\Services\FlightsTimelineService;
 /** @var array $flights */
 /** @var array $statusMap */
 /** @var FlightsTimelineService $service */
+/** @var array $summary */
 
 $allTabs = [
     'all'        => 'Все рейсы',
@@ -60,10 +62,16 @@ $allTabs = [
             </span>
         </div>
         <div class="summary-right">
-            <span class="summary-chip">Планы <b><?= (int) ($tabCounts['planned'] ?? 0) ?></b></span>
-            <span class="summary-chip">В пути <b><?= (int) ($tabCounts['in_transit'] ?? 0) ?></b></span>
-            <span class="summary-chip">Выгружено <b><?= (int) ($tabCounts['unloaded'] ?? 0) ?></b></span>
-            <span class="summary-chip">Нераспределено <b><?= (int) ($tabCounts['unassigned'] ?? 0) ?></b></span>
+            <span class="summary-chip summary-chip-requests">
+                <span class="summary-chip-dot"></span>
+                <span>Заявок</span>
+                <b id="countRequests"><?= (int) ($summary['requests_total'] ?? 0) ?></b>
+            </span>
+            <span class="summary-chip summary-chip-weight">
+                <span class="summary-chip-dot"></span>
+                <span>Масса</span>
+                <b id="countWeightKg"><?= number_format((int) ($summary['weight_total_kg'] ?? 0), 0, '.', ' ') ?> кг</b>
+            </span>
         </div>
     </div>
     <div class="table-scroll">
@@ -132,9 +140,9 @@ $allTabs = [
                     $zayavkiJson = htmlspecialchars(json_encode($zayavkiList, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
                 ?>
                 <!-- Main row -->
-                <tr class="flight-row" data-flight-id="<?= $flightId ?>">
+                <tr class="flight-row" data-flight-id="<?= $flightId ?>" tabindex="0">
                     <td class="flight-toggle">
-                        <span class="flight-toggle-arrow" onclick="toggleFlight(<?= $flightId ?>, event)">▶</span>
+                        <span class="flight-toggle-arrow">▶</span>
                     </td>
                     <td class="flight-date <?= htmlspecialchars($dateMarkerClass, ENT_QUOTES, 'UTF-8') ?>">
                         <?= htmlspecialchars($dateStr, ENT_QUOTES, 'UTF-8') ?>
@@ -193,7 +201,7 @@ $allTabs = [
                     </td>
                 </tr>
                 <!-- Detail row -->
-                <tr id="details_<?= $flightId ?>" class="flight-details-row" style="display: none;">
+                <tr id="details_<?= $flightId ?>" class="flight-details-row" data-flight-details-for="<?= $flightId ?>" hidden>
                     <td colspan="12" class="flight-details-cell">
                         <div class="flight-details">
                             <table class="flight-details-table">
@@ -285,19 +293,48 @@ $allTabs = [
 <?php endif; ?>
 
 <script>
-function toggleFlight(flightId, event) {
-    if (event && event.target.closest('.action-btn')) return;
-    var detailRow = document.getElementById('details_' + flightId);
-    var mainRow = detailRow.previousElementSibling;
-    var arrow = mainRow.querySelector('.flight-toggle-arrow');
-    if (detailRow.style.display === 'none') {
+function toggleFlightRow(row) {
+    var flightId = row.getAttribute('data-flight-id');
+    var detailRow = document.querySelector('[data-flight-details-for="' + flightId + '"]');
+    if (!detailRow) return;
+    var arrow = row.querySelector('.flight-toggle-arrow');
+
+    if (detailRow.hasAttribute('hidden')) {
+        detailRow.removeAttribute('hidden');
         detailRow.style.display = 'table-row';
-        arrow.textContent = '▼';
+        row.classList.add('flight-row-expanded');
+        row.setAttribute('aria-expanded', 'true');
+        if (arrow) arrow.textContent = '▼';
     } else {
+        detailRow.setAttribute('hidden', '');
         detailRow.style.display = 'none';
-        arrow.textContent = '▶';
+        row.classList.remove('flight-row-expanded');
+        row.setAttribute('aria-expanded', 'false');
+        if (arrow) arrow.textContent = '▶';
     }
 }
+
+// Click delegation — раскрытие по клику на всю строку
+document.addEventListener('click', function (event) {
+    var interactive = event.target.closest('.action-btn, button, a, input, select, textarea');
+    if (interactive) return;
+
+    var row = event.target.closest('.flight-row');
+    if (!row) return;
+
+    toggleFlightRow(row);
+});
+
+// Keyboard — Enter/Space на строке
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    var row = event.target.closest('.flight-row');
+    if (!row) return;
+
+    event.preventDefault();
+    toggleFlightRow(row);
+});
 
 function showRequests(btn, ev) {
     ev.stopPropagation();
@@ -322,6 +359,4 @@ function showRequests(btn, ev) {
         alert('Ошибка загрузки данных');
     }
 }
-
-// Tab clicks — handled via <a href>, no JS needed
 </script>

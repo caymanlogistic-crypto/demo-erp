@@ -1111,6 +1111,12 @@ textarea { resize: vertical; }
 }
 
 /* ============================================================
+   SUMMARY CHIPS — requests & weight
+   ============================================================ */
+.summary-chip-requests .summary-chip-dot { background: var(--accent-line); }
+.summary-chip-weight .summary-chip-dot   { background: #5c6b7a; }
+
+/* ============================================================
    FLIGHTS PAGE — tabs, table, details
    ============================================================ */
 
@@ -1196,6 +1202,14 @@ textarea { resize: vertical; }
 }
 .flight-row:hover {
   background: var(--table-row-hover) !important;
+}
+.flight-row:focus,
+.flight-row:focus-visible {
+  outline: 1px solid var(--accent-line);
+  outline-offset: -1px;
+}
+.flight-row.flight-row-expanded {
+  background: var(--table-row-selected);
 }
 
 .flight-toggle {

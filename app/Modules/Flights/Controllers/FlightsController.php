@@ -46,6 +46,9 @@ class FlightsController
         $result    = $this->repository->getFlights($tab);
         $flights   = $this->service->enrichFlights($result['flights']);
 
+        // Summary: Заявок / Масса по enriched flights
+        $summary = $this->computeSummary($flights);
+
         // Status map для отображения
         $statusMap = [];
         foreach ($statuses as $s) {
@@ -65,6 +68,31 @@ class FlightsController
         $pageModule = 'flights';
         require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
+    }
+
+    /**
+     * Вычислить summary: общее число заявок и общая масса по enriched flights.
+     *
+     * @param array $flights
+     * @return array{requests_total: int, weight_total_kg: float}
+     */
+    private function computeSummary(array $flights): array
+    {
+        $requestsTotal = 0;
+        $weightTotalKg = 0.0;
+
+        foreach ($flights as $flight) {
+            $zayavki = $flight['zayavki'] ?? [];
+            $requestsTotal += count($zayavki);
+            foreach ($zayavki as $z) {
+                $weightTotalKg += floatval($z['mass_netto'] ?? 0) * 1000;
+            }
+        }
+
+        return [
+            'requests_total' => $requestsTotal,
+            'weight_total_kg' => $weightTotalKg,
+        ];
     }
 
     private function renderNoDb(): string
