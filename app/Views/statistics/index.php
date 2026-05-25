@@ -29,7 +29,6 @@ use App\Modules\Statistics\Services\StatisticsService;
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
-        <div class="page-eyebrow">Статистика / Вывозы по периодам</div>
         <div class="page-title">Статистика вывозов</div>
         <div class="page-summary"><span>Количество заявок и масса по выбранной дате</span></div>
     </div>
