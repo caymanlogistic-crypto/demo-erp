@@ -27,7 +27,7 @@ $allTabs = [
     'unloaded'   => 'Выгруженные рейсы',
 ];
 ?>
-<!-- flights warehouses: enabled labels=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['labels'] ?? 0) ?> missing=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['missing'] ?? 0) ?> -->
+<!-- flights warehouses: enabled loadLabels=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['loadLabels'] ?? 0) ?> unloadLabels=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['unloadLabels'] ?? 0) ?> missing=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['missing'] ?? 0) ?> -->
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
@@ -80,7 +80,8 @@ $allTabs = [
                 <col class="col-flights-date">
                 <col class="col-flights-id">
                 <col class="col-flights-desc">
-                <col class="col-flights-sklad">
+                <col class="col-flights-sklad-load">
+                <col class="col-flights-sklad-unload">
                 <col class="col-flights-status">
                 <col class="col-flights-driver">
                 <col class="col-flights-manager">
@@ -95,7 +96,8 @@ $allTabs = [
                     <th>ПЛАН / ФАКТ ДАТА</th>
                     <th>ID</th>
                     <th>ОПИСАНИЕ РЕЙСА</th>
-                    <th>СКЛАД</th>
+                    <th title="Склад загрузки">СКЛАД ЗАГР.</th>
+                    <th title="Склад выгрузки">СКЛАД ВЫГР.</th>
                     <th>СТАТУС</th>
                     <th>ВОДИТЕЛЬ / МАШИНА</th>
                     <th>МЕНЕДЖЕР</th>
@@ -154,11 +156,22 @@ $allTabs = [
                     </td>
                     <td class="flight-warehouse">
                         <?php
-                            $whLabel = $flight['warehouse_label'] ?? '';
-                            $whTitle = $flight['warehouse_title'] ?? '';
-                            if ($whLabel !== ''):
+                            $whLoadLabel = $flight['warehouse_load_label'] ?? '';
+                            $whLoadTitle = $flight['warehouse_load_title'] ?? '';
+                            if ($whLoadLabel !== ''):
                         ?>
-                            <span class="warehouse-badge" title="<?= htmlspecialchars($whTitle, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($whLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="warehouse-badge" title="<?= htmlspecialchars($whLoadTitle, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($whLoadLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php else: ?>
+                            <span class="empty-cell">—</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="flight-warehouse">
+                        <?php
+                            $whUnloadLabel = $flight['warehouse_unload_label'] ?? '';
+                            $whUnloadTitle = $flight['warehouse_unload_title'] ?? '';
+                            if ($whUnloadLabel !== ''):
+                        ?>
+                            <span class="warehouse-badge" title="<?= htmlspecialchars($whUnloadTitle, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($whUnloadLabel, ENT_QUOTES, 'UTF-8') ?></span>
                         <?php else: ?>
                             <span class="empty-cell">—</span>
                         <?php endif; ?>
@@ -209,7 +222,7 @@ $allTabs = [
                 </tr>
                 <!-- Detail row -->
                 <tr id="details_<?= $flightId ?>" class="flight-details-row" data-flight-details-for="<?= $flightId ?>" hidden>
-                    <td colspan="12" class="flight-details-cell">
+                    <td colspan="13" class="flight-details-cell">
                         <div class="flight-details">
                             <table class="flight-details-table">
                                 <thead>

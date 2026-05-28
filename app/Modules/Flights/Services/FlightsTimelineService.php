@@ -186,7 +186,8 @@ class FlightsTimelineService
             ? []
             : $this->repository->getWarehouseNames(array_keys($warehouseIds));
 
-        $labelsBuilt = 0;
+        $loadLabels = 0;
+        $unloadLabels = 0;
         $missingIds = 0;
 
         foreach ($flights as &$flight) {
@@ -195,9 +196,10 @@ class FlightsTimelineService
             $srcId = isset($flight['source_warehouse_id']) ? (int) $flight['source_warehouse_id'] : 0;
             $dstId = isset($flight['destination_warehouse_id']) ? (int) $flight['destination_warehouse_id'] : 0;
 
-            $flight['warehouse_label'] = '';
-            $flight['warehouse_title'] = '';
-            $flight['warehouse_kind'] = 'none';
+            $flight['warehouse_load_label'] = '';
+            $flight['warehouse_load_title'] = '';
+            $flight['warehouse_unload_label'] = '';
+            $flight['warehouse_unload_title'] = '';
 
             // Определяем эффективный route_type с учётом fallback
             $effectiveRoute = $routeType;
@@ -207,68 +209,62 @@ class FlightsTimelineService
 
             switch ($effectiveRoute) {
                 case 'generator_to_warehouse':
+                    // ОО → склад: загрузка —, выгрузка = склад назначения
                     $name = $namesMap[$dstId] ?? null;
                     if ($name !== null) {
-                        $flight['warehouse_label'] = $name;
-                        $flight['warehouse_title'] = 'Выгрузка на склад: ' . $name;
-                        $flight['warehouse_kind'] = 'generator_to_warehouse';
-                        $labelsBuilt++;
+                        $flight['warehouse_unload_label'] = $name;
+                        $flight['warehouse_unload_title'] = 'Склад выгрузки: ' . $name;
+                        $unloadLabels++;
                     } elseif ($dstId > 0) {
-                        $flight['warehouse_label'] = 'Склад #' . $dstId;
-                        $flight['warehouse_title'] = 'Выгрузка на склад #' . $dstId;
-                        $flight['warehouse_kind'] = 'generator_to_warehouse';
-                        $missingIds++;
-                    }
-                    break;
-
-                case 'warehouse_to_warehouse':
-                    $srcName = $namesMap[$srcId] ?? null;
-                    $dstName = $namesMap[$dstId] ?? null;
-
-                    if ($srcName !== null && $dstName !== null) {
-                        $flight['warehouse_label'] = $srcName . ' → ' . $dstName;
-                        $flight['warehouse_title'] = 'Перемещение: ' . $srcName . ' → ' . $dstName;
-                        $flight['warehouse_kind'] = 'warehouse_to_warehouse';
-                        $labelsBuilt++;
-                    } elseif ($srcName !== null) {
-                        $flight['warehouse_label'] = $srcName . ' → ?';
-                        $flight['warehouse_title'] = 'Перемещение: ' . $srcName . ' → ?';
-                        $flight['warehouse_kind'] = 'warehouse_to_warehouse';
-                        $missingIds++;
-                    } elseif ($dstName !== null) {
-                        $flight['warehouse_label'] = '? → ' . $dstName;
-                        $flight['warehouse_title'] = 'Перемещение: ? → ' . $dstName;
-                        $flight['warehouse_kind'] = 'warehouse_to_warehouse';
-                        $missingIds++;
-                    } elseif ($srcId > 0 || $dstId > 0) {
-                        $flight['warehouse_label'] = 'Склад #' . $srcId . ' → Склад #' . $dstId;
-                        $flight['warehouse_title'] = 'Перемещение: Склад #' . $srcId . ' → Склад #' . $dstId;
-                        $flight['warehouse_kind'] = 'warehouse_to_warehouse';
+                        $flight['warehouse_unload_label'] = 'Склад #' . $dstId;
+                        $flight['warehouse_unload_title'] = 'Склад выгрузки #' . $dstId;
                         $missingIds++;
                     }
                     break;
 
                 case 'warehouse_to_utilizer':
+                    // склад → утилизатор: загрузка = склад-источник, выгрузка —
                     $name = $namesMap[$srcId] ?? null;
                     if ($name !== null) {
-                        $flight['warehouse_label'] = $name;
-                        $flight['warehouse_title'] = 'Вывоз со склада: ' . $name;
-                        $flight['warehouse_kind'] = 'warehouse_to_utilizer';
-                        $labelsBuilt++;
+                        $flight['warehouse_load_label'] = $name;
+                        $flight['warehouse_load_title'] = 'Склад загрузки: ' . $name;
+                        $loadLabels++;
                     } elseif ($srcId > 0) {
-                        $flight['warehouse_label'] = 'Склад #' . $srcId;
-                        $flight['warehouse_title'] = 'Вывоз со склада #' . $srcId;
-                        $flight['warehouse_kind'] = 'warehouse_to_utilizer';
+                        $flight['warehouse_load_label'] = 'Склад #' . $srcId;
+                        $flight['warehouse_load_title'] = 'Склад загрузки #' . $srcId;
+                        $missingIds++;
+                    }
+                    break;
+
+                case 'warehouse_to_warehouse':
+                    // склад → склад: загрузка = источник, выгрузка = назначение
+                    $srcName = $namesMap[$srcId] ?? null;
+                    $dstName = $namesMap[$dstId] ?? null;
+
+                    if ($srcName !== null) {
+                        $flight['warehouse_load_label'] = $srcName;
+                        $flight['warehouse_load_title'] = 'Склад загрузки: ' . $srcName;
+                        $loadLabels++;
+                    } elseif ($srcId > 0) {
+                        $flight['warehouse_load_label'] = 'Склад #' . $srcId;
+                        $flight['warehouse_load_title'] = 'Склад загрузки #' . $srcId;
+                        $missingIds++;
+                    }
+
+                    if ($dstName !== null) {
+                        $flight['warehouse_unload_label'] = $dstName;
+                        $flight['warehouse_unload_title'] = 'Склад выгрузки: ' . $dstName;
+                        $unloadLabels++;
+                    } elseif ($dstId > 0) {
+                        $flight['warehouse_unload_label'] = 'Склад #' . $dstId;
+                        $flight['warehouse_unload_title'] = 'Склад выгрузки #' . $dstId;
                         $missingIds++;
                     }
                     break;
 
                 case 'generator_to_utilizer':
                 default:
-                    // Обычный рейс — склад не показываем
-                    $flight['warehouse_label'] = '';
-                    $flight['warehouse_title'] = '';
-                    $flight['warehouse_kind'] = 'none';
+                    // ОО → утилизатор: складов нет
                     break;
             }
         }
@@ -276,7 +272,8 @@ class FlightsTimelineService
 
         // Диагностический маркер (без персональных данных)
         $GLOBALS['_FLIGHTS_WAREHOUSE_DIAG'] = [
-            'labels' => $labelsBuilt,
+            'loadLabels' => $loadLabels,
+            'unloadLabels' => $unloadLabels,
             'missing' => $missingIds,
         ];
     }
