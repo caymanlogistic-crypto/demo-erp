@@ -1272,8 +1272,12 @@ textarea { resize: vertical; }
   text-align: center;
 }
 .warehouse-badge {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
   height: 16px;
   padding: 0 6px;
   border: 1px solid var(--warning-border);
@@ -1282,7 +1286,7 @@ textarea { resize: vertical; }
   color: var(--warning);
   font-size: 9.5px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 16px;
 }
 
 .flight-status-cell {

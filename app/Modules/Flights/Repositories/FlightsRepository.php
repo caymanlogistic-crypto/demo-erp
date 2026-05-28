@@ -163,6 +163,38 @@ class FlightsRepository
     }
 
     /**
+     * Получить названия складов по их ID (одним запросом, без N+1).
+     *
+     * @param int[] $ids
+     * @return array<int, string> warehouse id → name
+     */
+    public function getWarehouseNames(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return [];
+        }
+
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $pdo->prepare("SELECT id, name FROM warehouses WHERE id IN ({$placeholders})");
+            $stmt->execute(array_values($ids));
+            $map = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $map[(int) $row['id']] = $row['name'];
+            }
+            return $map;
+        } catch (\Exception $e) {
+            error_log('FlightsRepository getWarehouseNames error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Получить price_per_kg для заявок (логика из FeoRepository::calculatePrices).
      *
      * Использует status_blocks (marshrut) с cost для расчёта цены за кг.

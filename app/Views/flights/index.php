@@ -27,6 +27,7 @@ $allTabs = [
     'unloaded'   => 'Выгруженные рейсы',
 ];
 ?>
+<!-- flights warehouses: enabled labels=<?= (int) ($_FLIGHTS_WAREHOUSE_DIAG['labels'] ?? 0) ?> missing=<?= (int) ($_FLIGHTS_WAREHOUSE_DIAG['missing'] ?? 0) ?> -->
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
@@ -152,7 +153,15 @@ $allTabs = [
                         <?= $description !== '' ? htmlspecialchars($description, ENT_QUOTES, 'UTF-8') : '<span class="empty-cell">—</span>' ?>
                     </td>
                     <td class="flight-warehouse">
-                        <?= ($unloadType === 'OO' || $unloadType === '') ? '<span class="empty-cell">—</span>' : '<span class="warehouse-badge">СКЛАД</span>' ?>
+                        <?php
+                            $whLabel = $flight['warehouse_label'] ?? '';
+                            $whTitle = $flight['warehouse_title'] ?? '';
+                            if ($whLabel !== ''):
+                        ?>
+                            <span class="warehouse-badge" title="<?= htmlspecialchars($whTitle, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($whLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php else: ?>
+                            <span class="empty-cell">—</span>
+                        <?php endif; ?>
                     </td>
                     <td class="flight-status-cell">
                         <span class="flight-status <?= htmlspecialchars($statusInfo['css_class'], ENT_QUOTES, 'UTF-8') ?>">
