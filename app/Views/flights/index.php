@@ -27,7 +27,7 @@ $allTabs = [
     'unloaded'   => 'Выгруженные рейсы',
 ];
 ?>
-<!-- flights warehouses: enabled labels=<?= (int) ($_FLIGHTS_WAREHOUSE_DIAG['labels'] ?? 0) ?> missing=<?= (int) ($_FLIGHTS_WAREHOUSE_DIAG['missing'] ?? 0) ?> -->
+<!-- flights warehouses: enabled labels=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['labels'] ?? 0) ?> missing=<?= (int) ($GLOBALS['_FLIGHTS_WAREHOUSE_DIAG']['missing'] ?? 0) ?> -->
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
