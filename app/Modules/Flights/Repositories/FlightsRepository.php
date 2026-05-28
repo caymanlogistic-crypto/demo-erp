@@ -14,7 +14,8 @@ use PDO;
  *  - flights + contractors + drivers + users
  *  - статусы из таблицы status
  *  - заявки из feo по zayavki_ids
- *  - табы: all, planned, in_transit, unloaded, unassigned
+ *  - табы: planned, in_transit, unloaded
+ *  - распределение по вкладкам ТОЛЬКО по status рейса
  */
 class FlightsRepository
 {
@@ -49,10 +50,10 @@ class FlightsRepository
     /**
      * Получить рейсы с фильтром по табу.
      *
-     * @param string $tab all|planned|in_transit|unloaded|unassigned
+     * @param string $tab planned|in_transit|unloaded
      * @return array{flights: array, count: int}
      */
-    public function getFlights(string $tab = 'all'): array
+    public function getFlights(string $tab = 'planned'): array
     {
         $pdo = Connection::get();
         if ($pdo === null) {
@@ -96,7 +97,7 @@ class FlightsRepository
     /**
      * Получить количество рейсов для каждого таба.
      *
-     * @return array{all: int, planned: int, in_transit: int, unloaded: int, unassigned: int}
+     * @return array{planned: int, in_transit: int, unloaded: int}
      */
     public function getTabCounts(): array
     {
@@ -294,40 +295,56 @@ class FlightsRepository
     }
 
     /**
-     * Построить SQL-условие фильтра для таба.
+     * Получить список статусов для таба (status-only).
+     *
+     * Планы на вывоз — планируемые и сформированные рейсы:
+     *   search, planned_route, found
+     *   (сформированные рейсы со статусом found попадают сюда,
+     *    т.к. означают "Исполнитель найден, рейс сформирован")
+     *
+     * Рейсы в пути — физически начавшиеся:
+     *   started
+     *
+     * Выгруженные рейсы — завершённые:
+     *   completed
+     *
+     * @param string $tab
+     * @return string[]
      */
-    private function buildFilterSQL(string $tab): string
+    private function getStatusesForTab(string $tab): array
     {
         return match ($tab) {
-            'planned'     => " AND (
-                (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)
-                OR
-                (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL AND f.actual_start_date IS NULL)
-            )",
-            'in_transit'  => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NULL",
-            'unloaded'    => " AND f.actual_start_date IS NOT NULL AND f.actual_end_date IS NOT NULL",
-            default       => " AND (
-                (f.planned_start_date IS NOT NULL OR f.planned_start_date_from IS NOT NULL OR f.planned_start_date_to IS NOT NULL)
-                OR
-                (f.planned_start_date IS NULL AND f.planned_start_date_from IS NULL AND f.planned_start_date_to IS NULL AND f.actual_start_date IS NULL)
-            )",
+            'in_transit' => ['started'],
+            'unloaded'   => ['completed'],
+            default      => ['search', 'planned_route', 'found'],
         };
     }
 
     /**
+     * Построить SQL-условие фильтра для таба (status-only).
+     *
+     * Фильтрация только по f.status — даты и прочие поля не участвуют.
+     */
+    private function buildFilterSQL(string $tab): string
+    {
+        $statuses = $this->getStatusesForTab($tab);
+        if (empty($statuses)) {
+            return '';
+        }
+        $quoted = array_map(fn($s) => "'" . addslashes($s) . "'", $statuses);
+        return " AND f.status IN (" . implode(',', $quoted) . ")";
+    }
+
+    /**
      * Построить SQL-сортировку для таба.
+     *
+     * Даты используются только для сортировки, но не для фильтрации вкладок.
      */
     private function buildOrderSQL(string $tab): string
     {
         return match ($tab) {
             'planned' => " ORDER BY
-                CASE WHEN (
-                    f.planned_start_date IS NULL
-                    AND f.planned_start_date_from IS NULL
-                    AND f.planned_start_date_to IS NULL
-                    AND f.actual_start_date IS NULL
-                ) THEN 1 ELSE 0 END ASC,
-                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date) ASC,
+                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to) ASC,
                 f.id ASC",
             'in_transit', 'unloaded' => " ORDER BY
                 GREATEST(
@@ -335,13 +352,7 @@ class FlightsRepository
                     COALESCE(f.actual_end_date, '1970-01-01')
                 ) DESC",
             default => " ORDER BY
-                CASE WHEN (
-                    f.planned_start_date IS NULL
-                    AND f.planned_start_date_from IS NULL
-                    AND f.planned_start_date_to IS NULL
-                    AND f.actual_start_date IS NULL
-                ) THEN 1 ELSE 0 END ASC,
-                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to, f.actual_start_date) ASC,
+                COALESCE(f.planned_start_date, f.planned_start_date_from, f.planned_start_date_to) ASC,
                 f.id ASC",
         };
     }

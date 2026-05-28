@@ -740,7 +740,7 @@ textarea { resize: vertical; }
 
 /* Table — ERP Grid */
 .table {
-  min-width: 1620px;
+  min-width: 1450px;
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
@@ -1199,19 +1199,19 @@ textarea { resize: vertical; }
 }
 
 /* ---- Flights table colgroup ---- */
-.col-flights-toggle       { width: 34px; }
-.col-flights-date         { width: 130px; }
+.col-flights-toggle       { width: 28px; }
+.col-flights-date         { width: 110px; }
 .col-flights-id           { width: 58px; }
 .col-flights-desc         { width: 260px; }
-.col-flights-sklad-load   { width: 85px; }
-.col-flights-sklad-unload { width: 85px; }
-.col-flights-status       { width: 130px; }
-.col-flights-driver       { width: 170px; }
+.col-flights-sklad-load   { width: 105px; }
+.col-flights-sklad-unload { width: 105px; }
+.col-flights-status       { width: 115px; }
+.col-flights-driver       { width: 205px; }
 .col-flights-manager      { width: 130px; }
-.col-flights-prozvon      { width: 80px; }
+.col-flights-prozvon      { width: 70px; }
 .col-flights-addr         { width: 90px; }
 .col-flights-weight       { width: 90px; }
-.col-flights-actions      { width: 92px; }
+.col-flights-actions      { width: 70px; }
 
 /* ---- Flight row ---- */
 .flight-row {
@@ -1274,18 +1274,18 @@ textarea { resize: vertical; }
 }
 .warehouse-badge {
   display: inline-block;
-  max-width: 120px;
+  max-width: 92px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
   height: 16px;
-  padding: 0 6px;
+  padding: 0 4px;
   border: 1px solid var(--warning-border);
   border-radius: 2px;
   background: var(--warning-bg);
   color: var(--warning);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
   line-height: 16px;
 }
