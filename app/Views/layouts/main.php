@@ -9,50 +9,34 @@
 <body>
 <div class="app">
     <!-- ============================================================
-         TOPBAR
+         TOPBAR — dark navigation bar
          ============================================================ -->
-    <div class="topbar">
-        <div class="brand-mark">
-            <div class="logo"></div>
-        </div>
-        <div class="brand">TransportERP</div>
+    <header class="topbar topbar-main">
+        <div class="topbar-brand">TransportERP</div>
+
+        <div class="topbar-divider"></div>
+
         <?php
         $currentModule = $pageModule ?? 'feo';
-        if ($currentModule === 'flights'):
+        $navItems = [
+            'home'       => ['label' => 'Общая информация',  'href' => '/demoERP/public/?module=home'],
+            'feo'        => ['label' => 'Доступные заявки',  'href' => '/demoERP/public/?module=feo'],
+            'flights'    => ['label' => 'Планирование и вывоз', 'href' => '/demoERP/public/?module=flights'],
+            'statistics' => ['label' => 'Статистика',         'href' => '/demoERP/public/?module=statistics'],
+            'reports'    => ['label' => 'Отчетность по регионам', 'href' => '/demoERP/public/?module=reports'],
+        ];
         ?>
-        <nav class="top-subnav" aria-label="Подразделы" style="margin-left:14px">
-            <a class="top-subnav-link active" href="/demoERP/public/?module=flights">Таймлайн рейсов</a>
+        <nav class="main-topnav" aria-label="Основная навигация">
+            <?php foreach ($navItems as $mod => $item):
+                $isActive = ($mod === $currentModule);
+                $href = $item['href'];
+            ?>
+            <a class="main-topnav-link<?= $isActive ? ' active' : '' ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"<?= $isActive ? ' aria-current="page"' : '' ?>><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></a>
+            <?php endforeach; ?>
         </nav>
-        <?php elseif ($currentModule === 'statistics'): ?>
-        <div class="crumbs">
-            <span>Статистика</span>
-            <span class="sep">›</span>
-            <b>Вывозы по периодам</b>
-        </div>
-        <nav class="top-subnav" aria-label="Подразделы">
-            <a class="top-subnav-link active" href="/demoERP/public/?module=statistics">Вывозы по периодам</a>
-        </nav>
-        <?php elseif ($currentModule === 'reports'): ?>
-        <div class="crumbs">
-            <span>Отчётность</span>
-            <span class="sep">›</span>
-            <b>Сводные отчёты</b>
-        </div>
-        <nav class="top-subnav" aria-label="Подразделы">
-            <a class="top-subnav-link active" href="/demoERP/public/?module=reports">Сводные отчёты</a>
-        </nav>
-        <?php else: ?>
-        <div class="crumbs">
-            <span>Основное</span>
-            <span class="sep">›</span>
-            <b>База заявок ФГИС</b>
-        </div>
-        <nav class="top-subnav" aria-label="Подразделы">
-            <a class="top-subnav-link active" href="/demoERP/public/?module=feo">База заявок ФГИС</a>
-            <a class="top-subnav-link disabled" href="#" aria-disabled="true">Заявки регионы</a>
-            <a class="top-subnav-link disabled" href="#" aria-disabled="true">Планирование и вывоз</a>
-        </nav>
-        <?php endif; ?>
+
+        <div class="topbar-spacer"></div>
+
         <div class="top-actions">
             <div class="user">
                 <div class="avatar">LS</div>
@@ -62,32 +46,7 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- ============================================================
-         SIDEBAR — rail navigation
-         ============================================================ -->
-    <div class="sidebar">
-        <a class="rail-item<?= ($currentModule === 'feo') ? ' active' : '' ?>" href="/demoERP/public/?module=feo" title="Основное">
-            <span class="rail-label">О</span>
-        </a>
-        <a class="rail-item<?= ($currentModule === 'flights') ? ' active' : '' ?>" href="/demoERP/public/?module=flights" title="Рейсы">
-            <span class="rail-label">Р</span>
-        </a>
-        <a class="rail-item<?= ($currentModule === 'statistics') ? ' active' : '' ?>" href="/demoERP/public/?module=statistics" title="Статистика">
-            <span class="rail-label">С</span>
-        </a>
-        <a class="rail-item<?= ($currentModule === 'reports') ? ' active' : '' ?>" href="/demoERP/public/?module=reports" title="Отчётность">
-            <span class="rail-label">ОТ</span>
-        </a>
-        <a class="rail-item disabled" href="#" aria-disabled="true" title="Карта">
-            <span class="rail-label">К</span>
-        </a>
-        <a class="rail-item disabled" href="#" aria-disabled="true" title="Сервис">
-            <span class="rail-label">E</span>
-        </a>
-        <div class="nav-grow"></div>
-    </div>
+    </header>
 
     <!-- ============================================================
          PAGE CONTENT
