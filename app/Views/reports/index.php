@@ -182,13 +182,15 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 <tr class="reports-matrix-group-head">
                     <th class="th-period" rowspan="2">Период</th>
                     <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-group-pair" colspan="2" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : ($service->districtFullTitle($dk) ?? $dt), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <?php $foClass = match($dk) { 'cfo' => 'fo-cfo', 'szfo' => 'fo-szfo', 'yfo' => 'fo-yfo', 'skfo' => 'fo-skfo', 'pfo' => 'fo-pfo', 'urfo' => 'fo-urfo', 'sfo' => 'fo-sfo', 'dfo' => 'fo-dfo', default => 'fo-unknown' }; ?>
+                    <th class="th-group-pair <?= $foClass ?>" colspan="2" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : ($service->districtFullTitle($dk) ?? $dt), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
                     <?php endforeach; ?>
                 </tr>
                 <tr class="reports-matrix-sub-head">
                     <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-sub-pair">шт.</th>
-                    <th class="th-sub-pair">кг</th>
+                    <?php $foClass = match($dk) { 'cfo' => 'fo-cfo', 'szfo' => 'fo-szfo', 'yfo' => 'fo-yfo', 'skfo' => 'fo-skfo', 'pfo' => 'fo-pfo', 'urfo' => 'fo-urfo', 'sfo' => 'fo-sfo', 'dfo' => 'fo-dfo', default => 'fo-unknown' }; ?>
+                    <th class="th-sub-pair <?= $foClass ?>">шт.</th>
+                    <th class="th-sub-pair <?= $foClass ?>">кг</th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -370,7 +372,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
 <script>
 (function () {
     var CHART_SVG_VIEWBOX = { w: 1200, h: 210 };
-    var PADDING = { left: 48, right: 24, top: 18, bottom: 34 };
+    var PADDING = { left: 48, right: 24, top: 26, bottom: 34 };
     var GRID_LINES = 4;
     var LINE_WIDTH = 2.5;
     var DOT_RADIUS = 3.5;
@@ -599,15 +601,14 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         }
 
         // Legend — compact, above plot area, with click highlight support
-        var lx = pX0, ly = 1;
+        var lx = pX0, ly = 9;  // start at 9 to keep rect/text fully inside viewBox
         var legendG = svgEl('g', {});
         var maxLegendX = pX0 + pw;
         var legendItems = [];
         for (var si = 0; si < nS; si++) {
             var s = series[si], color = getDistrictColor(s.key, si), lbl = s.label || s.key;
-            // estimate item width more generously for Cyrillic labels
-            var itemW = lbl.length * 6 + 20;
-            if (lx + itemW > maxLegendX) { lx = pX0; ly += 10; }
+            var itemW = lbl.length * 6.5 + 22;
+            if (lx + itemW > maxLegendX) { lx = pX0; ly += 11; }
             var li = svgEl('g', {
                 'transform': 'translate(' + lx + ',' + ly + ')',
                 'style': 'cursor:pointer',
@@ -615,13 +616,13 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 'data-series-key': s.key,
                 'class': 'legend-item'
             });
-            li.appendChild(svgEl('rect', { 'x': '0', 'y': '-3', 'width': '6', 'height': '6', 'rx': '1', 'fill': color, 'opacity': '0.85' }));
-            var tx = svgEl('text', { 'x': '8', 'y': '1.5', 'fill': 'rgba(74,68,61,0.62)', 'font-size': '7.5', 'font-weight': '600' });
+            li.appendChild(svgEl('rect', { 'x': '0', 'y': '-3', 'width': '7', 'height': '7', 'rx': '1', 'fill': color, 'opacity': '0.85' }));
+            var tx = svgEl('text', { 'x': '9', 'y': '3', 'fill': 'rgba(74,68,61,0.62)', 'font-size': '9', 'font-weight': '400' });
             tx.textContent = lbl;
             li.appendChild(tx);
             legendG.appendChild(li);
             legendItems.push({ el: li, key: s.key, idx: si, color: color, x: lx, y: ly });
-            lx += itemW + 4;
+            lx += itemW + 5;
         }
         svg.appendChild(legendG);
 

@@ -1843,6 +1843,26 @@ textarea { resize: vertical; }
   vertical-align: middle;
 }
 
+/* District header colors — синхронизированы с DISTRICT_COLORS в JS */
+.reports-matrix-table .th-group-pair.fo-cfo  { background: rgba(90, 122, 138, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-cfo   { background: rgba(90, 122, 138, 0.09); }
+.reports-matrix-table .th-group-pair.fo-szfo { background: rgba(106, 138, 138, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-szfo  { background: rgba(106, 138, 138, 0.09); }
+.reports-matrix-table .th-group-pair.fo-yfo  { background: rgba(160, 128, 96, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-yfo   { background: rgba(160, 128, 96, 0.09); }
+.reports-matrix-table .th-group-pair.fo-skfo { background: rgba(138, 106, 138, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-skfo  { background: rgba(138, 106, 138, 0.09); }
+.reports-matrix-table .th-group-pair.fo-pfo  { background: rgba(160, 144, 96, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-pfo   { background: rgba(160, 144, 96, 0.09); }
+.reports-matrix-table .th-group-pair.fo-urfo { background: rgba(122, 138, 106, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-urfo  { background: rgba(122, 138, 106, 0.09); }
+.reports-matrix-table .th-group-pair.fo-sfo  { background: rgba(138, 112, 112, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-sfo   { background: rgba(138, 112, 112, 0.09); }
+.reports-matrix-table .th-group-pair.fo-dfo  { background: rgba(122, 122, 122, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-dfo   { background: rgba(122, 122, 122, 0.09); }
+.reports-matrix-table .th-group-pair.fo-unknown { background: rgba(85, 85, 85, 0.18); }
+.reports-matrix-table .th-sub-pair.fo-unknown  { background: rgba(85, 85, 85, 0.09); }
+
 .reports-matrix-table .td-period {
   text-align: left;
   font-size: 10.5px;
