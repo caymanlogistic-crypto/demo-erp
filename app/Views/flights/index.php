@@ -84,7 +84,6 @@ $allTabs = [
                 <col class="col-flights-sklad-load">
                 <col class="col-flights-sklad-unload">
                 <col class="col-flights-manager">
-                <col class="col-flights-prozvon">
                 <col class="col-flights-addr">
                 <col class="col-flights-weight">
                 <col class="col-flights-actions">
@@ -100,7 +99,6 @@ $allTabs = [
                     <th title="Склад загрузки">СКЛАД ЗАГР.</th>
                     <th title="Склад выгрузки">СКЛАД ВЫГР.</th>
                     <th>МЕНЕДЖЕР</th>
-                    <th>ПРОЗВОН</th>
                     <th>АДРЕСА / ЗАЯВКИ</th>
                     <th>ВЕС, КГ</th>
                     <th>ДЕЙСТВИЯ</th>
@@ -122,14 +120,7 @@ $allTabs = [
                     $uniqueAddr = (int) ($flight['unique_addresses_count'] ?? 0);
                     $totalMass = $flight['total_mass_kg'] ?? 0;
 
-                    // Прозвон badge
-                    if ($totalZayavki > 0 && $prepFilled === $totalZayavki) {
-                        $prozvonClass = 'prozvon-badge complete';
-                    } else {
-                        $prozvonClass = 'prozvon-badge incomplete';
-                    }
-
-                    // Зявки для кнопки "список заявок"
+                    // Заявки для кнопки "список заявок"
                     $zayavkiList = [];
                     foreach ($flight['zayavki'] as $z) {
                         $zayavkiList[] = [
@@ -194,9 +185,6 @@ $allTabs = [
                     <td class="flight-manager" title="<?= htmlspecialchars($managerName, ENT_QUOTES, 'UTF-8') ?>">
                         <?= !empty($managerName) ? htmlspecialchars($managerName, ENT_QUOTES, 'UTF-8') : '<span class="empty-cell">—</span>' ?>
                     </td>
-                    <td class="flight-prozvon">
-                        <span class="<?= $prozvonClass ?>"><?= $prepFilled ?> / <?= $totalZayavki ?></span>
-                    </td>
                     <td class="flight-addr"><?= $uniqueAddr ?> / <?= $totalZayavki ?></td>
                     <td class="flight-weight"><?= number_format((int) $totalMass, 0, '.', ' ') ?> кг</td>
                     <td class="flight-actions">
@@ -221,7 +209,7 @@ $allTabs = [
                 </tr>
                 <!-- Detail row -->
                 <tr id="details_<?= $flightId ?>" class="flight-details-row" data-flight-details-for="<?= $flightId ?>" hidden>
-                    <td colspan="13" class="flight-details-cell">
+                    <td colspan="12" class="flight-details-cell">
                         <div class="flight-details">
                             <table class="flight-details-table">
                                 <thead>
@@ -232,8 +220,6 @@ $allTabs = [
                                         <th>АДРЕС ПОГРУЗКИ</th>
                                         <th>КОНТАКТЫ</th>
                                         <th>ДОГОВОР</th>
-                                        <th>ПРОПУСК</th>
-                                        <th>КОММЕНТАРИИ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -263,25 +249,11 @@ $allTabs = [
                                                 <?php endif; ?>
                                             </td>
                                             <td class="text-center"><strong><?= htmlspecialchars($contractLabel, ENT_QUOTES, 'UTF-8') ?></strong></td>
-                                            <td class="text-center">
-                                                <?php if ($propiskaInfo['label'] === '—'): ?>
-                                                    <span class="empty-cell">—</span>
-                                                <?php else: ?>
-                                                    <span class="<?= htmlspecialchars($propiskaInfo['class'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($propiskaInfo['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="comments-cell">
-                                                <?php if ($comments !== ''): ?>
-                                                    <?= nl2br(htmlspecialchars($comments, ENT_QUOTES, 'UTF-8')) ?>
-                                                <?php else: ?>
-                                                    <span class="empty-cell">—</span>
-                                                <?php endif; ?>
-                                            </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="8" class="text-center" style="color: var(--text-faint); padding: 24px;">Данные заявок не найдены</td>
+                                            <td colspan="6" class="text-center" style="color: var(--text-faint); padding: 24px;">Данные заявок не найдены</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
