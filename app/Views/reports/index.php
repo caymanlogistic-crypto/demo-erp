@@ -183,14 +183,14 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                     <th class="th-period" rowspan="2">Период</th>
                     <?php foreach ($districtTitles as $dk => $dt): ?>
                     <?php $foClass = match($dk) { 'cfo' => 'fo-cfo', 'szfo' => 'fo-szfo', 'yfo' => 'fo-yfo', 'skfo' => 'fo-skfo', 'pfo' => 'fo-pfo', 'urfo' => 'fo-urfo', 'sfo' => 'fo-sfo', 'dfo' => 'fo-dfo', default => 'fo-unknown' }; ?>
-                    <th class="th-group-pair <?= $foClass ?>" colspan="2" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : ($service->districtFullTitle($dk) ?? $dt), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <th class="th-group-pair <?= $foClass ?>" colspan="2" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-role="head" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : ($service->districtFullTitle($dk) ?? $dt), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
                     <?php endforeach; ?>
                 </tr>
                 <tr class="reports-matrix-sub-head">
                     <?php foreach ($districtTitles as $dk => $dt): ?>
                     <?php $foClass = match($dk) { 'cfo' => 'fo-cfo', 'szfo' => 'fo-szfo', 'yfo' => 'fo-yfo', 'skfo' => 'fo-skfo', 'pfo' => 'fo-pfo', 'urfo' => 'fo-urfo', 'sfo' => 'fo-sfo', 'dfo' => 'fo-dfo', default => 'fo-unknown' }; ?>
-                    <th class="th-sub-pair <?= $foClass ?>">шт.</th>
-                    <th class="th-sub-pair <?= $foClass ?>">кг</th>
+                    <th class="th-sub-pair <?= $foClass ?>" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-role="subhead">шт.</th>
+                    <th class="th-sub-pair <?= $foClass ?>" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-role="subhead">кг</th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -204,8 +204,8 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                         $req = $row['requests_by_district'][$dk] ?? 0;
                         $wgt = $row['weight_by_district'][$dk] ?? 0;
                     ?>
-                    <td class="td-cell-num"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
-                    <td class="td-cell-weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-num" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-metric="requests"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-weight" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-metric="weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
                     <?php endforeach; ?>
                 </tr>
                 <?php endforeach; ?>
@@ -218,8 +218,8 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                         $req = $totals['requests_by_district'][$dk] ?? 0;
                         $wgt = $totals['weight_by_district'][$dk] ?? 0;
                     ?>
-                    <td class="td-cell-num"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
-                    <td class="td-cell-weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-num" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-metric="requests"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-weight" data-district="<?= htmlspecialchars($dk, ENT_QUOTES, 'UTF-8') ?>" data-district-metric="weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
                     <?php endforeach; ?>
                 </tr>
             </tfoot>
@@ -570,7 +570,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             for (var bi = 0; bi < grp.bars.length; bi++) {
                 var bar = grp.bars[bi];
                 if (bar.h > 0.3) {
-                    var rect = svgEl('rect',{'x':String(bar.x),'y':String(bar.y),'width':String(bar.w),'height':String(bar.h),'fill':bar.color,'rx':'1','ry':'1','opacity':'0.88','data-period-index':String(pi),'data-series-index':String(bi)});
+                    var rect = svgEl('rect',{'x':String(bar.x),'y':String(bar.y),'width':String(bar.w),'height':String(bar.h),'fill':bar.color,'rx':'1','ry':'1','opacity':'0.88','data-district':bar.key,'class':'reports-chart-bar'});
                     svg.appendChild(rect);
                 }
             }
@@ -600,8 +600,8 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             svg.appendChild(xl);
         }
 
-        // Legend — compact, above plot area, with click highlight support
-        var lx = pX0, ly = 9;  // start at 9 to keep rect/text fully inside viewBox
+        // Legend — compact, above plot area
+        var lx = pX0, ly = 9;
         var legendG = svgEl('g', {});
         var maxLegendX = pX0 + pw;
         var legendItems = [];
@@ -612,9 +612,8 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             var li = svgEl('g', {
                 'transform': 'translate(' + lx + ',' + ly + ')',
                 'style': 'cursor:pointer',
-                'data-series-index': String(si),
-                'data-series-key': s.key,
-                'class': 'legend-item'
+                'data-district': s.key,
+                'class': 'reports-chart-legend-item'
             });
             li.appendChild(svgEl('rect', { 'x': '0', 'y': '-3', 'width': '7', 'height': '7', 'rx': '1', 'fill': color, 'opacity': '0.85' }));
             var tx = svgEl('text', { 'x': '9', 'y': '3', 'fill': 'rgba(74,68,61,0.62)', 'font-size': '9', 'font-weight': '400' });
@@ -626,46 +625,104 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         }
         svg.appendChild(legendG);
 
-        // Highlight state
-        var selectedSeriesIdx = -1;
-        function applyHighlight() {
-            var bars = svg.querySelectorAll('rect[data-series-index]');
-            for (var bi = 0; bi < bars.length; bi++) {
-                var b = bars[bi], si = parseInt(b.getAttribute('data-series-index'));
-                b.setAttribute('opacity', selectedSeriesIdx === -1 ? '0.88' : (si === selectedSeriesIdx ? '0.88' : '0.18'));
+        // =============================================================
+        //  UNIFIED DISTRICT SELECTION STATE
+        // =============================================================
+        var selectedDistrictKey = null;
+        var tableCtx = document.querySelector('.reports-card');
+
+        function setSelectedDistrict(districtKey) {
+            if (selectedDistrictKey === districtKey) {
+                selectedDistrictKey = null;
+            } else {
+                selectedDistrictKey = districtKey;
             }
-            // update legend items
+            updateDistrictHighlight();
+        }
+
+        function updateDistrictHighlight() {
+            var sel = selectedDistrictKey;
+
+            // Chart bars
+            var bars = svg.querySelectorAll('.reports-chart-bar[data-district]');
+            for (var bi = 0; bi < bars.length; bi++) {
+                var dk = bars[bi].getAttribute('data-district');
+                if (!sel) { bars[bi].setAttribute('opacity', '0.88'); bars[bi].classList.remove('is-selected','is-muted'); continue; }
+                bars[bi].setAttribute('opacity', dk === sel ? '0.88' : '0.22');
+                bars[bi].classList.toggle('is-selected', dk === sel);
+                bars[bi].classList.toggle('is-muted', dk !== sel);
+            }
+
+            // Legend items
             for (var li = 0; li < legendItems.length; li++) {
-                var it = legendItems[li], isSel = selectedSeriesIdx === -1 || it.idx === selectedSeriesIdx;
+                var it = legendItems[li], isSel = !sel || it.key === sel;
                 var rect = it.el.querySelector('rect');
-                if (rect) rect.setAttribute('opacity', isSel ? '0.85' : '0.25');
+                var text = it.el.querySelector('text');
+                if (rect) { rect.setAttribute('opacity', isSel ? '0.85' : '0.30'); }
+                if (text) { text.setAttribute('opacity', isSel ? '1' : '0.45'); }
+                it.el.classList.toggle('is-selected', !sel || it.key === sel);
+                it.el.classList.toggle('is-muted', !it.el.classList.contains('is-selected'));
+            }
+
+            // Table — all cells with data-district
+            if (tableCtx) {
+                var allCells = tableCtx.querySelectorAll('[data-district]');
+                for (var ci = 0; ci < allCells.length; ci++) {
+                    var cell = allCells[ci], dk = cell.getAttribute('data-district');
+                    if (!sel) { cell.classList.remove('is-selected', 'is-muted'); continue; }
+                    cell.classList.toggle('is-selected', dk === sel);
+                    cell.classList.toggle('is-muted', dk !== sel);
+                }
             }
         }
+
+        // Click: legend items
         legendItems.forEach(function (it) {
-            it.el.addEventListener('click', function () {
-                if (selectedSeriesIdx === it.idx) { selectedSeriesIdx = -1; } else { selectedSeriesIdx = it.idx; }
-                applyHighlight();
-            });
+            it.el.addEventListener('click', function (e) { setSelectedDistrict(it.key); e.stopPropagation(); });
         });
 
+        // Click: chart bars
+        svg.addEventListener('click', function (e) {
+            var target = e.target;
+            if (target && target.classList.contains('reports-chart-bar')) {
+                var dk = target.getAttribute('data-district');
+                if (dk) setSelectedDistrict(dk);
+            }
+        });
+
+        // Click: table headers
+        if (tableCtx) {
+            tableCtx.addEventListener('click', function (e) {
+                var target = e.target;
+                var dk = target.getAttribute('data-district');
+                if (dk && (target.classList.contains('th-group-pair') || target.classList.contains('th-sub-pair') || target.getAttribute('data-district-role'))) {
+                    setSelectedDistrict(dk);
+                }
+            });
+        }
+        // =============================================================
+
         // Tooltip interaction — mousemove over plot area
-        svg._tooltipData = { periodGroups: periodGroups, metric: metric };
-        var svgBounds = svg.getBoundingClientRect();
+        svg._tooltipData = { periodGroups: periodGroups, metric: metric, maxV: maxV, ph: ph, pY1: pY1, pY0: pY0, PADDING: PADDING };
         svg.addEventListener('mousemove', function (e) {
-            var pt = svg.createSVGPoint();
-            svgBounds = svg.getBoundingClientRect();
-            pt.x = e.clientX - svgBounds.left;
-            pt.y = e.clientY - svgBounds.top;
-            var svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+            var svgBounds = svg.getBoundingClientRect();
+            var chartRect = chartPanel.getBoundingClientRect();
 
             var tData = svg._tooltipData;
             if (!tData || !tooltip) return;
+
+            // Map mouse to SVG coordinates
+            var mouseX = e.clientX - svgBounds.left;
+            var mouseY = e.clientY - svgBounds.top;
+            var scaleH = svgBounds.height / CHART_SVG_VIEWBOX.h;
+            var svgX = mouseX / (svgBounds.width / CHART_SVG_VIEWBOX.w);
+            var svgY = mouseY / scaleH;
 
             // find period group by X
             var found = null;
             for (var pi = 0; pi < tData.periodGroups.length; pi++) {
                 var g = tData.periodGroups[pi];
-                if (svgPt.x >= g.x && svgPt.x <= g.x + g.w) { found = g; break; }
+                if (svgX >= g.x && svgX <= g.x + g.w) { found = g; break; }
             }
             if (!found) { tooltip.hidden = true; return; }
 
@@ -676,7 +733,6 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 var vStr = m === 'weight' ? String(b.val).replace(/(\d)(?=(\d{3})+$)/g, '$1 ') + ' кг' : String(b.val);
                 lines.push({ label: b.label, color: b.color, val: vStr });
             }
-            // use shortRange for tooltip title
             var title = (found.period && found.period.label) ? found.period.label : '';
 
             var html = '<div style="font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text-main)">' + title + '</div>';
@@ -690,32 +746,31 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             tooltip.innerHTML = html;
             tooltip.hidden = false;
 
-            // Position tooltip near the group's visual center
-            var tipWidth = tooltip.offsetWidth;
-            var tipHeight = tooltip.offsetHeight;
-            var chartRect = chartPanel.getBoundingClientRect();
-            // Map group center from SVG coords to screen coords
-            var groupCx = (found.x + found.w / 2);
-            var groupCy = pY0 + 20; // upper portion of plot area
-            var scaleX = svgBounds.width / CHART_SVG_VIEWBOX.w;
-            var scaleY = svgBounds.height / CHART_SVG_VIEWBOX.h;
-            var screenX = svgBounds.left + groupCx * scaleX;
-            var screenY = svgBounds.top + groupCy * scaleY;
+            // Position tooltip relative to chartPanel
+            var tipW = tooltip.offsetWidth;
+            var tipH = tooltip.offsetHeight;
+            var relX = e.clientX - chartRect.left;
+            var relY = e.clientY - chartRect.top;
 
-            var left = screenX - chartRect.left + 12;
-            var top = screenY - chartRect.top - tipHeight / 2;
+            // Try right-above
+            var left = relX + 14;
+            var top = relY - tipH - 12;
 
-            // Clamp within chart panel bounds
-            if (left + tipWidth > chartRect.width) left = screenX - chartRect.left - tipWidth - 12;
-            if (left < 0) left = 4;
-            if (top < 0) top = 4;
-            if (top + tipHeight > chartRect.height) top = chartRect.height - tipHeight - 4;
+            // If doesn't fit right, flip left
+            if (left + tipW > chartRect.width) left = relX - tipW - 14;
+            // If doesn't fit above, flip below
+            if (top < 4) top = relY + 14;
+            // Clamp
+            if (left < 4) left = 4;
+            if (top < 4) top = 4;
+            if (left + tipW > chartRect.width) left = chartRect.width - tipW - 4;
+            if (top + tipH > chartRect.height) top = chartRect.height - tipH - 4;
+
             tooltip.style.left = left + 'px';
             tooltip.style.top = top + 'px';
         });
         svg.addEventListener('mouseleave', function () {
             if (tooltip) tooltip.hidden = true;
-            svgBounds = svg.getBoundingClientRect();
         });
     }
 

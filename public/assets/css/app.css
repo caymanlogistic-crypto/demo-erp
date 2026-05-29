@@ -1908,6 +1908,52 @@ textarea { resize: vertical; }
   background: var(--table-row-hover);
 }
 
+/* ============================================================
+   Unified district highlight: selected / muted states
+   ============================================================ */
+
+/* Table body cells — selected district */
+.reports-matrix-table [data-district].is-selected.td-cell-num,
+.reports-matrix-table [data-district].is-selected.td-cell-weight {
+  background: rgba(90, 122, 138, 0.10);
+}
+.reports-matrix-table [data-district].is-muted.td-cell-num,
+.reports-matrix-table [data-district].is-muted.td-cell-weight {
+  opacity: 0.58;
+}
+
+/* Table total cells — selected district */
+.reports-total-row [data-district].is-selected {
+  background: rgba(90, 122, 138, 0.14);
+}
+
+/* Table header — selected district */
+.reports-matrix-table .th-group-pair.is-selected {
+  font-weight: 700;
+  border-bottom: 2px solid rgba(74, 68, 61, 0.35);
+}
+.reports-matrix-table .th-sub-pair.is-selected {
+  font-weight: 700;
+}
+.reports-matrix-table .th-group-pair.is-muted,
+.reports-matrix-table .th-sub-pair.is-muted {
+  opacity: 0.55;
+}
+
+/* Chart bars */
+.reports-chart-bar.is-selected {
+  stroke-width: 1;
+  stroke: rgba(0, 0, 0, 0.15);
+}
+
+/* Chart legend items */
+.reports-chart-legend-item.is-selected text {
+  font-weight: 600;
+}
+.reports-chart-legend-item.is-muted rect {
+  opacity: 0.28;
+}
+
 /* Узкие колонки */
 .col-matrix-period { width: 120px; }
 .col-matrix-district { width: 52px; }
