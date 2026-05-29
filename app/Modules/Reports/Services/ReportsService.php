@@ -53,8 +53,8 @@ class ReportsService
      */
     public function normalizeFilters(): array
     {
-        $period      = $this->normalizePeriod($_GET['period'] ?? 'week');
-        $dateType    = $this->normalizeDateType($_GET['date_type'] ?? 'delivery');
+        $period      = $this->normalizePeriod($_GET['period'] ?? 'month');
+        $dateType    = $this->normalizeDateType($_GET['date_type'] ?? 'pickup');
         $dimension   = $this->resolveDimension();
         $chartMetric = $this->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
         $warning     = null;

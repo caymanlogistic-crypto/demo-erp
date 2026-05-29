@@ -31,7 +31,7 @@
         <input type="text" id="searchText" placeholder="Регион, МО, Отправитель, Адрес, Доступно, Маршрут, Рейс, Статус..." value="">
     </div>
     <div class="form-toggle">
-        <label class="toggle-box"><input type="checkbox" id="showOnlyAvailable"> Готово к отгрузке</label>
+        <label class="toggle-box"><input type="checkbox" id="showOnlyAvailable" checked> Готово к отгрузке</label>
         <label class="toggle-box"><input type="checkbox" id="showOnlyMarshrut"> Ставка согласована</label>
         <label class="toggle-box"><input type="checkbox" id="showOnlyFlight"> В работе</label>
     </div>

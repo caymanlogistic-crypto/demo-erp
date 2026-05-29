@@ -1963,7 +1963,7 @@ textarea { resize: vertical; }
 }
 
 .reports-matrix-table .th-group-pair {
-  font-size: 9.5px;
+  font-size: 10px;
   min-width: 80px;
 }
 
@@ -1971,12 +1971,14 @@ textarea { resize: vertical; }
   width: 42px;
   min-width: 36px;
   text-align: center;
-  font-size: 7.5px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
   color: var(--text-muted);
   background: var(--table-head);
   border-bottom: 1px solid var(--table-head-border);
-  padding: 2px 2px;
+  padding: 4px 4px;
   vertical-align: middle;
 }
 

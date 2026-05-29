@@ -77,14 +77,7 @@ $reportsWeightTotal   = (int) ($summary['weight_total_kg'] ?? 0);
         </select>
     </div>
 
-    <div class="filter-field" style="width: 140px;">
-        <label for="dimensionSelect">Разрез</label>
-        <select id="dimensionSelect" name="dimension">
-            <option value="fo"     <?= $dimension === 'fo'     ? 'selected' : '' ?>>По ФО</option>
-            <option value="region" <?= $dimension === 'region' ? 'selected' : '' ?>>По регионам</option>
-            <option value="status" <?= $dimension === 'status' ? 'selected' : '' ?>>По статусам</option>
-        </select>
-    </div>
+    <input type="hidden" name="dimension" value="fo">
 
     <div class="filter-field reports-date-range-field" data-custom-period-field<?= $period !== 'custom' ? ' hidden' : '' ?> style="width: 150px;">
         <label for="filterDateFrom">Дата с</label>
