@@ -136,25 +136,50 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
 
     <!-- Chart panel -->
     <section class="reports-chart-panel" data-reports-chart>
-        <div class="reports-chart-inner">
-            <div class="reports-chart-head">
-                <div class="reports-chart-heading">
-                    <div class="reports-chart-title"><?= htmlspecialchars($chartTitle, ENT_QUOTES, 'UTF-8') ?></div>
-                    <div class="reports-chart-subtitle"><?= htmlspecialchars($chartSubtitle, ENT_QUOTES, 'UTF-8') ?></div>
-                </div>
-                <div class="reports-chart-switch" role="group" aria-label="Метрика графика">
-                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Вес</button>
-                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'requests' ? ' active' : '' ?>" data-chart-metric="requests" aria-pressed="<?= $chartMetric === 'requests' ? 'true' : 'false' ?>">Заявки</button>
+        <div class="reports-chart-layout--with-detail">
+            <div class="reports-chart-main">
+                <div class="reports-chart-inner">
+                    <div class="reports-chart-head">
+                        <div class="reports-chart-heading">
+                            <div class="reports-chart-title"><?= htmlspecialchars($chartTitle, ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="reports-chart-subtitle"><?= htmlspecialchars($chartSubtitle, ENT_QUOTES, 'UTF-8') ?></div>
+                        </div>
+                        <div class="reports-chart-switch" role="group" aria-label="Метрика графика">
+                            <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Вес</button>
+                            <button type="button" class="chart-metric-btn<?= $chartMetric === 'requests' ? ' active' : '' ?>" data-chart-metric="requests" aria-pressed="<?= $chartMetric === 'requests' ? 'true' : 'false' ?>">Заявки</button>
+                        </div>
+                    </div>
+                    <div class="reports-chart-body">
+                        <!-- reports fo detail-panel: enabled -->
+                        <!-- reports chart: enabled type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> periods=<?= count($chartData['periods'] ?? []) ?> districts=<?= count($chartData['series'] ?? []) ?> -->
+                        <svg class="reports-chart-svg" viewBox="0 0 1200 210" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+                        <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
+                            <?= !empty($rows) ? 'Нет данных для графика.' : 'Нет данных для отображения.' ?>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="reports-chart-body">
-                <!-- reports chart: enabled type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> periods=<?= count($chartData['periods'] ?? []) ?> districts=<?= count($chartData['series'] ?? []) ?> -->
-                <svg class="reports-chart-svg" viewBox="0 0 1200 210" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
-                <div class="reports-chart-tooltip" hidden></div>
-                <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
-                    <?= !empty($rows) ? 'Нет данных для графика.' : 'Нет данных для отображения.' ?>
+            <aside class="reports-chart-detail" id="reportsChartDetail">
+                <?php if (!empty($chartData['periods'])): ?>
+                <?php
+                $firstPeriod = $chartData['periods'][0] ?? [];
+                $firstLabel = $firstPeriod['label'] ?? '';
+                $chartMetricTitle = $chartMetric === 'weight' ? 'Вес (кг) по ФО' : 'Заявки (шт) по ФО';
+                ?>
+                <div class="detail-header">
+                    <div class="detail-period"><?= htmlspecialchars($firstLabel, ENT_QUOTES, 'UTF-8') ?></div>
+                    <div class="detail-metric"><?= htmlspecialchars($chartMetricTitle, ENT_QUOTES, 'UTF-8') ?></div>
                 </div>
-            </div>
+                <div class="detail-list" id="detailList">
+                    <!-- filled by JS -->
+                </div>
+                <div class="detail-total" id="detailTotal">
+                    <!-- filled by JS -->
+                </div>
+                <?php else: ?>
+                <div class="detail-empty">Наведите на период</div>
+                <?php endif; ?>
+            </aside>
         </div>
         <script type="application/json" id="reportsChartData"><?= json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?></script>
     </section>
@@ -196,9 +221,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             </thead>
             <tbody>
                 <?php foreach ($rows as $row):
+                    $rPeriodKey = $row['period_key'] ?? '';
                     $rPeriodLabel = $row['period_label'] ?? '';
                 ?>
-                <tr>
+                <tr data-period="<?= htmlspecialchars($rPeriodKey, ENT_QUOTES, 'UTF-8') ?>">
                     <td class="td-period"><?= htmlspecialchars($rPeriodLabel, ENT_QUOTES, 'UTF-8') ?></td>
                     <?php foreach ($districtTitles as $dk => $dt):
                         $req = $row['requests_by_district'][$dk] ?? 0;
@@ -388,7 +414,6 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
     if (!chartPanel || !chartData || !chartData.enabled) return;
 
     var svg = chartPanel.querySelector('.reports-chart-svg');
-    var tooltip = chartPanel.querySelector('.reports-chart-tooltip');
     var emptyEl = chartPanel.querySelector('.statistics-chart-empty');
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
     var chartMetricInput = document.getElementById('chartMetricInput');
@@ -701,55 +726,136 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             });
         }
         // =============================================================
+        //  STATIONARY DETAIL PANEL (right side)
+        //  Data stored on svg._detailData to survive metric switch
+        // =============================================================
+        var detailListEl = document.getElementById('detailList');
+        var detailTotalEl = document.getElementById('detailTotal');
+        var detailPeriodEl = document.querySelector('.detail-period');
+        var detailMetricEl = document.querySelector('.detail-metric');
 
-        // Tooltip interaction — mousemove over plot area
-        svg._tooltipData = { periodGroups: periodGroups, metric: metric, maxV: maxV, ph: ph, pY1: pY1, pY0: pY0, PADDING: PADDING };
-        svg.addEventListener('mousemove', function (e) {
-            var svgBounds = svg.getBoundingClientRect();
-            var chartRect = chartPanel.getBoundingClientRect();
+        // Store current chart state for detail panel on the SVG element
+        svg._detailData = {
+            periodGroups: periodGroups,
+            periods: periods,
+            series: series,
+            metric: metric,
+            pY0: pY0,
+            ph: ph,
+            activePeriodKey: periods[0] ? periods[0].key : null
+        };
 
-            var tData = svg._tooltipData;
-            if (!tData || !tooltip) return;
-
-            // Map mouse to SVG coordinates
-            var mouseX = e.clientX - svgBounds.left;
-            var mouseY = e.clientY - svgBounds.top;
-            var scaleH = svgBounds.height / CHART_SVG_VIEWBOX.h;
-            var svgX = mouseX / (svgBounds.width / CHART_SVG_VIEWBOX.w);
-            var svgY = mouseY / scaleH;
-
-            // find period group by X
-            var found = null;
-            for (var pi = 0; pi < tData.periodGroups.length; pi++) {
-                var g = tData.periodGroups[pi];
-                if (svgX >= g.x && svgX <= g.x + g.w) { found = g; break; }
+        function updateDetailPanel(periodKey, m) {
+            var dd = svg._detailData;
+            if (!dd || !detailListEl || !detailTotalEl || !periodKey) return;
+            var pi, si, val, foundPeriod = null, periodLabel = '';
+            for (pi = 0; pi < dd.periods.length; pi++) {
+                if (dd.periods[pi].key === periodKey) { foundPeriod = dd.periods[pi]; break; }
             }
-            if (!found) { tooltip.hidden = true; return; }
+            if (!foundPeriod) { detailListEl.innerHTML = ''; detailTotalEl.innerHTML = ''; return; }
+            periodLabel = foundPeriod.shortRange || foundPeriod.shortLabel || foundPeriod.label || periodKey;
+            if (detailPeriodEl) detailPeriodEl.textContent = periodLabel;
 
-            var m = tData.metric;
-            var lines = [];
-            for (var bi = 0; bi < found.bars.length; bi++) {
-                var b = found.bars[bi];
-                var vStr = m === 'weight' ? String(b.val).replace(/(\d)(?=(\d{3})+$)/g, '$1 ') + ' кг' : String(b.val);
-                lines.push({ label: b.label, color: b.color, val: vStr });
+            var total = 0, rowsHtml = '';
+            for (si = 0; si < dd.series.length; si++) {
+                var s = dd.series[si];
+                val = (s.values && s.values[periodKey] ? s.values[periodKey][m] : 0) || 0;
+                total += val;
+                var color = getDistrictColor(s.key, si);
+                var vStr = m === 'weight'
+                    ? String(val).replace(/(\d)(?=(\d{3})+$)/g, '$1 ') + ' кг'
+                    : val.toLocaleString('ru-RU');
+                rowsHtml += '<div class="detail-list-item">'
+                    + '<span class="item-label"><span class="color-dot" style="background:' + color + '"></span>' + (s.label || s.key) + '</span>'
+                    + '<span class="item-value">' + vStr + '</span>'
+                    + '</div>';
             }
-            var title = (found.period && found.period.label) ? found.period.label : '';
+            detailListEl.innerHTML = rowsHtml;
 
-            var html = '<div style="font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text-main)">' + title + '</div>';
-            for (var li = 0; li < lines.length; li++) {
-                html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;margin-bottom:2px;color:var(--text-secondary)">';
-                html += '<span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:' + lines[li].color + ';flex-shrink:0"></span>';
-                html += '<span style="flex:1">' + lines[li].label + '</span>';
-                html += '<b style="color:var(--text-main);text-align:right">' + lines[li].val + '</b>';
-                html += '</div>';
+            var totalStr = m === 'weight'
+                ? String(Math.round(total)).replace(/(\d)(?=(\d{3})+$)/g, '$1 ') + ' кг'
+                : Math.round(total).toLocaleString('ru-RU');
+            detailTotalEl.innerHTML = '<span>Итого</span><span>' + totalStr + '</span>';
+        }
+
+        function updatePeriodHighlight(periodKey) {
+            var dd = svg._detailData;
+            if (!dd) return;
+            // Table rows
+            if (tableCtx) {
+                var rows = tableCtx.querySelectorAll('tr[data-period]');
+                for (var ri = 0; ri < rows.length; ri++) {
+                    var rk = rows[ri].getAttribute('data-period');
+                    rows[ri].classList.toggle('is-active-period', rk === periodKey);
+                }
             }
-            tooltip.innerHTML = html;
-            tooltip.hidden = false;
-            // Position is fixed via CSS (.reports-chart-tooltip) — no JS positioning
-        });
-        svg.addEventListener('mouseleave', function () {
-            if (tooltip) tooltip.hidden = true;
-        });
+            // SVG: background rect for the active period group
+            var existingHL = svg.querySelector('.reports-chart-period-highlight');
+            if (existingHL) svg.removeChild(existingHL);
+            if (periodKey) {
+                for (var pi = 0; pi < dd.periodGroups.length; pi++) {
+                    if (dd.periods[pi].key === periodKey) {
+                        var grp = dd.periodGroups[pi];
+                        var hl = svgEl('rect', {
+                            'x': String(grp.x),
+                            'y': String(dd.pY0),
+                            'width': String(grp.w),
+                            'height': String(dd.ph),
+                            'fill': 'rgba(74,68,61,0.035)',
+                            'rx': '2',
+                            'ry': '2',
+                            'class': 'reports-chart-period-highlight'
+                        });
+                        var firstBar = svg.querySelector('.reports-chart-bar');
+                        if (firstBar) svg.insertBefore(hl, firstBar);
+                        else svg.appendChild(hl);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Update metric title in detail panel
+        if (detailMetricEl) {
+            detailMetricEl.textContent = metric === 'weight' ? 'Вес (кг) по ФО' : 'Заявки (шт) по ФО';
+        }
+
+        // Show first period by default (or re-show after metric switch)
+        var dd = svg._detailData;
+        if (dd.activePeriodKey) {
+            updateDetailPanel(dd.activePeriodKey, metric);
+            updatePeriodHighlight(dd.activePeriodKey);
+        }
+
+        // Init mousemove handler only once (survives metric switch via svg._detailData)
+        if (!svg._detailInit) {
+            svg._detailInit = true;
+
+            svg.addEventListener('mousemove', function (e) {
+                var dd = svg._detailData;
+                if (!dd) return;
+                var svgBounds = svg.getBoundingClientRect();
+                var mouseX = e.clientX - svgBounds.left;
+                var svgX = mouseX / (svgBounds.width / CHART_SVG_VIEWBOX.w);
+
+                var found = null;
+                for (var pi = 0; pi < dd.periodGroups.length; pi++) {
+                    var g = dd.periodGroups[pi];
+                    if (svgX >= g.x && svgX <= g.x + g.w) { found = pi; break; }
+                }
+                if (found === null) return;
+
+                var pk = dd.periods[found].key;
+                if (pk === dd.activePeriodKey) return;
+                dd.activePeriodKey = pk;
+                updateDetailPanel(pk, dd.metric);
+                updatePeriodHighlight(pk);
+            });
+
+            svg.addEventListener('mouseleave', function () {
+                // Keep showing last selected period — no change
+            });
+        }
     }
 
     function setActiveMetric(metric) {
