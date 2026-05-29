@@ -303,6 +303,7 @@ class ReportsService
                 'key'        => $row['period_key'],
                 'label'      => $row['period_label'],
                 'shortLabel' => $this->formatPeriodShortLabel($row['period_label'], $row['period_key']),
+                'shortRange' => $this->formatPeriodRangeLabel($row['period_label']),
             ];
         }
 
@@ -373,6 +374,24 @@ class ReportsService
             return $m[1];
         }
         return mb_substr($label, 0, 5, 'UTF-8');
+    }
+
+    /**
+     * Сокращённый диапазон периода для оси X (без года).
+     * Примеры: "23.03–29.03.2026" → "23.03–29.03", "01.05.2026–29.05.2026" → "01.05–29.05"
+     */
+    private function formatPeriodRangeLabel(string $label): string
+    {
+        // week: "23.03–29.03.2026" → "23.03–29.03"
+        if (preg_match('/^(\d{2}\.\d{2})–(\d{2}\.\d{2})\.(\d{4})$/', $label, $m)) {
+            return $m[1] . '–' . $m[2];
+        }
+        // custom: "01.05.2026–29.05.2026" → "01.05–29.05"
+        if (preg_match('/^(\d{2}\.\d{2})\.\d{4}–(\d{2}\.\d{2})\.\d{4}$/', $label, $m)) {
+            return $m[1] . '–' . $m[2];
+        }
+        // month: "Май 2026" → "Май'26" (уже в shortLabel стиле)
+        return $this->formatPeriodShortLabel($label, '');
     }
 
     private function buildByRegion(array $flights, array $zayavkaMap, string $period): array

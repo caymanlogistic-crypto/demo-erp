@@ -173,21 +173,22 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         <table class="table reports-matrix-table">
             <colgroup>
                 <col class="col-matrix-period">
-                <?php for ($i = 0; $i < $numDistricts; $i++): ?><col class="col-matrix-district"><?php endfor; ?>
-                <?php for ($i = 0; $i < $numDistricts; $i++): ?><col class="col-matrix-district"><?php endfor; ?>
+                <?php foreach ($districtTitles as $dk => $dt): ?>
+                <col class="col-matrix-district-pair">
+                <col class="col-matrix-district-pair">
+                <?php endforeach; ?>
             </colgroup>
             <thead>
                 <tr class="reports-matrix-group-head">
                     <th class="th-period" rowspan="2">Период</th>
-                    <th class="th-group" colspan="<?= $numDistricts ?>">Заявки</th>
-                    <th class="th-group" colspan="<?= $numDistricts ?>">Вес</th>
+                    <?php foreach ($districtTitles as $dk => $dt): ?>
+                    <th class="th-group-pair" colspan="2" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : ($service->districtFullTitle($dk) ?? $dt), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <?php endforeach; ?>
                 </tr>
                 <tr class="reports-matrix-sub-head">
                     <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
-                    <?php endforeach; ?>
-                    <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <th class="th-sub-pair">шт.</th>
+                    <th class="th-sub-pair">кг</th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -198,11 +199,12 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 <tr>
                     <td class="td-period"><?= htmlspecialchars($rPeriodLabel, ENT_QUOTES, 'UTF-8') ?></td>
                     <?php foreach ($districtTitles as $dk => $dt):
-                        $val = $row['requests_by_district'][$dk] ?? 0;
-                    ?><td class="td-cell-num"><?= $val > 0 ? number_format($val, 0, '.', ' ') : '—' ?></td><?php endforeach; ?>
-                    <?php foreach ($districtTitles as $dk => $dt):
-                        $val = $row['weight_by_district'][$dk] ?? 0;
-                    ?><td class="td-cell-weight"><?= $val > 0 ? number_format($val, 0, '.', ' ') . ' кг' : '—' ?></td><?php endforeach; ?>
+                        $req = $row['requests_by_district'][$dk] ?? 0;
+                        $wgt = $row['weight_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-num"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
+                    <?php endforeach; ?>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -211,11 +213,12 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 <tr class="reports-total-row">
                     <td class="td-period">Итого</td>
                     <?php foreach ($districtTitles as $dk => $dt):
-                        $val = $totals['requests_by_district'][$dk] ?? 0;
-                    ?><td class="td-cell-num"><?= $val > 0 ? number_format($val, 0, '.', ' ') : '—' ?></td><?php endforeach; ?>
-                    <?php foreach ($districtTitles as $dk => $dt):
-                        $val = $totals['weight_by_district'][$dk] ?? 0;
-                    ?><td class="td-cell-weight"><?= $val > 0 ? number_format($val, 0, '.', ' ') . ' кг' : '—' ?></td><?php endforeach; ?>
+                        $req = $totals['requests_by_district'][$dk] ?? 0;
+                        $wgt = $totals['weight_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-num"><?= $req > 0 ? number_format($req, 0, '.', ' ') : '—' ?></td>
+                    <td class="td-cell-weight"><?= $wgt > 0 ? number_format($wgt, 0, '.', ' ') : '—' ?></td>
+                    <?php endforeach; ?>
                 </tr>
             </tfoot>
             <?php endif; ?>
@@ -571,44 +574,87 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             }
         }
 
-        // X labels (short)
+        // X labels — shortRange (e.g. "20.04–26.04") centred under each group
         var labelEvery = 1;
         if (nP > 10) labelEvery = 2;
         if (nP > 18) labelEvery = 3;
         for (var pi = 0; pi < nP; pi++) {
             if (pi % labelEvery !== 0 && pi !== nP - 1) continue;
             var cx = pX0 + pi * groupWidth + groupWidth / 2;
-            var xlbl = periods[pi].shortLabel || periods[pi].label.substring(0,5);
-            var xAnchor = nP > 10 ? 'end' : 'middle';
-            var xRot = nP > 12 ? 'rotate(-22 '+cx+' '+(pY1+16)+')' : '';
-            var xl = svgEl('text',{'x':String(cx),'y':String(pY1+16),'text-anchor':periods.length>10?'end':'middle','transform':nP>12?'rotate(-22 '+cx+' '+(pY1+16)+')':'','fill':'rgba(74,68,61,0.45)','font-size':nP>12?'7':'8'});
+            var xlbl = periods[pi].shortRange || periods[pi].shortLabel || periods[pi].label.substring(0,8);
+            var xRot = nP > 12 ? 'rotate(-22 ' + cx + ' ' + (pY1 + 14) + ')' : '';
+            var anchor = nP > 12 ? 'end' : 'middle';
+            var fSize = nP > 12 ? '7' : '7.5';
+            var xl = svgEl('text', {
+                'x': String(cx),
+                'y': String(pY1 + 14),
+                'text-anchor': anchor,
+                'transform': xRot,
+                'fill': 'rgba(74,68,61,0.45)',
+                'font-size': fSize,
+                'font-weight': '600'
+            });
             xl.textContent = xlbl;
             svg.appendChild(xl);
         }
 
-        // Legend — compact, above plot area
+        // Legend — compact, above plot area, with click highlight support
         var lx = pX0, ly = 1;
-        var legendG = svgEl('g',{});
+        var legendG = svgEl('g', {});
         var maxLegendX = pX0 + pw;
+        var legendItems = [];
         for (var si = 0; si < nS; si++) {
             var s = series[si], color = getDistrictColor(s.key, si), lbl = s.label || s.key;
-            var itemW = lbl.length * 5.5 + 14;
+            // estimate item width more generously for Cyrillic labels
+            var itemW = lbl.length * 6 + 20;
             if (lx + itemW > maxLegendX) { lx = pX0; ly += 10; }
-            var li = svgEl('g',{'transform':'translate('+lx+','+ly+')'});
-            li.appendChild(svgEl('rect',{'x':'0','y':'-3','width':'6','height':'6','rx':'1','fill':color,'opacity':'0.85'}));
-            var tx = svgEl('text',{'x':'8','y':'1.5','fill':'rgba(74,68,61,0.62)','font-size':'7.5','font-weight':'600'});
-            tx.textContent = lbl; li.appendChild(tx);
-            legendG.appendChild(li); lx += itemW + 4;
+            var li = svgEl('g', {
+                'transform': 'translate(' + lx + ',' + ly + ')',
+                'style': 'cursor:pointer',
+                'data-series-index': String(si),
+                'data-series-key': s.key,
+                'class': 'legend-item'
+            });
+            li.appendChild(svgEl('rect', { 'x': '0', 'y': '-3', 'width': '6', 'height': '6', 'rx': '1', 'fill': color, 'opacity': '0.85' }));
+            var tx = svgEl('text', { 'x': '8', 'y': '1.5', 'fill': 'rgba(74,68,61,0.62)', 'font-size': '7.5', 'font-weight': '600' });
+            tx.textContent = lbl;
+            li.appendChild(tx);
+            legendG.appendChild(li);
+            legendItems.push({ el: li, key: s.key, idx: si, color: color, x: lx, y: ly });
+            lx += itemW + 4;
         }
         svg.appendChild(legendG);
 
+        // Highlight state
+        var selectedSeriesIdx = -1;
+        function applyHighlight() {
+            var bars = svg.querySelectorAll('rect[data-series-index]');
+            for (var bi = 0; bi < bars.length; bi++) {
+                var b = bars[bi], si = parseInt(b.getAttribute('data-series-index'));
+                b.setAttribute('opacity', selectedSeriesIdx === -1 ? '0.88' : (si === selectedSeriesIdx ? '0.88' : '0.18'));
+            }
+            // update legend items
+            for (var li = 0; li < legendItems.length; li++) {
+                var it = legendItems[li], isSel = selectedSeriesIdx === -1 || it.idx === selectedSeriesIdx;
+                var rect = it.el.querySelector('rect');
+                if (rect) rect.setAttribute('opacity', isSel ? '0.85' : '0.25');
+            }
+        }
+        legendItems.forEach(function (it) {
+            it.el.addEventListener('click', function () {
+                if (selectedSeriesIdx === it.idx) { selectedSeriesIdx = -1; } else { selectedSeriesIdx = it.idx; }
+                applyHighlight();
+            });
+        });
+
         // Tooltip interaction — mousemove over plot area
         svg._tooltipData = { periodGroups: periodGroups, metric: metric };
+        var svgBounds = svg.getBoundingClientRect();
         svg.addEventListener('mousemove', function (e) {
             var pt = svg.createSVGPoint();
-            var rect = svg.getBoundingClientRect();
-            pt.x = e.clientX - rect.left;
-            pt.y = e.clientY - rect.top;
+            svgBounds = svg.getBoundingClientRect();
+            pt.x = e.clientX - svgBounds.left;
+            pt.y = e.clientY - svgBounds.top;
             var svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
 
             var tData = svg._tooltipData;
@@ -626,9 +672,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             var lines = [];
             for (var bi = 0; bi < found.bars.length; bi++) {
                 var b = found.bars[bi];
-                var vStr = m === 'weight' ? String(b.val).replace(/(\d)(?=(\d{3})+$)/g,'$1 ') + ' кг' : String(b.val);
+                var vStr = m === 'weight' ? String(b.val).replace(/(\d)(?=(\d{3})+$)/g, '$1 ') + ' кг' : String(b.val);
                 lines.push({ label: b.label, color: b.color, val: vStr });
             }
+            // use shortRange for tooltip title
             var title = (found.period && found.period.label) ? found.period.label : '';
 
             var html = '<div style="font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text-main)">' + title + '</div>';
@@ -642,17 +689,33 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             tooltip.innerHTML = html;
             tooltip.hidden = false;
 
-            var tipRect = tooltip.getBoundingClientRect();
+            // Position tooltip near the group's visual center
+            var tipWidth = tooltip.offsetWidth;
+            var tipHeight = tooltip.offsetHeight;
             var chartRect = chartPanel.getBoundingClientRect();
-            var left = (e.clientX - chartRect.left) + 14;
-            var top = (e.clientY - chartRect.top) - 8;
-            if (left + tipRect.width > chartRect.width) left = (e.clientX - chartRect.left) - tipRect.width - 14;
+            // Map group center from SVG coords to screen coords
+            var groupCx = (found.x + found.w / 2);
+            var groupCy = pY0 + 20; // upper portion of plot area
+            var scaleX = svgBounds.width / CHART_SVG_VIEWBOX.w;
+            var scaleY = svgBounds.height / CHART_SVG_VIEWBOX.h;
+            var screenX = svgBounds.left + groupCx * scaleX;
+            var screenY = svgBounds.top + groupCy * scaleY;
+
+            var left = screenX - chartRect.left + 12;
+            var top = screenY - chartRect.top - tipHeight / 2;
+
+            // Clamp within chart panel bounds
+            if (left + tipWidth > chartRect.width) left = screenX - chartRect.left - tipWidth - 12;
+            if (left < 0) left = 4;
             if (top < 0) top = 4;
-            if (top + tipRect.height > chartRect.height) top = chartRect.height - tipRect.height - 4;
+            if (top + tipHeight > chartRect.height) top = chartRect.height - tipHeight - 4;
             tooltip.style.left = left + 'px';
             tooltip.style.top = top + 'px';
         });
-        svg.addEventListener('mouseleave', function () { if (tooltip) tooltip.hidden = true; });
+        svg.addEventListener('mouseleave', function () {
+            if (tooltip) tooltip.hidden = true;
+            svgBounds = svg.getBoundingClientRect();
+        });
     }
 
     function setActiveMetric(metric) {
