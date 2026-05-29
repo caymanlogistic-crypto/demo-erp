@@ -13,7 +13,7 @@
  *   $summary      — [rows_total, requests_total, weight_total_kg, avg_request_kg]
  *   $rows         — array of report rows
  *   $unmatched    — int
- *   $chartData    — [enabled, items]
+ *   $chartData    — [enabled, type, metric, ...]
  *   $service      — ReportsService
  */
 
@@ -33,13 +33,14 @@ use App\Modules\Reports\Services\ReportsService;
 /** @var ReportsService $service */
 
 $totalRows = $summary['rows_total'] ?? count($rows);
+$dateTypeLabel = $dateType === 'pickup' ? 'Вывоз' : 'Доставка';
 
 $chartTitle = match ($dimension) {
-    'fo'     => 'Распределение по федеральным округам',
+    'fo'     => 'Динамика по федеральным округам',
     'region' => 'Топ регионов',
     'status' => 'Распределение по статусам',
 };
-$chartSubtitle = 'Масса и заявки по выбранному основанию';
+$chartSubtitle = 'Заявки и вес по выбранному основанию';
 ?>
 <!-- reports page: dimension=<?= htmlspecialchars($dimension, ENT_QUOTES, 'UTF-8') ?> period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> chartMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> rows=<?= $totalRows ?> unmatched=<?= (int) $unmatched ?> -->
 
@@ -121,7 +122,7 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
             </span>
             <span class="summary-chip summary-chip-weight">
                 <span class="summary-chip-dot"></span>
-                <span>Масса</span>
+                <span>Вес</span>
                 <b><?= number_format((int) ($summary['weight_total_kg'] ?? 0), 0, '.', ' ') ?> кг</b>
             </span>
             <span class="summary-chip summary-chip-avg">
@@ -142,13 +143,13 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                 </div>
 
                 <div class="reports-chart-switch" role="group" aria-label="Метрика графика">
-                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Масса</button>
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Вес</button>
                     <button type="button" class="chart-metric-btn<?= $chartMetric === 'requests' ? ' active' : '' ?>" data-chart-metric="requests" aria-pressed="<?= $chartMetric === 'requests' ? 'true' : 'false' ?>">Заявки</button>
                 </div>
             </div>
 
             <div class="reports-chart-body">
-                <!-- reports chart: enabled type=bar metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> items=<?= count($chartData['items'] ?? []) ?> -->
+                <!-- chart: type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> -->
                 <svg class="reports-chart-svg" viewBox="0 0 800 220" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="reports-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
@@ -162,17 +163,91 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
 
     <div class="table-scroll">
         <?php if (!empty($rows)): ?>
+
+        <?php if ($dimension === 'fo'): ?>
+        <!-- ============================================================
+             MATRIX TABLE: period × district
+             ============================================================ -->
+        <?php
+        $districts   = $chartData['districtTitles'] ?? $chartData['series'] ?? [];
+        $totals      = $data['totals'] ?? [];
+        $districtTitles = $data['district_titles'] ?? [];
+        $hasUnmatched = $data['has_unmatched'] ?? false;
+        $numDistricts = count($districtTitles);
+        $colSpanRequests = $numDistricts;
+        $colSpanWeight   = $numDistricts;
+        ?>
+        <table class="table reports-table reports-matrix-table">
+            <colgroup>
+                <col class="col-matrix-period">
+                <?php for ($i = 0; $i < $numDistricts; $i++): ?>
+                <col class="col-matrix-district">
+                <?php endfor; ?>
+                <?php for ($i = 0; $i < $numDistricts; $i++): ?>
+                <col class="col-matrix-district">
+                <?php endfor; ?>
+            </colgroup>
+            <thead>
+                <tr class="reports-matrix-group-head">
+                    <th class="th-period" rowspan="2">Период</th>
+                    <th class="th-group" colspan="<?= $colSpanRequests ?>">Заявки</th>
+                    <th class="th-group" colspan="<?= $colSpanWeight ?>">Вес</th>
+                </tr>
+                <tr class="reports-matrix-sub-head">
+                    <?php foreach ($districtTitles as $dk => $dt): ?>
+                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Не определено' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <?php endforeach; ?>
+                    <?php foreach ($districtTitles as $dk => $dt): ?>
+                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Не определено' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rows as $row):
+                    $rPeriodLabel = $row['period_label'] ?? '';
+                ?>
+                <tr>
+                    <td class="td-period"><?= htmlspecialchars($rPeriodLabel, ENT_QUOTES, 'UTF-8') ?></td>
+                    <?php foreach ($districtTitles as $dk => $dt):
+                        $val = $row['requests_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-num"><?= $val > 0 ? number_format($val, 0, '.', ' ') : '—' ?></td>
+                    <?php endforeach; ?>
+                    <?php foreach ($districtTitles as $dk => $dt):
+                        $val = $row['weight_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-weight"><?= $val > 0 ? number_format($val, 0, '.', ' ') . ' кг' : '—' ?></td>
+                    <?php endforeach; ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+            <!-- Итоговая строка -->
+            <?php if (!empty($totals)): ?>
+            <tfoot>
+                <tr class="reports-total-row">
+                    <td class="td-period">Итого</td>
+                    <?php foreach ($districtTitles as $dk => $dt):
+                        $val = $totals['requests_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-num"><?= $val > 0 ? number_format($val, 0, '.', ' ') : '—' ?></td>
+                    <?php endforeach; ?>
+                    <?php foreach ($districtTitles as $dk => $dt):
+                        $val = $totals['weight_by_district'][$dk] ?? 0;
+                    ?>
+                    <td class="td-cell-weight"><?= $val > 0 ? number_format($val, 0, '.', ' ') . ' кг' : '—' ?></td>
+                    <?php endforeach; ?>
+                </tr>
+            </tfoot>
+            <?php endif; ?>
+        </table>
+
+        <?php elseif ($dimension === 'region'): ?>
+        <!-- ============================================================
+             LONG TABLE: Period | Region | FO | Заявки | Вес | Ср.заявка | Доля заявок | Доля веса
+             ============================================================ -->
         <table class="table reports-table">
             <colgroup>
                 <col class="col-reports-period">
-                <?php if ($dimension === 'fo'): ?>
-                <col class="col-reports-district">
-                <col class="col-reports-requests">
-                <col class="col-reports-weight">
-                <col class="col-reports-avg">
-                <col class="col-reports-share-r">
-                <col class="col-reports-share-w">
-                <?php elseif ($dimension === 'region'): ?>
                 <col class="col-reports-region">
                 <col class="col-reports-fo">
                 <col class="col-reports-requests">
@@ -180,41 +255,17 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                 <col class="col-reports-avg">
                 <col class="col-reports-share-r">
                 <col class="col-reports-share-w">
-                <?php else: ?>
-                <col class="col-reports-status">
-                <col class="col-reports-requests">
-                <col class="col-reports-weight">
-                <col class="col-reports-avg">
-                <col class="col-reports-share-r">
-                <col class="col-reports-share-w">
-                <?php endif; ?>
             </colgroup>
             <thead>
                 <tr>
-                    <th>ПЕРИОД</th>
-                    <?php if ($dimension === 'fo'): ?>
+                    <th>Период</th>
+                    <th>Регион</th>
                     <th>ФО</th>
-                    <th style="text-align: right;">ЗАЯВОК</th>
-                    <th style="text-align: right;">МАССА, КГ</th>
-                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
-                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
-                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
-                    <?php elseif ($dimension === 'region'): ?>
-                    <th>РЕГИОН</th>
-                    <th>ФО</th>
-                    <th style="text-align: right;">ЗАЯВОК</th>
-                    <th style="text-align: right;">МАССА, КГ</th>
-                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
-                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
-                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
-                    <?php else: ?>
-                    <th>СТАТУС</th>
-                    <th style="text-align: right;">ЗАЯВОК</th>
-                    <th style="text-align: right;">МАССА, КГ</th>
-                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
-                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
-                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
-                    <?php endif; ?>
+                    <th class="cell-num">Заявки</th>
+                    <th class="cell-weight">Вес, кг</th>
+                    <th class="cell-weight">Ср. заявка, кг</th>
+                    <th class="cell-num">Доля заявок</th>
+                    <th class="cell-num">Доля веса</th>
                 </tr>
             </thead>
             <tbody>
@@ -222,7 +273,6 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                 $totalWeightSum = 0.0;
                 $totalRequestsSum = 0;
                 foreach ($rows as $r) { $totalWeightSum += $r['weight_kg'] ?? 0; $totalRequestsSum += $r['requests'] ?? 0; }
-                $periodLabel = $service->formatPeriodLabel($period === 'month' ? date('Y-m') : ($period === 'week' ? date('o-\WW') : 'all'), $period, $dateFrom, $dateTo);
                 foreach ($rows as $row):
                     $rWeight = $row['weight_kg'] ?? 0;
                     $rRequests = $row['requests'] ?? 0;
@@ -231,17 +281,7 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                     $shareW = $totalWeightSum > 0 ? round(($rWeight / $totalWeightSum) * 100, 1) : 0;
                 ?>
                 <tr>
-                    <td><?= htmlspecialchars($periodLabel, ENT_QUOTES, 'UTF-8') ?></td>
-                    <?php if ($dimension === 'fo'): ?>
-                    <td class="report-cell-district" title="<?= htmlspecialchars($row['district_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        <?= htmlspecialchars($row['district_short'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
-                    </td>
-                    <td class="cell-num"><?= ReportsService::formatCount($rRequests) ?></td>
-                    <td class="cell-weight"><?= ReportsService::formatWeight($rWeight) ?></td>
-                    <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
-                    <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
-                    <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
-                    <?php elseif ($dimension === 'region'): ?>
+                    <td><?= htmlspecialchars($row['period_label'] ?? $service->formatPeriodLabel($period === 'month' ? date('Y-m') : ($period === 'week' ? date('o-\WW') : 'all'), $period, $dateFrom, $dateTo), ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="report-cell-region" title="<?= htmlspecialchars($row['region'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         <span class="report-region-name"><?= htmlspecialchars($row['region'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
                         <?php if (!empty($row['district_short'])): ?>
@@ -254,18 +294,63 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                     <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
                     <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
                     <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
-                    <?php else: ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php else: ?>
+        <!-- ============================================================
+             LONG TABLE: Period | Статус | Заявки | Вес | Ср.заявка | Доля заявок | Доля веса
+             ============================================================ -->
+        <table class="table reports-table">
+            <colgroup>
+                <col class="col-reports-period">
+                <col class="col-reports-status">
+                <col class="col-reports-requests">
+                <col class="col-reports-weight">
+                <col class="col-reports-avg">
+                <col class="col-reports-share-r">
+                <col class="col-reports-share-w">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Период</th>
+                    <th>Статус</th>
+                    <th class="cell-num">Заявки</th>
+                    <th class="cell-weight">Вес, кг</th>
+                    <th class="cell-weight">Ср. заявка, кг</th>
+                    <th class="cell-num">Доля заявок</th>
+                    <th class="cell-num">Доля веса</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $totalWeightSum = 0.0;
+                $totalRequestsSum = 0;
+                foreach ($rows as $r) { $totalWeightSum += $r['weight_kg'] ?? 0; $totalRequestsSum += $r['requests'] ?? 0; }
+                foreach ($rows as $row):
+                    $rWeight = $row['weight_kg'] ?? 0;
+                    $rRequests = $row['requests'] ?? 0;
+                    $rAvg = $row['avg_request_kg'] ?? 0;
+                    $shareR = $totalRequestsSum > 0 ? round(($rRequests / $totalRequestsSum) * 100, 1) : 0;
+                    $shareW = $totalWeightSum > 0 ? round(($rWeight / $totalWeightSum) * 100, 1) : 0;
+                ?>
+                <tr>
+                    <td><?= htmlspecialchars($service->formatPeriodLabel($period === 'month' ? date('Y-m') : ($period === 'week' ? date('o-\WW') : 'all'), $period, $dateFrom, $dateTo), ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="report-cell-district"><?= htmlspecialchars($row['status_label'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="cell-num"><?= ReportsService::formatCount($rRequests) ?></td>
                     <td class="cell-weight"><?= ReportsService::formatWeight($rWeight) ?></td>
                     <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
                     <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
                     <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
-                    <?php endif; ?>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <?php endif; ?>
+
         <?php else: ?>
         <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
             Нет данных для отображения
@@ -343,17 +428,8 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
 
 <script>
 (function () {
-    var CHART_SVG_VIEWBOX = { w: 800, h: 220 };
-    var PADDING = { left: 90, right: 70, top: 14, bottom: 14 };
-    var BAR_HEIGHT = 18;
-    var BAR_GAP = 4;
-
-    var metricConfigs = {
-        weight: { label: 'Масса', key: 'weight', unit: 'кг', color: '#A1622A', hover: '#7A421C', soft: 'rgba(161, 98, 42, 0.14)' },
-        requests: { label: 'Заявки', key: 'requests', unit: '', color: '#4E6F86', hover: '#35566B', soft: 'rgba(78, 111, 134, 0.14)' }
-    };
-
     var NS = 'http://www.w3.org/2000/svg';
+    var CHART_W = 800;
 
     var chartPanel = document.querySelector('[data-reports-chart]');
     var jsonEl = document.getElementById('reportsChartData');
@@ -370,12 +446,35 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
     var chartMetricInput = document.getElementById('chartMetricInput');
     var currentMetric = chartMetricInput ? chartMetricInput.value : 'requests';
-    if (!metricConfigs[currentMetric]) currentMetric = 'requests';
 
-    function formatNumber(value) {
-        if (value >= 1000000) return (value / 1000000).toFixed(1).replace('.0', '') + ' млн';
-        if (value >= 1000) return (value / 1000).toFixed(0) + ' тыс';
-        return String(value);
+    // ===================================================================
+    //  LINE PALETTE — спокойные цвета для 8 ФО + Н/Д
+    // ===================================================================
+    var LINE_PALETTE = {
+        cfo:  { stroke: '#4A6A7A', label: 'ЦФО' },
+        szfo: { stroke: '#8B6F5E', label: 'СЗФО' },
+        yfo:  { stroke: '#7A8A5A', label: 'ЮФО' },
+        skfo: { stroke: '#8A6A8E', label: 'СКФО' },
+        pfo:  { stroke: '#5A8A7A', label: 'ПФО' },
+        urfo: { stroke: '#8A5A50', label: 'УФО' },
+        sfo:  { stroke: '#6A7A8E', label: 'СФО' },
+        dfo:  { stroke: '#8A7A4E', label: 'ДФО' }
+    };
+    var FALLBACK_COLORS = [
+        '#4A6A7A', '#8B6F5E', '#7A8A5A', '#8A6A8E',
+        '#5A8A7A', '#8A5A50', '#6A7A8E', '#8A7A4E',
+        '#6A6A6A'
+    ];
+
+    function getLineColor(key, index) {
+        if (LINE_PALETTE[key]) return LINE_PALETTE[key].stroke;
+        return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+    }
+
+    function formatNum(v) {
+        if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.0', '') + ' млн';
+        if (v >= 1000) return (v / 1000).toFixed(0) + ' тыс';
+        return String(v);
     }
 
     function svgEl(name, attrs) {
@@ -386,10 +485,26 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
         return el;
     }
 
+    // ===================================================================
+    //  RENDER: multi-line chart (for fo) or bar chart (region/status)
+    // ===================================================================
     function renderChart(metric) {
         if (!svg) return;
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
+        var type = chartData.type || 'bar';
+
+        if (type === 'line-multi') {
+            renderLineChart(metric);
+        } else {
+            renderBarChart(metric);
+        }
+    }
+
+    // ===================================================================
+    //  BAR CHART (for region / status)
+    // ===================================================================
+    function renderBarChart(metric) {
         var items = chartData.items;
         if (!items || items.length === 0) {
             svg.setAttribute('hidden', '');
@@ -400,14 +515,17 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
         svg.removeAttribute('hidden');
         if (emptyEl) emptyEl.setAttribute('hidden', '');
 
-        var cfg = metricConfigs[metric];
+        var cfg = itemConfig(metric);
         var n = items.length;
-        var barAreaHeight = n * (BAR_HEIGHT + BAR_GAP);
-        var totalH = Math.max(220, barAreaHeight + PADDING.top + PADDING.bottom + 10);
+        var BAR_HEIGHT = 18;
+        var BAR_GAP = 4;
+        var PADDING = { left: 110, right: 70, top: 14, bottom: 14 };
+
+        var barAreaH = n * (BAR_HEIGHT + BAR_GAP);
+        var totalH = Math.max(220, barAreaH + PADDING.top + PADDING.bottom + 10);
         svg.setAttribute('viewBox', '0 0 800 ' + totalH);
 
-        var barAreaW = CHART_SVG_VIEWBOX.w - PADDING.left - PADDING.right;
-        var barStartY = PADDING.top;
+        var chartW = 800 - PADDING.left - PADDING.right;
 
         var maxVal = 0;
         for (var i = 0; i < n; i++) {
@@ -427,8 +545,8 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
         for (var i = 0; i < n; i++) {
             var item = items[i];
             var val = item[cfg.key] || 0;
-            var barW = (val / maxVal) * barAreaW;
-            var y = barStartY + i * (BAR_HEIGHT + BAR_GAP);
+            var barW = (val / maxVal) * chartW;
+            var y = PADDING.top + i * (BAR_HEIGHT + BAR_GAP);
             var x = PADDING.left;
 
             var labelText = svgEl('text', {
@@ -464,12 +582,258 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                     'font-weight': '700',
                     'class': 'chart-value-label'
                 });
-                valText.textContent = cfg.unit ? formatNumber(val) + ' ' + cfg.unit : val.toLocaleString('ru-RU');
+                valText.textContent = cfg.unit ? formatNum(val) + ' ' + cfg.unit : val.toLocaleString('ru-RU');
                 svg.appendChild(valText);
             }
         }
     }
 
+    function itemConfig(metric) {
+        if (metric === 'weight') {
+            return { label: 'Вес', key: 'weight', unit: 'кг', color: '#A1622A', hover: '#7A421C', soft: 'rgba(161, 98, 42, 0.14)' };
+        }
+        return { label: 'Заявки', key: 'requests', unit: '', color: '#4E6F86', hover: '#35566B', soft: 'rgba(78, 111, 134, 0.14)' };
+    }
+
+    // ===================================================================
+    //  MULTI-LINE CHART (for fo)
+    // ===================================================================
+    function renderLineChart(metric) {
+        var periods = chartData.periods;
+        var series = chartData.series;
+
+        if (!periods || periods.length === 0 || !series || series.length === 0) {
+            svg.setAttribute('hidden', '');
+            if (emptyEl) emptyEl.removeAttribute('hidden');
+            return;
+        }
+
+        svg.removeAttribute('hidden');
+        if (emptyEl) emptyEl.setAttribute('hidden', '');
+
+        var PADDING = { left: 46, right: 46, top: 24, bottom: 28 };
+        var CHART_H = 220;
+
+        svg.setAttribute('viewBox', '0 0 800 ' + CHART_H);
+
+        var plotW = 800 - PADDING.left - PADDING.right;
+        var plotH = CHART_H - PADDING.top - PADDING.bottom;
+        var plotX0 = PADDING.left;
+        var plotY0 = PADDING.top;
+        var plotX1 = plotX0 + plotW;
+        var plotY1 = plotY0 + plotH;
+
+        // Compute max value across all series
+        var maxVal = 0;
+        for (var si = 0; si < series.length; si++) {
+            var s = series[si];
+            for (var pi = 0; pi < periods.length; pi++) {
+                var pk = periods[pi].key;
+                var v = (s.values && s.values[pk]) ? (s.values[pk][metric] || 0) : 0;
+                if (v > maxVal) maxVal = v;
+            }
+        }
+
+        if (maxVal <= 0) {
+            svg.setAttribute('hidden', '');
+            if (emptyEl) emptyEl.removeAttribute('hidden');
+            return;
+        }
+
+        // Nice max
+        var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
+        var niceMax = Math.ceil(maxVal / magnitude) * magnitude;
+        if (niceMax <= maxVal) niceMax = niceMax + magnitude;
+        maxVal = niceMax;
+
+        var nPeriods = periods.length;
+        var stepX = nPeriods > 1 ? plotW / (nPeriods - 1) : plotW / 2;
+
+        // ================================================================
+        //  Grid lines (horizontal)
+        // ================================================================
+        var numGridLines = 4;
+        var gridStep = maxVal / numGridLines;
+        var gridMag = Math.pow(10, Math.floor(Math.log10(gridStep)));
+        var gridNice = Math.ceil(gridStep / gridMag) * gridMag;
+        if (gridNice <= 0) gridNice = gridStep;
+
+        for (var gi = 0; gi <= numGridLines; gi++) {
+            var val = gridNice * gi;
+            if (val > maxVal) val = maxVal;
+            var y = plotY1 - (val / maxVal) * plotH;
+            if (y < plotY0 || y > plotY1) continue;
+
+            var line = svgEl('line', {
+                'x1': String(plotX0),
+                'y1': String(y),
+                'x2': String(plotX1),
+                'y2': String(y),
+                'stroke': 'rgba(74, 68, 61, 0.10)',
+                'stroke-width': '1'
+            });
+            svg.appendChild(line);
+
+            var label = svgEl('text', {
+                'x': String(plotX0 - 4),
+                'y': String(y + 4),
+                'text-anchor': 'end',
+                'fill': 'rgba(74, 68, 61, 0.48)',
+                'font-size': '8',
+                'class': 'chart-axis-label'
+            });
+            label.textContent = formatNum(val);
+            svg.appendChild(label);
+        }
+
+        // ================================================================
+        //  X axis labels
+        // ================================================================
+        var compactLabels = nPeriods > 8;
+        var labelStep = 1;
+        if (compactLabels) {
+            labelStep = Math.ceil(nPeriods / 6);
+        }
+
+        // Transform periods to pixel positions
+        var periodXPositions = [];
+        for (var pi = 0; pi < nPeriods; pi++) {
+            periodXPositions.push(plotX0 + pi * stepX);
+        }
+
+        for (var pi = 0; pi < nPeriods; pi++) {
+            if (compactLabels && pi % labelStep !== 0 && pi !== nPeriods - 1) continue;
+            var xPos = periodXPositions[pi];
+            var lbl = periods[pi].label;
+
+            // Shorten label if compact
+            if (compactLabels && lbl.length > 12) {
+                // Show just the start date or week number
+                var m = lbl.match(/^(\d+)\.(\d+)/);
+                lbl = m ? m[1] + '.' + m[2] : lbl.substring(0, 10);
+            }
+
+            var label = svgEl('text', {
+                'x': String(xPos),
+                'y': String(plotY1 + 16),
+                'text-anchor': 'end',
+                'transform': 'rotate(-25 ' + xPos + ' ' + (plotY1 + 16) + ')',
+                'fill': 'rgba(74, 68, 61, 0.48)',
+                'font-size': '8',
+                'class': 'chart-axis-label'
+            });
+            label.textContent = lbl;
+            svg.appendChild(label);
+        }
+
+        // ================================================================
+        //  Draw series lines + dots
+        // ================================================================
+        for (var si = 0; si < series.length; si++) {
+            var s = series[si];
+            var color = getLineColor(s.key, si);
+            var points = [];
+
+            for (var pi = 0; pi < nPeriods; pi++) {
+                var pk = periods[pi].key;
+                var val = (s.values && s.values[pk]) ? (s.values[pk][metric] || 0) : 0;
+                var xPos = periodXPositions[pi];
+                var yPos = plotY1 - (val / maxVal) * plotH;
+                if (yPos < plotY0) yPos = plotY0;
+                if (yPos > plotY1) yPos = plotY1;
+                points.push({ x: xPos, y: yPos, val: val });
+            }
+
+            // Build polyline points string
+            var ptsStr = '';
+            for (var pi = 0; pi < points.length; pi++) {
+                if (pi > 0) ptsStr += ' ';
+                ptsStr += points[pi].x.toFixed(1) + ',' + points[pi].y.toFixed(1);
+            }
+
+            var polyline = svgEl('polyline', {
+                'points': ptsStr,
+                'fill': 'none',
+                'stroke': color,
+                'stroke-width': '1.5',
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                'class': 'chart-line'
+            });
+            svg.appendChild(polyline);
+
+            // Dots
+            for (var pi = 0; pi < points.length; pi++) {
+                var pt = points[pi];
+                if (pt.val === 0) continue; // skip zero dots
+
+                var dot = svgEl('circle', {
+                    'cx': String(pt.x),
+                    'cy': String(pt.y),
+                    'r': '2.5',
+                    'fill': '#f5f3ee',
+                    'stroke': color,
+                    'stroke-width': '1.5',
+                    'class': 'chart-dot'
+                });
+                svg.appendChild(dot);
+            }
+        }
+
+        // ================================================================
+        //  Legend
+        // ================================================================
+        var legendX = plotX0;
+        var legendY = 5;
+        var legendSvg = svgEl('g', { 'class': 'chart-legend' });
+        var xOff = 0;
+        var maxLegendWidth = plotW;
+
+        for (var si = 0; si < series.length; si++) {
+            var s = series[si];
+            var color = getLineColor(s.key, si);
+            var lbl = s.label || s.key;
+
+            var itemW = lbl.length * 7 + 20;
+            if (xOff + itemW > maxLegendWidth) {
+                xOff = 0;
+                legendY += 12;
+            }
+
+            var legendItem = svgEl('g', { 'transform': 'translate(' + xOff + ', ' + legendY + ')' });
+
+            var rect = svgEl('rect', {
+                'x': '0',
+                'y': '-4',
+                'width': '8',
+                'height': '8',
+                'rx': '1',
+                'fill': color,
+                'opacity': '0.85'
+            });
+            legendItem.appendChild(rect);
+
+            var text = svgEl('text', {
+                'x': '12',
+                'y': '2',
+                'fill': 'rgba(74, 68, 61, 0.70)',
+                'font-size': '8.5',
+                'font-weight': '600',
+                'class': 'chart-legend-label'
+            });
+            text.textContent = lbl;
+            legendItem.appendChild(text);
+
+            legendSvg.appendChild(legendItem);
+            xOff += itemW + 4;
+        }
+
+        svg.appendChild(legendSvg);
+    }
+
+    // ===================================================================
+    //  Metric switcher
+    // ===================================================================
     function setActiveMetric(metric) {
         currentMetric = metric;
         switchBtns.forEach(function (btn) {

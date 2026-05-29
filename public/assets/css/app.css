@@ -2011,3 +2011,103 @@ textarea { resize: vertical; }
 .reports-chart-empty[hidden] {
   display: none;
 }
+
+/* ============================================================
+   Reports matrix table — period × district
+   ============================================================ */
+.reports-matrix-table {
+  min-width: auto;
+  table-layout: auto;
+}
+
+.reports-matrix-table .th-period {
+  width: 130px;
+  min-width: 120px;
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--table-head);
+  border-bottom: 1px solid var(--table-head-border);
+  padding: 5px 8px;
+  vertical-align: middle;
+}
+
+.reports-matrix-table .th-group {
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--table-head);
+  border-bottom: 1px solid var(--table-head-border);
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+
+.reports-matrix-table .th-district {
+  width: 60px;
+  min-width: 50px;
+  max-width: 80px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--table-head);
+  border-bottom: 1px solid var(--table-head-border);
+  padding: 4px 3px;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.reports-matrix-table .td-period {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.reports-matrix-table .td-cell-num {
+  text-align: right;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 5px 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.reports-matrix-table .td-cell-weight {
+  text-align: right;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 5px 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Итоговая строка */
+.reports-total-row td {
+  background: var(--surface-muted);
+  border-top: 2px solid var(--line-soft);
+  font-weight: 700;
+}
+
+.reports-total-row .td-period {
+  font-weight: 700;
+}
+
+/* Hover для строк матрицы */
+.reports-matrix-table tbody tr:hover td {
+  background: var(--table-row-hover);
+}
+
+/* Узкие колонки в standard reports-table для совместимости */
+.col-matrix-period { width: 130px; }
+.col-matrix-district { width: 60px; }

@@ -50,7 +50,7 @@ class ReportsController
         $warning     = $filters['warning'];
 
         $data = $this->service->buildReports($period, $dateType, $dimension, $dateFrom, $dateTo);
-        $chartData = $this->service->buildChartData($data['rows'], $dimension, $chartMetric);
+        $chartData = $this->service->buildChartData($data, $dimension, $chartMetric);
 
         ob_start();
         $period      = $period;
@@ -60,6 +60,7 @@ class ReportsController
         $dateFrom    = $dateFrom;
         $dateTo      = $dateTo;
         $warning     = $warning;
+        $data        = $data;
         $summary     = $data['summary'];
         $rows        = $data['rows'];
         $unmatched   = $data['unmatched'];
