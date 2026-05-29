@@ -148,7 +148,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 </div>
             </div>
             <div class="reports-chart-body">
-                <!-- reports chart: type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> enabled=<?= $chartData['enabled'] ? '1' : '0' ?> -->
+                <!-- reports chart: enabled type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> periods=<?= count($chartData['periods'] ?? []) ?> districts=<?= count($chartData['series'] ?? []) ?> -->
                 <svg class="reports-chart-svg" viewBox="0 0 1200 210" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
                 <div class="statistics-chart-tooltip" hidden></div>
                 <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
@@ -432,7 +432,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
         var type = chartData.type || 'bar';
-        if (type === 'line-multi') { renderLineChart(metric); } else { renderBarChart(metric); }
+        if (type === 'grouped-bars') { renderGroupedBars(metric); } else { renderBarChart(metric); }
     }
 
     // =============================================================
@@ -470,98 +470,189 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
     }
 
     // =============================================================
-    //  MULTI-LINE CHART (for fo) — smooth lines, Statistics sizing
+    //  GROUPED BAR CHART (for dimension=fo)
     // =============================================================
-    function renderLineChart(metric) {
+    var DISTRICT_COLORS = {
+        cfo:  '#5A7A8A', szfo: '#6A8A8A', yfo: '#A08060', skfo: '#8A6A8A',
+        pfo:  '#A09060', urfo: '#7A8A6A', sfo: '#8A7070', dfo: '#7A7A7A',
+        _unmatched: '#555555'
+    };
+    var FALLBACK_BAR_COLORS = ['#5A7A8A','#6A8A8A','#A08060','#8A6A8A','#A09060','#7A8A6A','#8A7070','#7A7A7A','#555'];
+
+    function getDistrictColor(key, index) {
+        return DISTRICT_COLORS[key] || FALLBACK_BAR_COLORS[index % FALLBACK_BAR_COLORS.length];
+    }
+
+    function renderGroupedBars(metric) {
         var periods = chartData.periods, series = chartData.series;
-        if (!periods || !series || periods.length === 0 || series.length === 0) { svg.setAttribute('hidden',''); if (emptyEl) emptyEl.removeAttribute('hidden'); return; }
+        if (!periods || !series || periods.length === 0 || series.length === 0) {
+            svg.setAttribute('hidden',''); if (emptyEl) emptyEl.removeAttribute('hidden'); return;
+        }
         svg.removeAttribute('hidden'); if (emptyEl) emptyEl.setAttribute('hidden','');
 
         svg.setAttribute('viewBox','0 0 ' + CHART_SVG_VIEWBOX.w + ' ' + CHART_SVG_VIEWBOX.h);
+
+        // plot area
         var pw = CHART_SVG_VIEWBOX.w - PADDING.left - PADDING.right;
         var ph = CHART_SVG_VIEWBOX.h - PADDING.top - PADDING.bottom;
-        var plotX0 = PADDING.left, plotY0 = PADDING.top;
-        var plotX1 = plotX0 + pw, plotY1 = plotY0 + ph;
+        var pX0 = PADDING.left, pY0 = PADDING.top;
+        var pY1 = pY0 + ph;
 
-        // Compute global max
+        var nP = periods.length, nS = series.length;
+
+        // compute max value from visible series
         var maxV = 0;
-        for (var si = 0; si < series.length; si++) {
-            var s = series[si];
-            for (var pi = 0; pi < periods.length; pi++) {
-                var v = (s.values && s.values[periods[pi].key]) ? (s.values[periods[pi].key][metric] || 0) : 0;
+        for (var si = 0; si < nS; si++) {
+            var sv = series[si].values;
+            if (!sv) continue;
+            for (var pi = 0; pi < nP; pi++) {
+                var v = (sv[periods[pi].key] ? sv[periods[pi].key][metric] : 0) || 0;
                 if (v > maxV) maxV = v;
             }
         }
         if (maxV <= 0) { svg.setAttribute('hidden',''); if (emptyEl) emptyEl.removeAttribute('hidden'); return; }
-        var mag = Math.pow(10, Math.floor(Math.log10(maxV))); var niceMax = Math.ceil(maxV / mag) * mag;
-        if (niceMax <= maxV) niceMax += mag; maxV = niceMax;
+        var mag = Math.pow(10, Math.floor(Math.log10(maxV)));
+        maxV = Math.ceil(maxV / mag) * mag;
+        if (maxV <= 0) { svg.setAttribute('hidden',''); return; }
 
-        // Grid
+        // Y grid
         var gridStep = Math.ceil(maxV / GRID_LINES);
         for (var gi = 0; gi <= GRID_LINES; gi++) {
-            var gv = gridStep * gi, gy = plotY1 - (gv / maxV) * ph;
-            var gl = svgEl('line',{'x1':String(plotX0),'y1':String(Math.round(gy)),'x2':String(plotX1),'y2':String(Math.round(gy)),'stroke':'rgba(76,70,62,0.12)','stroke-width':'1','stroke-linecap':'round'}); svg.appendChild(gl);
-            var yl = svgEl('text',{'x':String(plotX0-6),'y':String(Math.round(gy)+3),'text-anchor':'end','fill':'rgba(74,68,61,0.58)','font-size':'9','font-weight':'700'});
-            yl.textContent = metric === 'weight' ? String(Math.round(gv / 1000)) : formatNumber(gv); svg.appendChild(yl);
+            var gv = gridStep * gi, gy = pY1 - (gv / maxV) * ph;
+            var gl = svgEl('line',{'x1':String(pX0),'y1':String(Math.round(gy)),'x2':String(pX0+pw),'y2':String(Math.round(gy)),'stroke':'rgba(76,70,62,0.12)','stroke-width':'1','stroke-linecap':'round'});
+            svg.appendChild(gl);
+            var yl = svgEl('text',{'x':String(pX0-6),'y':String(Math.round(gy)+3),'text-anchor':'end','fill':'rgba(74,68,61,0.58)','font-size':'9','font-weight':'700'});
+            if (metric === 'weight') {
+                yl.textContent = gv >= 1000 ? String(Math.round(gv/1000)) + 'k' : String(Math.round(gv));
+            } else {
+                yl.textContent = formatNumber(gv);
+            }
+            svg.appendChild(yl);
         }
 
-        // X labels
-        var nP = periods.length, stepX = nP > 1 ? pw / (nP - 1) : pw / 2;
-        var labelStep = 1;
-        if (nP > 8) labelStep = Math.ceil(nP / 7);
+        // Bar geometry
+        var groupWidth = pw / nP;
+        var groupPadding = groupWidth * 0.28;
+        var barsArea = groupWidth - groupPadding;
+        var barGap = Math.max(1, barsArea * 0.06);
+        var totalGaps = Math.max(1, nS - 1) * barGap;
+        var barWidth = Math.max(2, (barsArea - totalGaps) / nS);
+        // clamp if too thin
+        if (barWidth * nS + totalGaps > barsArea) {
+            barWidth = Math.max(2, (barsArea - totalGaps) / nS);
+        }
+
+        // Bars per period group
+        var periodGroups = [];
         for (var pi = 0; pi < nP; pi++) {
-            if (pi % labelStep !== 0 && pi !== nP - 1) continue;
-            var xPos = plotX0 + pi * stepX;
-            var lbl = periods[pi].label, m = lbl.match(/^(\d+)\.(\d+)/);
-            lbl = m ? m[1] + '.' + m[2] : lbl.substring(0, 8);
-            var xl = svgEl('text',{'x':String(xPos),'y':String(plotY1+16),'text-anchor':'end','transform':'rotate(-20 '+xPos+' '+(plotY1+16)+')','fill':'rgba(74,68,61,0.45)','font-size':'7.5'}); xl.textContent = lbl; svg.appendChild(xl);
+            var gx = pX0 + pi * groupWidth + groupPadding / 2;
+            var bars = [];
+            for (var si = 0; si < nS; si++) {
+                var s = series[si], pk = periods[pi].key;
+                var val = (s.values && s.values[pk] ? s.values[pk][metric] : 0) || 0;
+                var barH = (val / maxV) * ph;
+                var bx = gx + si * (barWidth + barGap);
+                var by = pY1 - barH;
+                var color = getDistrictColor(s.key, si);
+                bars.push({ x: Math.round(bx), y: Math.round(Math.max(by, pY0)), w: Math.round(barWidth), h: Math.round(Math.max(barH, 0.5)), val: val, color: color, key: s.key, label: s.label, title: s.title });
+            }
+            periodGroups.push({ x: gx, w: barsArea, bars: bars, period: periods[pi] });
         }
 
-        // Series lines + dots
-        for (var si = 0; si < series.length; si++) {
-            var s = series[si], color = getLineColor(s.key, si);
-            var points = [];
-            for (var pi = 0; pi < nP; pi++) {
-                var pk = periods[pi].key;
-                var val = (s.values && s.values[pk]) ? (s.values[pk][metric] || 0) : 0;
-                var px = plotX0 + pi * stepX, py = plotY1 - (val / maxV) * ph;
-                if (py < plotY0) py = plotY0; if (py > plotY1) py = plotY1;
-                points.push({ x: px, y: Math.round(py) });
-            }
-
-            var lineD = buildSmoothPath(points, SMOOTH_TENSION);
-            if (lineD) {
-                var path = svgEl('path',{'d':lineD,'fill':'none','stroke':color,'stroke-width':String(LINE_WIDTH),'stroke-linecap':'round','stroke-linejoin':'round'}); svg.appendChild(path);
-            }
-
-            // Area fill (first series only)
-            if (si === 0 && nP > 1) {
-                var areaD = buildSmoothPath(points, SMOOTH_TENSION);
-                var lastX = points[nP-1].x, baseY = plotY1, firstX = points[0].x;
-                areaD += ' L' + lastX.toFixed(1) + ',' + baseY.toFixed(1) + ' L' + firstX.toFixed(1) + ',' + baseY.toFixed(1) + ' Z';
-                var area = svgEl('path',{'d':areaD,'fill':'rgba(78,111,134,0.03)'}); svg.appendChild(area);
-            }
-
-            // Dots
-            for (var pi = 0; pi < nP; pi++) {
-                var pt = points[pi];
-                var dot = svgEl('circle',{'cx':String(Math.round(pt.x)),'cy':String(Math.round(pt.y)),'r':String(DOT_RADIUS),'fill':'#fefdf8','stroke':color,'stroke-width':'1.5','data-index':String(pi)});
-                svg.appendChild(dot);
+        // Render bars
+        for (var pi = 0; pi < nP; pi++) {
+            var grp = periodGroups[pi];
+            for (var bi = 0; bi < grp.bars.length; bi++) {
+                var bar = grp.bars[bi];
+                if (bar.h > 0.3) {
+                    var rect = svgEl('rect',{'x':String(bar.x),'y':String(bar.y),'width':String(bar.w),'height':String(bar.h),'fill':bar.color,'rx':'1','ry':'1','opacity':'0.88','data-period-index':String(pi),'data-series-index':String(bi)});
+                    svg.appendChild(rect);
+                }
             }
         }
 
-        // Legend
-        var lx = plotX0, ly = 2, legendG = svgEl('g',{});
-        for (var si = 0; si < series.length; si++) {
-            var s = series[si], color = getLineColor(s.key, si), lbl = s.label || s.key;
-            var itemW = lbl.length * 6 + 16;
-            if (lx + itemW > plotX1) { lx = plotX0; ly += 10; }
+        // X labels (short)
+        var labelEvery = 1;
+        if (nP > 10) labelEvery = 2;
+        if (nP > 18) labelEvery = 3;
+        for (var pi = 0; pi < nP; pi++) {
+            if (pi % labelEvery !== 0 && pi !== nP - 1) continue;
+            var cx = pX0 + pi * groupWidth + groupWidth / 2;
+            var xlbl = periods[pi].shortLabel || periods[pi].label.substring(0,5);
+            var xAnchor = nP > 10 ? 'end' : 'middle';
+            var xRot = nP > 12 ? 'rotate(-22 '+cx+' '+(pY1+16)+')' : '';
+            var xl = svgEl('text',{'x':String(cx),'y':String(pY1+16),'text-anchor':periods.length>10?'end':'middle','transform':nP>12?'rotate(-22 '+cx+' '+(pY1+16)+')':'','fill':'rgba(74,68,61,0.45)','font-size':nP>12?'7':'8'});
+            xl.textContent = xlbl;
+            svg.appendChild(xl);
+        }
+
+        // Legend — compact, above plot area
+        var lx = pX0, ly = 1;
+        var legendG = svgEl('g',{});
+        var maxLegendX = pX0 + pw;
+        for (var si = 0; si < nS; si++) {
+            var s = series[si], color = getDistrictColor(s.key, si), lbl = s.label || s.key;
+            var itemW = lbl.length * 5.5 + 14;
+            if (lx + itemW > maxLegendX) { lx = pX0; ly += 10; }
             var li = svgEl('g',{'transform':'translate('+lx+','+ly+')'});
             li.appendChild(svgEl('rect',{'x':'0','y':'-3','width':'6','height':'6','rx':'1','fill':color,'opacity':'0.85'}));
-            var tx = svgEl('text',{'x':'9','y':'1.5','fill':'rgba(74,68,61,0.65)','font-size':'8','font-weight':'600'}); tx.textContent = lbl; li.appendChild(tx);
+            var tx = svgEl('text',{'x':'8','y':'1.5','fill':'rgba(74,68,61,0.62)','font-size':'7.5','font-weight':'600'});
+            tx.textContent = lbl; li.appendChild(tx);
             legendG.appendChild(li); lx += itemW + 4;
         }
         svg.appendChild(legendG);
+
+        // Tooltip interaction — mousemove over plot area
+        svg._tooltipData = { periodGroups: periodGroups, metric: metric };
+        svg.addEventListener('mousemove', function (e) {
+            var pt = svg.createSVGPoint();
+            var rect = svg.getBoundingClientRect();
+            pt.x = e.clientX - rect.left;
+            pt.y = e.clientY - rect.top;
+            var svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+            var tData = svg._tooltipData;
+            if (!tData || !tooltip) return;
+
+            // find period group by X
+            var found = null;
+            for (var pi = 0; pi < tData.periodGroups.length; pi++) {
+                var g = tData.periodGroups[pi];
+                if (svgPt.x >= g.x && svgPt.x <= g.x + g.w) { found = g; break; }
+            }
+            if (!found) { tooltip.hidden = true; return; }
+
+            var m = tData.metric;
+            var lines = [];
+            for (var bi = 0; bi < found.bars.length; bi++) {
+                var b = found.bars[bi];
+                var vStr = m === 'weight' ? String(b.val).replace(/(\d)(?=(\d{3})+$)/g,'$1 ') + ' кг' : String(b.val);
+                lines.push({ label: b.label, color: b.color, val: vStr });
+            }
+            var title = (found.period && found.period.label) ? found.period.label : '';
+
+            var html = '<div style="font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text-main)">' + title + '</div>';
+            for (var li = 0; li < lines.length; li++) {
+                html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;margin-bottom:2px;color:var(--text-secondary)">';
+                html += '<span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:' + lines[li].color + ';flex-shrink:0"></span>';
+                html += '<span style="flex:1">' + lines[li].label + '</span>';
+                html += '<b style="color:var(--text-main);text-align:right">' + lines[li].val + '</b>';
+                html += '</div>';
+            }
+            tooltip.innerHTML = html;
+            tooltip.hidden = false;
+
+            var tipRect = tooltip.getBoundingClientRect();
+            var chartRect = chartPanel.getBoundingClientRect();
+            var left = (e.clientX - chartRect.left) + 14;
+            var top = (e.clientY - chartRect.top) - 8;
+            if (left + tipRect.width > chartRect.width) left = (e.clientX - chartRect.left) - tipRect.width - 14;
+            if (top < 0) top = 4;
+            if (top + tipRect.height > chartRect.height) top = chartRect.height - tipRect.height - 4;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        });
+        svg.addEventListener('mouseleave', function () { if (tooltip) tooltip.hidden = true; });
     }
 
     function setActiveMetric(metric) {

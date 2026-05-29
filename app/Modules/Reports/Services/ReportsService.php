@@ -294,12 +294,16 @@ class ReportsService
         $districtTitles = $reportData['district_titles'] ?? [];
 
         if (empty($rows) || empty($districts)) {
-            return ['enabled' => false, 'type' => 'line-multi', 'metric' => $metric, 'periods' => [], 'series' => []];
+            return ['enabled' => false, 'type' => 'grouped-bars', 'metric' => $metric, 'periods' => [], 'series' => []];
         }
 
         $periods = [];
         foreach ($rows as $row) {
-            $periods[] = ['key' => $row['period_key'], 'label' => $row['period_label']];
+            $periods[] = [
+                'key'        => $row['period_key'],
+                'label'      => $row['period_label'],
+                'shortLabel' => $this->formatPeriodShortLabel($row['period_label'], $row['period_key']),
+            ];
         }
 
         $series = [];
@@ -340,14 +344,35 @@ class ReportsService
         }
 
         return [
-            'enabled'       => true,
-            'type'          => 'line-multi',
-            'metric'        => $metric,
-            'periods'       => $periods,
-            'series'        => $series,
-            'maxValue'      => $maxVal,
+            'enabled'        => true,
+            'type'           => 'grouped-bars',
+            'metric'         => $metric,
+            'periods'        => $periods,
+            'series'         => $series,
+            'maxValue'       => $maxVal,
             'districtTitles' => $districtTitles,
         ];
+    }
+
+    /**
+     * Сокращённая метка периода для оси X графика.
+     * Примеры: "23.03–29.03.2026" → "23.03", "Май 2026" → "Май'26", "01.05–29.05" → "01.05".
+     */
+    private function formatPeriodShortLabel(string $label, string $periodKey): string
+    {
+        // week: "23.03–29.03.2026" → "23.03"
+        if (preg_match('/^(\d{2}\.\d{2})–/', $label, $m)) {
+            return $m[1];
+        }
+        // month: "Май 2026" → "Май'26"
+        if (preg_match('/^(\S+)\s+(\d{4})$/', $label, $m)) {
+            return $m[1] . "'" . substr($m[2], 2);
+        }
+        // custom: "01.05.2026–29.05.2026" → "01.05"
+        if (preg_match('/^(\d{2}\.\d{2})\./', $label, $m)) {
+            return $m[1];
+        }
+        return mb_substr($label, 0, 5, 'UTF-8');
     }
 
     private function buildByRegion(array $flights, array $zayavkaMap, string $period): array
