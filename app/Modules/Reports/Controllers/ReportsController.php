@@ -10,11 +10,13 @@ use App\Modules\Reports\Services\ReportsService;
 /**
  * Контроллер модуля «Отчётность».
  *
- * URL:
- *   ?module=reports                        → default = delivered_fo
- *   ?module=reports&report=delivered_fo
- *   ?module=reports&report=delivered_regions
- *   ?module=reports&report=status_summary
+ * Новый URL:
+ *   ?module=reports&period=month&date_type=delivery&dimension=fo&chart_metric=requests
+ *
+ * Старый URL (совместимость):
+ *   ?module=reports&report=delivered_fo       → dimension=fo
+ *   ?module=reports&report=delivered_regions  → dimension=region
+ *   ?module=reports&report=status_summary     → dimension=status
  */
 class ReportsController
 {
@@ -36,28 +38,29 @@ class ReportsController
 
     private function renderIndex(): string
     {
-        $report = $this->normalizeReport($_GET['report'] ?? 'delivered_fo');
+        $period      = $this->service->normalizePeriod($_GET['period'] ?? 'month');
+        $dateType    = $this->service->normalizeDateType($_GET['date_type'] ?? 'delivery');
+        $chartMetric = $this->service->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
 
-        $data = match ($report) {
-            'delivered_regions' => $this->service->buildDeliveredByRegions(),
-            'status_summary'    => $this->service->buildStatusSummary(),
-            default             => $this->service->buildDeliveredByFO(),
-        };
+        // Обратная совместимость: report= → dimension=
+        $dimension = $this->resolveDimension();
 
-        // Добавляем заголовки отчёта
-        $reportTitle = match ($report) {
-            'delivered_fo'       => 'Сдано по федеральным округам',
-            'delivered_regions'  => 'Сдано по регионам',
-            'status_summary'     => 'Сводка по статусам',
-            default              => 'Сдано по федеральным округам',
-        };
+        $data = $this->service->buildReports($period, $dateType, $dimension);
+        $chartData = $this->service->buildChartData($data['rows'], $dimension, $chartMetric);
 
-        $data['report_title'] = $reportTitle;
-        $data['active_report'] = $report;
-        $data['service'] = $this->service;
+        // Внедряем dimension и chart_metric в результат
+        $data['dimension']    = $dimension;
+        $data['date_type']    = $dateType;
+        $data['chart_metric'] = $chartMetric;
 
         ob_start();
         $reportData = $data;
+        $chartData  = $chartData;
+        $period     = $period;
+        $dateType   = $dateType;
+        $dimension  = $dimension;
+        $chartMetric = $chartMetric;
+        $service    = $this->service;
         require __DIR__ . '/../../../Views/reports/index.php';
         $content = ob_get_clean();
 
@@ -69,6 +72,29 @@ class ReportsController
         return ob_get_clean();
     }
 
+    /**
+     * Определить dimension из URL с приоритетом:
+     *   1. dimension=... (новый параметр)
+     *   2. report=delivered_regions → region
+     *   3. report=status_summary → status
+     *   4. report=delivered_fo → fo (default)
+     */
+    private function resolveDimension(): string
+    {
+        // Новый параметр имеет приоритет
+        if (isset($_GET['dimension'])) {
+            return $this->service->normalizeDimension($_GET['dimension']);
+        }
+
+        // Старая совместимость
+        $report = $_GET['report'] ?? '';
+        return match ($report) {
+            'delivered_regions' => 'region',
+            'status_summary'    => 'status',
+            default             => 'fo',
+        };
+    }
+
     private function renderNoDb(): string
     {
         ob_start();
@@ -78,7 +104,6 @@ class ReportsController
         ?>
         <div class="page-head">
             <div class="page-head-left">
-                <div class="page-eyebrow">Отчётность</div>
                 <div class="page-title">Отчётность</div>
                 <div class="page-summary"><span>Сводные отчёты по заявкам, статусам, регионам и федеральным округам</span></div>
             </div>
@@ -93,11 +118,5 @@ class ReportsController
         ob_start();
         require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
-    }
-
-    private function normalizeReport(string $report): string
-    {
-        $allowed = ['delivered_fo', 'delivered_regions', 'status_summary'];
-        return in_array($report, $allowed, true) ? $report : 'delivered_fo';
     }
 }

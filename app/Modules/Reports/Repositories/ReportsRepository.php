@@ -70,6 +70,36 @@ class ReportsRepository
     }
 
     /**
+     * Получить все рейсы с вычисляемым event_date для отчётов с фильтрацией по дате.
+     *
+     * @param string $dateType 'delivery' -> actual_end_date, 'pickup' -> actual_start_date
+     * @return array<int, array{id: int|string, zayavki_ids: string, actual_start_date: string|null, actual_end_date: string|null, status: string|null, event_date: string|null}>
+     */
+    public function getFlightsForReports(string $dateType = 'delivery'): array
+    {
+        $pdo = Connection::get();
+        if ($pdo === null) {
+            return [];
+        }
+
+        $dateColumn = ($dateType === 'pickup') ? 'actual_start_date' : 'actual_end_date';
+
+        try {
+            $stmt = $pdo->prepare("
+                SELECT id, zayavki_ids, actual_start_date, actual_end_date, status,
+                       {$dateColumn} AS event_date
+                FROM flights
+                ORDER BY id ASC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log('ReportsRepository getFlightsForReports error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Получить данные заявок по списку ID.
      *
      * @param string[] $zayavkaIds

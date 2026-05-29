@@ -1781,74 +1781,50 @@ textarea { resize: vertical; }
    REPORTS MODULE
    ============================================================ */
 
-/* Reports tabs */
-.reports-tabs {
+/* Reports filters (reuses .statistics-filters pattern) */
+.reports-filters {
+  flex-shrink: 0;
   display: flex;
-  gap: 0;
-  align-items: stretch;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 0 8px;
-}
-
-.reports-tab {
-  display: inline-flex;
-  align-items: center;
-  height: 30px;
-  padding: 0 14px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 3px 3px 0 0;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  user-select: none;
-  cursor: pointer;
-  transition: background .10s ease, color .10s ease;
-}
-
-.reports-tab:hover {
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 46px;
   background: var(--surface-muted);
-  color: var(--text-main);
+  border: 1px solid var(--line);
+  border-top: none;
 }
 
-.reports-tab.active {
-  background: var(--surface);
-  color: var(--accent);
-  border-color: var(--line-soft);
-  position: relative;
-  z-index: 1;
-  margin-bottom: -1px;
-  border-bottom-color: var(--surface);
-}
-
-/* Report table card */
-.report-table-card {
-  margin: 6px 8px 4px;
-  border: 1px solid var(--line-hair);
-}
-
-.report-table-card .table {
-  min-width: 0;
+/* Reports table card */
+.reports-table-card {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Reports table */
 .reports-table {
-  min-width: auto;
-  width: max-content;
+  min-width: 680px;
+  width: 100%;
+  table-layout: auto;
 }
 
 .reports-table th {
-  text-align: center;
+  text-align: left;
   font-size: 9.5px;
   letter-spacing: .06em;
 }
 
-.reports-table th[rowspan] {
-  text-align: left;
-}
+/* Reports colgroup */
+.col-reports-period  { width: 130px; }
+.col-reports-district { width: 100px; }
+.col-reports-region  { width: 200px; }
+.col-reports-fo      { width: 60px; }
+.col-reports-status  { width: 140px; }
+.col-reports-requests { width: 90px; }
+.col-reports-weight   { width: 110px; }
+.col-reports-avg      { width: 110px; }
+.col-reports-share-r  { width: 90px; }
+.col-reports-share-w  { width: 90px; }
 
 /* Cell: weight */
 .report-cell-weight {
@@ -1870,7 +1846,7 @@ textarea { resize: vertical; }
 .report-cell-region {
   font-size: 11px;
   font-weight: 600;
-  max-width: 160px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1897,4 +1873,84 @@ textarea { resize: vertical; }
 
 .report-total-row td:first-child {
   font-weight: 800;
+}
+
+/* Reports chart panel (reuses statistics-chart-* patterns) */
+.reports-chart-panel {
+  border-top: 1px solid var(--line-hair);
+  border-bottom: 1px solid var(--line-hair);
+  background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.14));
+  padding: 8px 10px 8px;
+  flex-shrink: 0;
+}
+
+.reports-chart-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.reports-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+  padding-left: 4%;
+  padding-right: 2%;
+  box-sizing: border-box;
+}
+
+.reports-chart-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reports-chart-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.reports-chart-subtitle {
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.reports-chart-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255,255,255,.42);
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.reports-chart-body {
+  position: relative;
+  min-height: 120px;
+}
+
+.reports-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+}
+
+.reports-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reports-chart-empty[hidden] {
+  display: none;
 }

@@ -1,30 +1,46 @@
 <?php
 /**
- * Контент страницы «Отчётность».
+ * Контент страницы «Отчётность» (TransportERP shell).
  *
  * Переменные (из ReportsController):
- *   $reportData      — результат buildDeliveredByFO / buildDeliveredByRegions / buildStatusSummary
- *      + report_title, active_report, service (ReportsService)
- *
- * @var array $reportData
+ *   $period       — month|quarter|year
+ *   $dateType     — delivery|pickup
+ *   $dimension    — fo|region|status
+ *   $chartMetric  — requests|weight
+ *   $reportData   — результат buildReports() [summary, rows, unmatched]
+ *   $chartData    — результат buildChartData() [enabled, items]
+ *   $service      — ReportsService
  */
 
 use App\Modules\Reports\Services\ReportsService;
 
-/** @var string $activeReport */
-$activeReport = $reportData['active_report'] ?? 'delivered_fo';
-/** @var string $reportTitle */
-$reportTitle = $reportData['report_title'] ?? 'Сдано по федеральным округам';
+/** @var string $period */
+/** @var string $dateType */
+/** @var string $dimension */
+/** @var string $chartMetric */
+/** @var array $reportData */
+/** @var array $chartData */
 /** @var ReportsService $service */
-$service = $reportData['service'] ?? null;
-/** @var array $rows */
-$rows = $reportData['rows'] ?? [];
-/** @var array $totals */
-$totals = $reportData['totals'] ?? [];
-/** @var int $unmatched */
+
+$summary  = $reportData['summary'] ?? [];
+$rows     = $reportData['rows'] ?? [];
 $unmatched = $reportData['unmatched'] ?? 0;
+$totalRows = count($rows);
+
+$dimensionLabels = [
+    'fo'     => 'По ФО',
+    'region' => 'По регионам',
+    'status' => 'По статусам',
+];
+
+$chartTitle = match ($dimension) {
+    'fo'     => 'Распределение по федеральным округам',
+    'region' => 'Топ регионов',
+    'status' => 'Распределение по статусам',
+};
+$chartSubtitle = 'Масса и заявки по выбранному основанию';
 ?>
-<!-- reports page: active=<?= htmlspecialchars($activeReport, ENT_QUOTES, 'UTF-8') ?> unmatched=<?= (int) $unmatched ?> -->
+<!-- reports page: dimension=<?= htmlspecialchars($dimension, ENT_QUOTES, 'UTF-8') ?> period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> chartMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> rows=<?= $totalRows ?> unmatched=<?= (int) $unmatched ?> -->
 
 <!-- Page header -->
 <div class="page-head">
@@ -34,30 +50,46 @@ $unmatched = $reportData['unmatched'] ?? 0;
     </div>
 </div>
 
-<!-- Reports tabs -->
-<div class="reports-tabs" role="tablist" aria-label="Отчёты">
-    <a class="reports-tab<?= $activeReport === 'delivered_fo' ? ' active' : '' ?>"
-       role="tab"
-       aria-selected="<?= $activeReport === 'delivered_fo' ? 'true' : 'false' ?>"
-       href="?module=reports&report=delivered_fo">Сдано по ФО</a>
-    <a class="reports-tab<?= $activeReport === 'delivered_regions' ? ' active' : '' ?>"
-       role="tab"
-       aria-selected="<?= $activeReport === 'delivered_regions' ? 'true' : 'false' ?>"
-       href="?module=reports&report=delivered_regions">Сдано по регионам</a>
-    <a class="reports-tab<?= $activeReport === 'status_summary' ? ' active' : '' ?>"
-       role="tab"
-       aria-selected="<?= $activeReport === 'status_summary' ? 'true' : 'false' ?>"
-       href="?module=reports&report=status_summary">По статусам</a>
-</div>
+<!-- Filter bar -->
+<form class="reports-filters" data-reports-filter-form method="get" action="">
+    <input type="hidden" name="module" value="reports">
+    <input type="hidden" name="chart_metric" id="chartMetricInput" value="<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?>">
+
+    <div class="filter-field" style="width: 140px;">
+        <label for="periodSelect">Группировка</label>
+        <select id="periodSelect" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="month"   <?= $period === 'month'   ? 'selected' : '' ?>>По месяцам</option>
+            <option value="quarter" <?= $period === 'quarter' ? 'selected' : '' ?>>По кварталам</option>
+            <option value="year"    <?= $period === 'year'    ? 'selected' : '' ?>>По годам</option>
+        </select>
+    </div>
+
+    <div class="filter-field" style="width: 130px;">
+        <label for="dateTypeSelect">Строить по</label>
+        <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
+            <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>
+        </select>
+    </div>
+
+    <div class="filter-field" style="width: 140px;">
+        <label for="dimensionSelect">Разрез</label>
+        <select id="dimensionSelect" name="dimension" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+            <option value="fo"     <?= $dimension === 'fo'     ? 'selected' : '' ?>>По ФО</option>
+            <option value="region" <?= $dimension === 'region' ? 'selected' : '' ?>>По регионам</option>
+            <option value="status" <?= $dimension === 'status' ? 'selected' : '' ?>>По статусам</option>
+        </select>
+    </div>
+</form>
 
 <!-- Table card -->
-<div class="table-card report-table-card" style="flex: 1; min-height: 0;">
+<div class="table-card reports-table-card" style="flex: 1; min-height: 0;">
     <div class="table-toolbar">
         <div class="summary-left">
             <span class="summary-main">
                 <span class="summary-main-dot"></span>
                 <span class="summary-main-label">Найдено:</span>
-                <b><?= count($rows) ?></b>
+                <b><?= $totalRows ?></b>
                 <span class="summary-main-unit">строк</span>
             </span>
         </div>
@@ -65,23 +97,159 @@ $unmatched = $reportData['unmatched'] ?? 0;
             <span class="summary-chip summary-chip-requests">
                 <span class="summary-chip-dot"></span>
                 <span>Итого заявок</span>
-                <b><?= number_format((int) ($totals['total_count'] ?? 0), 0, '.', ' ') ?></b>
+                <b><?= number_format((int) ($summary['requests_total'] ?? 0), 0, '.', ' ') ?></b>
             </span>
             <span class="summary-chip summary-chip-weight">
                 <span class="summary-chip-dot"></span>
                 <span>Итого масса</span>
-                <b><?= number_format((int) round($totals['total_weight'] ?? 0), 0, '.', ' ') ?> кг</b>
+                <b><?= number_format((int) ($summary['weight_total_kg'] ?? 0), 0, '.', ' ') ?> кг</b>
             </span>
+            <?php if ($dimension === 'status'): ?>
+            <span class="summary-chip summary-chip-flights">
+                <span class="summary-chip-dot"></span>
+                <span>Статусов</span>
+                <b><?= $totalRows ?></b>
+            </span>
+            <?php endif; ?>
         </div>
     </div>
 
+    <!-- Chart panel -->
+    <section class="reports-chart-panel" data-reports-chart>
+        <div class="reports-chart-inner">
+            <div class="reports-chart-head">
+                <div class="reports-chart-heading">
+                    <div class="reports-chart-title"><?= htmlspecialchars($chartTitle, ENT_QUOTES, 'UTF-8') ?></div>
+                    <div class="reports-chart-subtitle"><?= htmlspecialchars($chartSubtitle, ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+
+                <div class="reports-chart-switch" role="group" aria-label="Метрика графика">
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'weight' ? ' active' : '' ?>" data-chart-metric="weight" aria-pressed="<?= $chartMetric === 'weight' ? 'true' : 'false' ?>">Масса</button>
+                    <button type="button" class="chart-metric-btn<?= $chartMetric === 'requests' ? ' active' : '' ?>" data-chart-metric="requests" aria-pressed="<?= $chartMetric === 'requests' ? 'true' : 'false' ?>">Заявки</button>
+                </div>
+            </div>
+
+            <div class="reports-chart-body">
+                <!-- reports chart: enabled type=bar metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> items=<?= count($chartData['items'] ?? []) ?> -->
+                <svg class="reports-chart-svg" viewBox="0 0 800 220" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+
+                <div class="reports-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
+                    <?= !empty($rows) ? 'Нет данных для графика.' : 'Нет данных для отображения.' ?>
+                </div>
+            </div>
+        </div>
+
+        <script type="application/json" id="reportsChartData"><?= json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?></script>
+    </section>
+
     <div class="table-scroll">
         <?php if (!empty($rows)): ?>
-            <?php if ($activeReport === 'status_summary'): ?>
-                <?= renderStatusSummaryTable($rows, $totals, $reportData, $service) ?>
-            <?php else: ?>
-                <?= renderMonthTable($rows, $totals, $reportData, $service, $activeReport) ?>
-            <?php endif; ?>
+        <table class="table reports-table">
+            <colgroup>
+                <col class="col-reports-period">
+                <?php if ($dimension === 'fo'): ?>
+                <col class="col-reports-district">
+                <col class="col-reports-requests">
+                <col class="col-reports-weight">
+                <col class="col-reports-avg">
+                <col class="col-reports-share-r">
+                <col class="col-reports-share-w">
+                <?php elseif ($dimension === 'region'): ?>
+                <col class="col-reports-region">
+                <col class="col-reports-fo">
+                <col class="col-reports-requests">
+                <col class="col-reports-weight">
+                <col class="col-reports-avg">
+                <col class="col-reports-share-r">
+                <col class="col-reports-share-w">
+                <?php else: ?>
+                <col class="col-reports-status">
+                <col class="col-reports-requests">
+                <col class="col-reports-weight">
+                <col class="col-reports-avg">
+                <col class="col-reports-share-r">
+                <col class="col-reports-share-w">
+                <?php endif; ?>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>ПЕРИОД</th>
+                    <?php if ($dimension === 'fo'): ?>
+                    <th>ФО</th>
+                    <th style="text-align: right;">ЗАЯВОК</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
+                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
+                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
+                    <?php elseif ($dimension === 'region'): ?>
+                    <th>РЕГИОН</th>
+                    <th>ФО</th>
+                    <th style="text-align: right;">ЗАЯВОК</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
+                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
+                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
+                    <?php else: ?>
+                    <th>СТАТУС</th>
+                    <th style="text-align: right;">ЗАЯВОК</th>
+                    <th style="text-align: right;">МАССА, КГ</th>
+                    <th style="text-align: right;">СР. ЗАЯВКА, КГ</th>
+                    <th style="text-align: right;">ДОЛЯ ЗАЯВОК</th>
+                    <th style="text-align: right;">ДОЛЯ МАССЫ</th>
+                    <?php endif; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $totalWeightSum = 0.0;
+                $totalRequestsSum = 0;
+                foreach ($rows as $r) {
+                    $totalWeightSum += $r['weight_kg'] ?? 0;
+                    $totalRequestsSum += $r['requests'] ?? 0;
+                }
+                foreach ($rows as $row):
+                    $rWeight = $row['weight_kg'] ?? 0;
+                    $rRequests = $row['requests'] ?? 0;
+                    $rAvg = $row['avg_request_kg'] ?? 0;
+                    $shareR = $totalRequestsSum > 0 ? round(($rRequests / $totalRequestsSum) * 100, 1) : 0;
+                    $shareW = $totalWeightSum > 0 ? round(($rWeight / $totalWeightSum) * 100, 1) : 0;
+                ?>
+                <tr>
+                    <td>Все периоды</td>
+                    <?php if ($dimension === 'fo'): ?>
+                    <td class="report-cell-district" title="<?= htmlspecialchars($row['district_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <?= htmlspecialchars($row['district_short'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
+                    </td>
+                    <td class="cell-num"><?= ReportsService::formatCount($rRequests) ?></td>
+                    <td class="cell-weight"><?= ReportsService::formatWeight($rWeight) ?></td>
+                    <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
+                    <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
+                    <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
+                    <?php elseif ($dimension === 'region'): ?>
+                    <td class="report-cell-region" title="<?= htmlspecialchars($row['region'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <span class="report-region-name"><?= htmlspecialchars($row['region'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php if (!empty($row['district_short'])): ?>
+                        <span class="report-muted"><?= htmlspecialchars($row['district_short'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="report-cell-district"><?= htmlspecialchars($row['district_short'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+                    <td class="cell-num"><?= ReportsService::formatCount($rRequests) ?></td>
+                    <td class="cell-weight"><?= ReportsService::formatWeight($rWeight) ?></td>
+                    <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
+                    <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
+                    <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
+                    <?php else: ?>
+                    <td class="report-cell-district"><?= htmlspecialchars($row['status_label'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+                    <td class="cell-num"><?= ReportsService::formatCount($rRequests) ?></td>
+                    <td class="cell-weight"><?= ReportsService::formatWeight($rWeight) ?></td>
+                    <td class="cell-weight"><?= $rAvg > 0 ? number_format($rAvg, 0, '.', ' ') . ' кг' : '—' ?></td>
+                    <td class="cell-num"><?= $shareR > 0 ? number_format($shareR, 1, ',', '') . ' %' : '—' ?></td>
+                    <td class="cell-num"><?= $shareW > 0 ? number_format($shareW, 1, ',', '') . ' %' : '—' ?></td>
+                    <?php endif; ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
         <?php else: ?>
         <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
             Нет данных для отображения
@@ -90,166 +258,192 @@ $unmatched = $reportData['unmatched'] ?? 0;
     </div>
 </div>
 
-<?php
-// ================================================================
-//  Inline helper functions (template-only)
-// ================================================================
+<script>
+(function () {
+    var form = document.querySelector('[data-reports-filter-form]');
+    var periodSelect = document.getElementById('periodSelect');
+    var dateTypeSelect = document.getElementById('dateTypeSelect');
+    var dimensionSelect = document.getElementById('dimensionSelect');
 
-/**
- * Render month-based table (delivered_fo, delivered_regions).
- */
-function renderMonthTable(array $rows, array $totals, array $data, ?ReportsService $service, string $activeReport): string
-{
-    $months = $data['months'] ?? [];
-    $monthKeys = array_keys($months);
-    // Build month labels
-    $monthLabels = [];
-    $allMonthKeys = [];
-    foreach ($months as $mk) {
-        $allMonthKeys[] = $mk;
-        $monthLabels[$mk] = $service ? $service->formatMonthLabel($allMonthKeys, $mk) : $mk;
+    function submitAuto() {
+        if (!form) return;
+        form.submit();
     }
 
-    $isRegionReport = ($activeReport === 'delivered_regions');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', submitAuto);
+    }
+    if (dateTypeSelect) {
+        dateTypeSelect.addEventListener('change', submitAuto);
+    }
+    if (dimensionSelect) {
+        dimensionSelect.addEventListener('change', submitAuto);
+    }
+})();
+</script>
 
-    ob_start();
-    ?>
-    <table class="table reports-table">
-        <colgroup>
-            <col style="width: <?= $isRegionReport ? '160px' : '100px' ?>;">
-            <?php foreach ($months as $mk): ?>
-            <col style="width: 70px;">
-            <col style="width: 60px;">
-            <?php endforeach; ?>
-            <col style="width: 80px;">
-            <col style="width: 70px;">
-        </colgroup>
-        <thead>
-            <tr>
-                <th rowspan="2"><?= $isRegionReport ? 'РЕГИОН' : 'ФО' ?></th>
-                <?php foreach ($months as $mk): ?>
-                <th colspan="2" style="text-align: center;"><?= htmlspecialchars($monthLabels[$mk] ?? $mk, ENT_QUOTES, 'UTF-8') ?></th>
-                <?php endforeach; ?>
-                <th colspan="2" style="text-align: center;">ИТОГО</th>
-            </tr>
-            <tr>
-                <?php foreach ($months as $mk): ?>
-                <th style="text-align: right;">ВЕС</th>
-                <th style="text-align: right;">ЗАЯВОК</th>
-                <?php endforeach; ?>
-                <th style="text-align: right;">ВЕС</th>
-                <th style="text-align: right;">ЗАЯВОК</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($rows as $row): ?>
-            <tr>
-                <?php if ($isRegionReport): ?>
-                <td class="report-cell-region" title="<?= htmlspecialchars($row['region_display'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    <span class="report-region-name"><?= htmlspecialchars($row['region_display'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
-                    <?php if (!empty($row['district_short'])): ?>
-                    <span class="report-muted"><?= htmlspecialchars($row['district_short'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <?php endif; ?>
-                </td>
-                <?php else: ?>
-                <td class="report-cell-district" title="<?= htmlspecialchars($row['district_full'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($row['district_title'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
-                </td>
-                <?php endif; ?>
-                <?php foreach ($months as $mk): ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($row['cells'][$mk]['weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($row['cells'][$mk]['count'] ?? 0)) ?></td>
-                <?php endforeach; ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($row['total_weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($row['total_count'] ?? 0)) ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-        <?php if (!empty($totals)): ?>
-        <tfoot>
-            <tr class="report-total-row">
-                <td><?= htmlspecialchars($totals['district_title'] ?? $totals['region_display'] ?? 'Общий итог', ENT_QUOTES, 'UTF-8') ?></td>
-                <?php foreach ($months as $mk): ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($totals['cells'][$mk]['weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($totals['cells'][$mk]['count'] ?? 0)) ?></td>
-                <?php endforeach; ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($totals['total_weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($totals['total_count'] ?? 0)) ?></td>
-            </tr>
-        </tfoot>
-        <?php endif; ?>
-    </table>
-    <?php
-    return ob_get_clean();
-}
+<script>
+(function () {
+    var CHART_SVG_VIEWBOX = { w: 800, h: 220 };
+    var PADDING = { left: 90, right: 70, top: 14, bottom: 14 };
+    var BAR_HEIGHT = 18;
+    var BAR_GAP = 4;
 
-/**
- * Render status summary table.
- */
-function renderStatusSummaryTable(array $rows, array $totals, array $data, ?ReportsService $service): string
-{
-    $statuses = $data['statuses'] ?? [];
-    ob_start();
-    ?>
-    <table class="table reports-table">
-        <colgroup>
-            <col style="width: 100px;">
-            <?php foreach ($statuses as $sk): ?>
-            <col style="width: 80px;">
-            <col style="width: 70px;">
-            <?php endforeach; ?>
-            <col style="width: 80px;">
-            <col style="width: 70px;">
-        </colgroup>
-        <thead>
-            <tr>
-                <th rowspan="2">ФО</th>
-                <?php foreach ($statuses as $sk): ?>
-                <th colspan="2" style="text-align: center;" title="<?= htmlspecialchars($service ? $service->statusTitle($sk) : $sk, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($service ? $service->statusLabel($sk) : $sk, ENT_QUOTES, 'UTF-8') ?>
-                </th>
-                <?php endforeach; ?>
-                <th colspan="2" style="text-align: center;">ИТОГО</th>
-            </tr>
-            <tr>
-                <?php foreach ($statuses as $sk): ?>
-                <th style="text-align: right;">ВЕС</th>
-                <th style="text-align: right;">ЗАЯВОК</th>
-                <?php endforeach; ?>
-                <th style="text-align: right;">ВЕС</th>
-                <th style="text-align: right;">ЗАЯВОК</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($rows as $row): ?>
-            <tr>
-                <td class="report-cell-district" title="<?= htmlspecialchars($row['district_full'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($row['district_title'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
-                </td>
-                <?php foreach ($statuses as $sk): ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($row['cells'][$sk]['weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($row['cells'][$sk]['count'] ?? 0)) ?></td>
-                <?php endforeach; ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($row['total_weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($row['total_count'] ?? 0)) ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-        <?php if (!empty($totals)): ?>
-        <tfoot>
-            <tr class="report-total-row">
-                <td><?= htmlspecialchars($totals['district_title'] ?? 'Общий итог', ENT_QUOTES, 'UTF-8') ?></td>
-                <?php foreach ($statuses as $sk): ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($totals['cells'][$sk]['weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($totals['cells'][$sk]['count'] ?? 0)) ?></td>
-                <?php endforeach; ?>
-                <td class="report-cell-weight"><?= ReportsService::formatWeight((float) ($totals['total_weight'] ?? 0)) ?></td>
-                <td class="cell-num"><?= ReportsService::formatCount((int) ($totals['total_count'] ?? 0)) ?></td>
-            </tr>
-        </tfoot>
-        <?php endif; ?>
-    </table>
-    <?php
-    return ob_get_clean();
-}
-?>
+    var metricConfigs = {
+        weight: {
+            label: 'Масса',
+            key: 'value',
+            unit: 'кг',
+            color: '#A1622A',
+            hover: '#7A421C',
+            soft: 'rgba(161, 98, 42, 0.14)'
+        },
+        requests: {
+            label: 'Заявки',
+            key: 'value',
+            unit: '',
+            color: '#4E6F86',
+            hover: '#35566B',
+            soft: 'rgba(78, 111, 134, 0.14)'
+        }
+    };
+
+    var NS = 'http://www.w3.org/2000/svg';
+
+    var chartPanel = document.querySelector('[data-reports-chart]');
+    var jsonEl = document.getElementById('reportsChartData');
+    var chartData = null;
+
+    if (jsonEl) {
+        try { chartData = JSON.parse(jsonEl.textContent); } catch (e) { chartData = null; }
+    }
+
+    if (!chartPanel || !chartData || !chartData.enabled) return;
+
+    var svg = chartPanel.querySelector('.reports-chart-svg');
+    var emptyEl = chartPanel.querySelector('.reports-chart-empty');
+    var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
+    var chartMetricInput = document.getElementById('chartMetricInput');
+    var currentMetric = chartMetricInput ? chartMetricInput.value : 'requests';
+    if (!metricConfigs[currentMetric]) currentMetric = 'requests';
+
+    function formatNumber(value) {
+        if (value >= 1000000) return (value / 1000000).toFixed(1).replace('.0', '') + ' млн';
+        if (value >= 1000) return (value / 1000).toFixed(0) + ' тыс';
+        return String(value);
+    }
+
+    function svgEl(name, attrs) {
+        var el = document.createElementNS(NS, name);
+        for (var key in attrs) {
+            if (attrs.hasOwnProperty(key)) el.setAttribute(key, attrs[key]);
+        }
+        return el;
+    }
+
+    function renderChart(metric) {
+        if (!svg) return;
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        var items = chartData.items;
+        if (!items || items.length === 0) {
+            svg.setAttribute('hidden', '');
+            if (emptyEl) emptyEl.removeAttribute('hidden');
+            return;
+        }
+
+        svg.removeAttribute('hidden');
+        if (emptyEl) emptyEl.setAttribute('hidden', '');
+
+        var cfg = metricConfigs[metric];
+        var n = items.length;
+        var barAreaHeight = n * (BAR_HEIGHT + BAR_GAP);
+        // dynamic height
+        var totalH = Math.max(220, barAreaHeight + PADDING.top + PADDING.bottom + 10);
+        svg.setAttribute('viewBox', '0 0 800 ' + totalH);
+
+        var barAreaW = CHART_SVG_VIEWBOX.w - PADDING.left - PADDING.right;
+        var barStartY = PADDING.top;
+
+        var maxVal = 0;
+        for (var i = 0; i < n; i++) {
+            if (items[i].value > maxVal) maxVal = items[i].value;
+        }
+        if (maxVal <= 0) {
+            svg.setAttribute('hidden', '');
+            if (emptyEl) emptyEl.removeAttribute('hidden');
+            return;
+        }
+
+        // Nice max
+        var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
+        maxVal = Math.ceil(maxVal / magnitude) * magnitude;
+
+        for (var i = 0; i < n; i++) {
+            var item = items[i];
+            var barW = maxVal > 0 ? (item.value / maxVal) * barAreaW : 0;
+            var y = barStartY + i * (BAR_HEIGHT + BAR_GAP);
+            var x = PADDING.left;
+
+            // Label
+            var labelText = svgEl('text', {
+                'x': String(PADDING.left - 6),
+                'y': String(y + BAR_HEIGHT / 2 + 4),
+                'text-anchor': 'end',
+                'fill': 'rgba(74, 68, 61, 0.72)',
+                'font-size': '10',
+                'font-weight': '600',
+                'class': 'chart-axis-label'
+            });
+            labelText.textContent = item.short_label || item.label;
+            svg.appendChild(labelText);
+
+            // Bar
+            if (barW > 0) {
+                var rect = svgEl('rect', {
+                    'x': String(x),
+                    'y': String(y),
+                    'width': String(Math.max(barW, 2)),
+                    'height': String(BAR_HEIGHT),
+                    'fill': cfg.color,
+                    'rx': '1',
+                    'ry': '1',
+                    'class': 'chart-bar'
+                });
+                svg.appendChild(rect);
+
+                // Value inside bar
+                var valText = svgEl('text', {
+                    'x': String(x + barW + 6),
+                    'y': String(y + BAR_HEIGHT / 2 + 4),
+                    'fill': 'rgba(74, 68, 61, 0.58)',
+                    'font-size': '10',
+                    'font-weight': '700',
+                    'class': 'chart-value-label'
+                });
+                valText.textContent = cfg.unit ? formatNumber(item.value) + ' ' + cfg.unit : item.value.toLocaleString('ru-RU');
+                svg.appendChild(valText);
+            }
+        }
+    }
+
+    function setActiveMetric(metric) {
+        currentMetric = metric;
+        switchBtns.forEach(function (btn) {
+            var isActive = btn.getAttribute('data-chart-metric') === metric;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+        renderChart(metric);
+        if (chartMetricInput) chartMetricInput.value = metric;
+    }
+
+    switchBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setActiveMetric(this.getAttribute('data-chart-metric'));
+        });
+    });
+
+    setActiveMetric(currentMetric);
+})();
+</script>
