@@ -79,10 +79,10 @@ $allTabs = [
                 <col class="col-flights-date">
                 <col class="col-flights-id">
                 <col class="col-flights-desc">
-                <col class="col-flights-sklad-load">
-                <col class="col-flights-sklad-unload">
                 <col class="col-flights-status">
                 <col class="col-flights-driver">
+                <col class="col-flights-sklad-load">
+                <col class="col-flights-sklad-unload">
                 <col class="col-flights-manager">
                 <col class="col-flights-prozvon">
                 <col class="col-flights-addr">
@@ -95,10 +95,10 @@ $allTabs = [
                     <th>ПЛАН / ФАКТ ДАТА</th>
                     <th>ID</th>
                     <th>ОПИСАНИЕ РЕЙСА</th>
-                    <th title="Склад загрузки">СКЛАД ЗАГР.</th>
-                    <th title="Склад выгрузки">СКЛАД ВЫГР.</th>
                     <th>СТАТУС</th>
                     <th>ВОДИТЕЛЬ / МАШИНА</th>
+                    <th title="Склад загрузки">СКЛАД ЗАГР.</th>
+                    <th title="Склад выгрузки">СКЛАД ВЫГР.</th>
                     <th>МЕНЕДЖЕР</th>
                     <th>ПРОЗВОН</th>
                     <th>АДРЕСА / ЗАЯВКИ</th>
@@ -153,6 +153,22 @@ $allTabs = [
                     <td class="flight-desc" title="<?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?>">
                         <?= $description !== '' ? htmlspecialchars($description, ENT_QUOTES, 'UTF-8') : '<span class="empty-cell">—</span>' ?>
                     </td>
+                    <td class="flight-status-cell">
+                        <span class="flight-status <?= htmlspecialchars($statusInfo['css_class'], ENT_QUOTES, 'UTF-8') ?>">
+                            <span class="flight-status-dot"></span>
+                            <?= htmlspecialchars($statusInfo['label'], ENT_QUOTES, 'UTF-8') ?>
+                        </span>
+                    </td>
+                    <td class="flight-driver" title="<?= htmlspecialchars(trim(($driverName ?: '') . ' ' . ($vehiclePlate ?: '')), ENT_QUOTES, 'UTF-8') ?>">
+                        <?php if (!empty($driverName)): ?>
+                            <?= htmlspecialchars($driverName, ENT_QUOTES, 'UTF-8') ?>
+                            <?php if (!empty($vehiclePlate)): ?>
+                                <br><span class="vehicle-plate"><?= htmlspecialchars($vehiclePlate, ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="empty-cell">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="flight-warehouse">
                         <?php
                             $whLoadLabel = $flight['warehouse_load_label'] ?? '';
@@ -171,22 +187,6 @@ $allTabs = [
                             if ($whUnloadLabel !== ''):
                         ?>
                             <span class="warehouse-badge" title="<?= htmlspecialchars($whUnloadTitle, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($whUnloadLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php else: ?>
-                            <span class="empty-cell">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="flight-status-cell">
-                        <span class="flight-status <?= htmlspecialchars($statusInfo['css_class'], ENT_QUOTES, 'UTF-8') ?>">
-                            <span class="flight-status-dot"></span>
-                            <?= htmlspecialchars($statusInfo['label'], ENT_QUOTES, 'UTF-8') ?>
-                        </span>
-                    </td>
-                    <td class="flight-driver" title="<?= htmlspecialchars(trim(($driverName ?: '') . ' ' . ($vehiclePlate ?: '')), ENT_QUOTES, 'UTF-8') ?>">
-                        <?php if (!empty($driverName)): ?>
-                            <?= htmlspecialchars($driverName, ENT_QUOTES, 'UTF-8') ?>
-                            <?php if (!empty($vehiclePlate)): ?>
-                                <br><span class="vehicle-plate"><?= htmlspecialchars($vehiclePlate, ENT_QUOTES, 'UTF-8') ?></span>
-                            <?php endif; ?>
                         <?php else: ?>
                             <span class="empty-cell">—</span>
                         <?php endif; ?>
