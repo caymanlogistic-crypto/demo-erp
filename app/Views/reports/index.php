@@ -150,7 +150,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
 
             <div class="reports-chart-body">
                 <!-- chart: type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> -->
-                <svg class="reports-chart-svg" viewBox="0 0 800 220" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
+                <svg class="reports-chart-svg" viewBox="0 0 1200 180" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
 
                 <div class="reports-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
                     <?= !empty($rows) ? 'Нет данных для графика.' : 'Нет данных для отображения.' ?>
