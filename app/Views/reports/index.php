@@ -150,7 +150,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             <div class="reports-chart-body">
                 <!-- reports chart: enabled type=<?= htmlspecialchars($chartData['type'] ?? 'bar', ENT_QUOTES, 'UTF-8') ?> metric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> periods=<?= count($chartData['periods'] ?? []) ?> districts=<?= count($chartData['series'] ?? []) ?> -->
                 <svg class="reports-chart-svg" viewBox="0 0 1200 210" preserveAspectRatio="none" role="img" aria-label="График отчётности"<?= $chartData['enabled'] ? '' : ' hidden' ?>></svg>
-                <div class="statistics-chart-tooltip" hidden></div>
+                <div class="reports-chart-tooltip" hidden></div>
                 <div class="statistics-chart-empty"<?= $chartData['enabled'] ? ' hidden' : '' ?>>
                     <?= !empty($rows) ? 'Нет данных для графика.' : 'Нет данных для отображения.' ?>
                 </div>
@@ -388,7 +388,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
     if (!chartPanel || !chartData || !chartData.enabled) return;
 
     var svg = chartPanel.querySelector('.reports-chart-svg');
-    var tooltip = chartPanel.querySelector('.statistics-chart-tooltip');
+    var tooltip = chartPanel.querySelector('.reports-chart-tooltip');
     var emptyEl = chartPanel.querySelector('.statistics-chart-empty');
     var switchBtns = chartPanel.querySelectorAll('.chart-metric-btn');
     var chartMetricInput = document.getElementById('chartMetricInput');
@@ -745,29 +745,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             }
             tooltip.innerHTML = html;
             tooltip.hidden = false;
-
-            // Position tooltip relative to chartPanel
-            var tipW = tooltip.offsetWidth;
-            var tipH = tooltip.offsetHeight;
-            var relX = e.clientX - chartRect.left;
-            var relY = e.clientY - chartRect.top;
-
-            // Try right-above
-            var left = relX + 14;
-            var top = relY - tipH - 12;
-
-            // If doesn't fit right, flip left
-            if (left + tipW > chartRect.width) left = relX - tipW - 14;
-            // If doesn't fit above, flip below
-            if (top < 4) top = relY + 14;
-            // Clamp
-            if (left < 4) left = 4;
-            if (top < 4) top = 4;
-            if (left + tipW > chartRect.width) left = chartRect.width - tipW - 4;
-            if (top + tipH > chartRect.height) top = chartRect.height - tipH - 4;
-
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
+            // Position is fixed via CSS (.reports-chart-tooltip) — no JS positioning
         });
         svg.addEventListener('mouseleave', function () {
             if (tooltip) tooltip.hidden = true;
