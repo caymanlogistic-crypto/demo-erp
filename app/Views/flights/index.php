@@ -31,7 +31,6 @@ $allTabs = [
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
-        <div class="page-eyebrow">Рейсы / Таймлайн рейсов</div>
         <div class="page-title">Таймлайн рейсов</div>
         <div class="page-summary"><span>Операционная лента рейсов · read-only</span></div>
     </div>
@@ -149,7 +148,7 @@ $allTabs = [
                         <?= htmlspecialchars($dateStr, ENT_QUOTES, 'UTF-8') ?>
                     </td>
                     <td class="flight-id">
-                        <span class="ref-chip">#<?= $flightId ?></span>
+                        #<?= $flightId ?>
                     </td>
                     <td class="flight-desc" title="<?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?>">
                         <?= $description !== '' ? htmlspecialchars($description, ENT_QUOTES, 'UTF-8') : '<span class="empty-cell">—</span>' ?>

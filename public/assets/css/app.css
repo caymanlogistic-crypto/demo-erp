@@ -1260,6 +1260,8 @@ textarea { resize: vertical; }
 
 .flight-id {
   text-align: center;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .flight-desc {
@@ -1279,15 +1281,13 @@ textarea { resize: vertical; }
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
-  height: 16px;
-  padding: 0 4px;
-  border: 1px solid var(--warning-border);
-  border-radius: 2px;
-  background: var(--warning-bg);
-  color: var(--warning);
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 16px;
+  font-weight: 400;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .flight-status-cell {

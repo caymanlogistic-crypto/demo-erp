@@ -20,12 +20,7 @@
         $currentModule = $pageModule ?? 'feo';
         if ($currentModule === 'flights'):
         ?>
-        <div class="crumbs">
-            <span>Рейсы</span>
-            <span class="sep">›</span>
-            <b>Таймлайн рейсов</b>
-        </div>
-        <nav class="top-subnav" aria-label="Подразделы">
+        <nav class="top-subnav" aria-label="Подразделы" style="margin-left:14px">
             <a class="top-subnav-link active" href="/demoERP/public/?module=flights">Таймлайн рейсов</a>
         </nav>
         <?php elseif ($currentModule === 'statistics'): ?>
