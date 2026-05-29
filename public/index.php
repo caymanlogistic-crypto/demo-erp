@@ -57,8 +57,13 @@ try {
             break;
 
         case 'home':
+            $controller = new \App\Modules\Home\Controllers\HomeController();
+            echo $controller->index();
+            break;
+
         default:
-            echo 'Demo ERP работает';
+            $controller = new \App\Modules\Home\Controllers\HomeController();
+            echo $controller->index();
             break;
     }
 } catch (\Throwable $e) {
