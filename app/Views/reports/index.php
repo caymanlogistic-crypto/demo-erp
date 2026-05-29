@@ -42,8 +42,10 @@ $chartTitle = match ($dimension) {
     'status' => 'Распределение по статусам',
 };
 $chartSubtitle = 'Заявки и вес по выбранному основанию';
+$reportsRequestsTotal = (int) ($summary['requests_total'] ?? 0);
+$reportsWeightTotal   = (int) ($summary['weight_total_kg'] ?? 0);
 ?>
-<!-- reports page: dimension=<?= htmlspecialchars($dimension, ENT_QUOTES, 'UTF-8') ?> period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> chartMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> rows=<?= $totalRows ?> unmatched=<?= (int) $unmatched ?> -->
+<!-- reports page: dimension=<?= htmlspecialchars($dimension, ENT_QUOTES, 'UTF-8') ?> period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> from=<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?> to=<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?> chartMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> rows=<?= $totalRows ?> requests=<?= $reportsRequestsTotal ?> weight=<?= $reportsWeightTotal ?> unmatched=<?= (int) $unmatched ?> -->
 
 <!-- Page header -->
 <div class="page-head">

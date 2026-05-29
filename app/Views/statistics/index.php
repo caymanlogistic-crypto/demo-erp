@@ -27,7 +27,11 @@ use App\Modules\Statistics\Services\StatisticsService;
 /** @var array $chartData */
 /** @var string $chartMetric */
 /** @var StatisticsService $service */
+$statsRequestsTotal = (int) ($summary['requests_total'] ?? 0);
+$statsWeightTotal   = (int) ($summary['weight_total_kg'] ?? 0);
+$statsRowsCount     = count($rows);
 ?>
+<!-- stats audit: period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> from=<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?> to=<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?> rows=<?= $statsRowsCount ?> requests=<?= $statsRequestsTotal ?> weight=<?= $statsWeightTotal ?> -->
 <!-- Page header -->
 <div class="page-head">
     <div class="page-head-left">
