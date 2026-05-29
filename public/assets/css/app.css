@@ -203,21 +203,32 @@ textarea { resize: vertical; }
   font-weight: 800;
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.topbar-brand:hover,
+.topbar-brand:focus {
+  color: var(--nav-gold);
+  background: transparent;
+  border-color: transparent;
+  text-decoration: none;
 }
 .topbar-divider {
   width: 1px;
   height: 22px;
-  background: rgba(255,255,255,.18);
-  margin: 0 10px 0 4px;
+  background: rgba(245, 243, 238, 0.22);
+  margin: 0 10px 0 2px;
   flex-shrink: 0;
 }
 
 .main-topnav {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 6px;
   height: 100%;
+  min-width: 0;
 }
 .main-topnav-link {
   display: inline-flex;
