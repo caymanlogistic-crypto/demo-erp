@@ -176,7 +176,8 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         $numDistricts = count($districtTitles);
         $colSpanRequests = $numDistricts;
         $colSpanWeight   = $numDistricts;
-        ?>
+        $unmatchedDiagnostics = $data['unmatched_regions'] ?? [];
+        ?><!-- reports districts: unmatched=<?= (int) $unmatched ?> -->
         <table class="table reports-table reports-matrix-table">
             <colgroup>
                 <col class="col-matrix-period">
@@ -195,10 +196,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 </tr>
                 <tr class="reports-matrix-sub-head">
                     <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Не определено' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
                     <?php endforeach; ?>
                     <?php foreach ($districtTitles as $dk => $dt): ?>
-                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Не определено' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
+                    <th class="th-district" title="<?= htmlspecialchars($dk === '_unmatched' ? 'Федеральный округ не определён' : $service->districtFullTitle($dk) ?? $dt, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dt, ENT_QUOTES, 'UTF-8') ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -429,7 +430,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
 <script>
 (function () {
     var NS = 'http://www.w3.org/2000/svg';
-    var CHART_W = 800;
+    var CHART_W = 1200;
 
     var chartPanel = document.querySelector('[data-reports-chart]');
     var jsonEl = document.getElementById('reportsChartData');
@@ -523,9 +524,9 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
 
         var barAreaH = n * (BAR_HEIGHT + BAR_GAP);
         var totalH = Math.max(220, barAreaH + PADDING.top + PADDING.bottom + 10);
-        svg.setAttribute('viewBox', '0 0 800 ' + totalH);
+        svg.setAttribute('viewBox', '0 0 1200 ' + totalH);
 
-        var chartW = 800 - PADDING.left - PADDING.right;
+        var chartW = 1200 - PADDING.left - PADDING.right;
 
         var maxVal = 0;
         for (var i = 0; i < n; i++) {
@@ -611,10 +612,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         svg.removeAttribute('hidden');
         if (emptyEl) emptyEl.setAttribute('hidden', '');
 
-        var PADDING = { left: 46, right: 46, top: 24, bottom: 28 };
-        var CHART_H = 220;
+        var PADDING = { left: 46, right: 46, top: 18, bottom: 24 };
+        var CHART_H = 180;
 
-        svg.setAttribute('viewBox', '0 0 800 ' + CHART_H);
+        svg.setAttribute('viewBox', '0 0 1200 ' + CHART_H);
 
         var plotW = 800 - PADDING.left - PADDING.right;
         var plotH = CHART_H - PADDING.top - PADDING.bottom;
@@ -706,20 +707,21 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             var xPos = periodXPositions[pi];
             var lbl = periods[pi].label;
 
-            // Shorten label if compact
-            if (compactLabels && lbl.length > 12) {
-                // Show just the start date or week number
-                var m = lbl.match(/^(\d+)\.(\d+)/);
-                lbl = m ? m[1] + '.' + m[2] : lbl.substring(0, 10);
+            // Shorten label: show compact date range
+            var m = lbl.match(/^(\d+)\.(\d+)/);
+            if (m) {
+                lbl = m[1] + '.' + m[2];
+            } else if (lbl.length > 8) {
+                lbl = lbl.substring(0, 8);
             }
 
             var label = svgEl('text', {
                 'x': String(xPos),
-                'y': String(plotY1 + 16),
+                'y': String(plotY1 + 14),
                 'text-anchor': 'end',
-                'transform': 'rotate(-25 ' + xPos + ' ' + (plotY1 + 16) + ')',
-                'fill': 'rgba(74, 68, 61, 0.48)',
-                'font-size': '8',
+                'transform': 'rotate(-20 ' + xPos + ' ' + (plotY1 + 14) + ')',
+                'fill': 'rgba(74, 68, 61, 0.45)',
+                'font-size': '7.5',
                 'class': 'chart-axis-label'
             });
             label.textContent = lbl;
@@ -755,7 +757,7 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 'points': ptsStr,
                 'fill': 'none',
                 'stroke': color,
-                'stroke-width': '1.5',
+                'stroke-width': '1.4',
                 'stroke-linecap': 'round',
                 'stroke-linejoin': 'round',
                 'class': 'chart-line'
@@ -770,10 +772,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
                 var dot = svgEl('circle', {
                     'cx': String(pt.x),
                     'cy': String(pt.y),
-                    'r': '2.5',
+                    'r': '2',
                     'fill': '#f5f3ee',
                     'stroke': color,
-                    'stroke-width': '1.5',
+                    'stroke-width': '1.2',
                     'class': 'chart-dot'
                 });
                 svg.appendChild(dot);
@@ -781,32 +783,30 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
         }
 
         // ================================================================
-        //  Legend
+        //  Legend — compact, one row if possible
         // ================================================================
-        var legendX = plotX0;
-        var legendY = 5;
         var legendSvg = svgEl('g', { 'class': 'chart-legend' });
-        var xOff = 0;
-        var maxLegendWidth = plotW;
+        var xOff = plotX0;
+        var legendY = 2;
 
         for (var si = 0; si < series.length; si++) {
             var s = series[si];
             var color = getLineColor(s.key, si);
             var lbl = s.label || s.key;
 
-            var itemW = lbl.length * 7 + 20;
-            if (xOff + itemW > maxLegendWidth) {
-                xOff = 0;
-                legendY += 12;
+            var itemW = lbl.length * 6 + 16;
+            if (xOff + itemW > plotX1) {
+                xOff = plotX0;
+                legendY += 10;
             }
 
             var legendItem = svgEl('g', { 'transform': 'translate(' + xOff + ', ' + legendY + ')' });
 
             var rect = svgEl('rect', {
                 'x': '0',
-                'y': '-4',
-                'width': '8',
-                'height': '8',
+                'y': '-3',
+                'width': '6',
+                'height': '6',
                 'rx': '1',
                 'fill': color,
                 'opacity': '0.85'
@@ -814,10 +814,10 @@ $chartSubtitle = 'Заявки и вес по выбранному основа�
             legendItem.appendChild(rect);
 
             var text = svgEl('text', {
-                'x': '12',
-                'y': '2',
-                'fill': 'rgba(74, 68, 61, 0.70)',
-                'font-size': '8.5',
+                'x': '9',
+                'y': '1.5',
+                'fill': 'rgba(74, 68, 61, 0.65)',
+                'font-size': '8',
                 'font-weight': '600',
                 'class': 'chart-legend-label'
             });

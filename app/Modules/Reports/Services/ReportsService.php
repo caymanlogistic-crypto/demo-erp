@@ -178,6 +178,8 @@ class ReportsService
         $matrix = [];
         $unmatched = 0;
         $allPeriodKeys = [];
+        /** @var array<string, true> */
+        $unmatchedRegions = [];
 
         foreach ($flights as $flight) {
             $periodKey = $this->getPeriodKey($flight['event_date'], $period);
@@ -188,7 +190,12 @@ class ReportsService
                 if ($data === null) continue;
                 $region = $data['mno_region'];
                 $districtKey = $this->districtMap->resolveShortName($region) ?? '_unmatched';
-                if ($districtKey === '_unmatched') $unmatched++;
+                if ($districtKey === '_unmatched') {
+                    $unmatched++;
+                    if ($region !== null && $region !== '') {
+                        $unmatchedRegions[$region] = true;
+                    }
+                }
                 $matrix[$periodKey][$districtKey][$zId] = true;
             }
         }
@@ -267,12 +274,13 @@ class ReportsService
                 'weight_total_kg' => (int) round($grWeight),
                 'avg_request_kg'  => $grRequests > 0 ? (int) round($grWeight / $grRequests) : 0,
             ],
-            'rows'            => $rows,
-            'unmatched'       => $unmatched,
-            'districts'       => $allDistricts,
-            'district_titles' => $districtTitles + ($hasUnmatched ? ['_unmatched' => 'Н/Д'] : []),
-            'has_unmatched'   => $hasUnmatched,
-            'totals'          => $totals,
+            'rows'             => $rows,
+            'unmatched'        => $unmatched,
+            'districts'        => $allDistricts,
+            'district_titles'  => $districtTitles + ($hasUnmatched ? ['_unmatched' => 'Н/Д'] : []),
+            'has_unmatched'    => $hasUnmatched,
+            'totals'           => $totals,
+            'unmatched_regions' => array_keys($unmatchedRegions),
         ];
     }
 
@@ -317,7 +325,7 @@ class ReportsService
             $series[] = [
                 'key'    => $dk,
                 'label'  => $districtTitles[$dk] ?? $dk,
-                'title'  => $dk === '_unmatched' ? 'Не определено' : $fullTitle,
+                'title'  => $dk === '_unmatched' ? 'Федеральный округ не определён' : $fullTitle,
                 'values' => $values,
             ];
         }
