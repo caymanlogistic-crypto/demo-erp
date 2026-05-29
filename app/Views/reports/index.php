@@ -2,13 +2,18 @@
 /**
  * Контент страницы «Отчётность» (TransportERP shell).
  *
- * Переменные (из ReportsController):
- *   $period       — month|quarter|year
+ * Переменные:
+ *   $period       — week|month|custom
  *   $dateType     — delivery|pickup
  *   $dimension    — fo|region|status
  *   $chartMetric  — requests|weight
- *   $reportData   — результат buildReports() [summary, rows, unmatched]
- *   $chartData    — результат buildChartData() [enabled, items]
+ *   $dateFrom     — YYYY-MM-DD
+ *   $dateTo       — YYYY-MM-DD
+ *   $warning      — string|null
+ *   $summary      — [rows_total, requests_total, weight_total_kg, avg_request_kg]
+ *   $rows         — array of report rows
+ *   $unmatched    — int
+ *   $chartData    — [enabled, items]
  *   $service      — ReportsService
  */
 
@@ -18,20 +23,16 @@ use App\Modules\Reports\Services\ReportsService;
 /** @var string $dateType */
 /** @var string $dimension */
 /** @var string $chartMetric */
-/** @var array $reportData */
+/** @var string $dateFrom */
+/** @var string $dateTo */
+/** @var string|null $warning */
+/** @var array $summary */
+/** @var array $rows */
+/** @var int $unmatched */
 /** @var array $chartData */
 /** @var ReportsService $service */
 
-$summary  = $reportData['summary'] ?? [];
-$rows     = $reportData['rows'] ?? [];
-$unmatched = $reportData['unmatched'] ?? 0;
-$totalRows = count($rows);
-
-$dimensionLabels = [
-    'fo'     => 'По ФО',
-    'region' => 'По регионам',
-    'status' => 'По статусам',
-];
+$totalRows = $summary['rows_total'] ?? count($rows);
 
 $chartTitle = match ($dimension) {
     'fo'     => 'Распределение по федеральным округам',
@@ -50,23 +51,23 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
     </div>
 </div>
 
-<!-- Filter bar -->
+<!-- Filter bar (как Statistics) -->
 <form class="reports-filters" data-reports-filter-form method="get" action="">
     <input type="hidden" name="module" value="reports">
     <input type="hidden" name="chart_metric" id="chartMetricInput" value="<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?>">
 
     <div class="filter-field" style="width: 140px;">
         <label for="periodSelect">Группировка</label>
-        <select id="periodSelect" name="period" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
-            <option value="month"   <?= $period === 'month'   ? 'selected' : '' ?>>По месяцам</option>
-            <option value="quarter" <?= $period === 'quarter' ? 'selected' : '' ?>>По кварталам</option>
-            <option value="year"    <?= $period === 'year'    ? 'selected' : '' ?>>По годам</option>
+        <select id="periodSelect" name="period">
+            <option value="week"   <?= $period === 'week'   ? 'selected' : '' ?>>По неделям</option>
+            <option value="month"  <?= $period === 'month'  ? 'selected' : '' ?>>По месяцам</option>
+            <option value="custom" <?= $period === 'custom' ? 'selected' : '' ?>>Произвольный период</option>
         </select>
     </div>
 
     <div class="filter-field" style="width: 130px;">
         <label for="dateTypeSelect">Строить по</label>
-        <select id="dateTypeSelect" name="date_type" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+        <select id="dateTypeSelect" name="date_type">
             <option value="delivery" <?= $dateType === 'delivery' ? 'selected' : '' ?>>Доставка</option>
             <option value="pickup"   <?= $dateType === 'pickup'   ? 'selected' : '' ?>>Вывоз</option>
         </select>
@@ -74,13 +75,32 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
 
     <div class="filter-field" style="width: 140px;">
         <label for="dimensionSelect">Разрез</label>
-        <select id="dimensionSelect" name="dimension" style="height: 24px; padding: 0 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-soft); background: var(--surface-field); border-radius: 2px;">
+        <select id="dimensionSelect" name="dimension">
             <option value="fo"     <?= $dimension === 'fo'     ? 'selected' : '' ?>>По ФО</option>
             <option value="region" <?= $dimension === 'region' ? 'selected' : '' ?>>По регионам</option>
             <option value="status" <?= $dimension === 'status' ? 'selected' : '' ?>>По статусам</option>
         </select>
     </div>
+
+    <div class="filter-field reports-date-range-field" data-custom-period-field<?= $period !== 'custom' ? ' hidden' : '' ?> style="width: 150px;">
+        <label for="filterDateFrom">Дата с</label>
+        <input type="date" id="filterDateFrom" name="date_from" value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>"<?= $period !== 'custom' ? ' disabled' : '' ?>>
+    </div>
+
+    <div class="filter-field reports-date-range-field" data-custom-period-field<?= $period !== 'custom' ? ' hidden' : '' ?> style="width: 150px;">
+        <label for="filterDateTo">Дата по</label>
+        <input type="date" id="filterDateTo" name="date_to" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>"<?= $period !== 'custom' ? ' disabled' : '' ?>>
+    </div>
+
+    <div class="filter-actions" data-custom-period-action<?= $period !== 'custom' ? ' hidden' : '' ?>>
+        <button type="submit" class="btn btn-toolbar">Применить</button>
+        <a class="btn btn-toolbar" href="?module=reports" style="text-decoration: none;">Сбросить</a>
+    </div>
 </form>
+
+<?php if ($warning !== null): ?>
+<div class="form-alert alert-warning" style="margin: 0;"><?= htmlspecialchars($warning, ENT_QUOTES, 'UTF-8') ?></div>
+<?php endif; ?>
 
 <!-- Table card -->
 <div class="table-card reports-table-card" style="flex: 1; min-height: 0;">
@@ -96,21 +116,19 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
         <div class="summary-right">
             <span class="summary-chip summary-chip-requests">
                 <span class="summary-chip-dot"></span>
-                <span>Итого заявок</span>
+                <span>Заявок</span>
                 <b><?= number_format((int) ($summary['requests_total'] ?? 0), 0, '.', ' ') ?></b>
             </span>
             <span class="summary-chip summary-chip-weight">
                 <span class="summary-chip-dot"></span>
-                <span>Итого масса</span>
+                <span>Масса</span>
                 <b><?= number_format((int) ($summary['weight_total_kg'] ?? 0), 0, '.', ' ') ?> кг</b>
             </span>
-            <?php if ($dimension === 'status'): ?>
-            <span class="summary-chip summary-chip-flights">
+            <span class="summary-chip summary-chip-avg">
                 <span class="summary-chip-dot"></span>
-                <span>Статусов</span>
-                <b><?= $totalRows ?></b>
+                <span>Средняя заявка</span>
+                <b><?= ($summary['avg_request_kg'] ?? 0) > 0 ? number_format((int) ($summary['avg_request_kg'] ?? 0), 0, '.', ' ') . ' кг' : '—' ?></b>
             </span>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -203,10 +221,8 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                 <?php
                 $totalWeightSum = 0.0;
                 $totalRequestsSum = 0;
-                foreach ($rows as $r) {
-                    $totalWeightSum += $r['weight_kg'] ?? 0;
-                    $totalRequestsSum += $r['requests'] ?? 0;
-                }
+                foreach ($rows as $r) { $totalWeightSum += $r['weight_kg'] ?? 0; $totalRequestsSum += $r['requests'] ?? 0; }
+                $periodLabel = $service->formatPeriodLabel($period === 'month' ? date('Y-m') : ($period === 'week' ? date('o-\WW') : 'all'), $period, $dateFrom, $dateTo);
                 foreach ($rows as $row):
                     $rWeight = $row['weight_kg'] ?? 0;
                     $rRequests = $row['requests'] ?? 0;
@@ -215,7 +231,7 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                     $shareW = $totalWeightSum > 0 ? round(($rWeight / $totalWeightSum) * 100, 1) : 0;
                 ?>
                 <tr>
-                    <td>Все периоды</td>
+                    <td><?= htmlspecialchars($periodLabel, ENT_QUOTES, 'UTF-8') ?></td>
                     <?php if ($dimension === 'fo'): ?>
                     <td class="report-cell-district" title="<?= htmlspecialchars($row['district_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         <?= htmlspecialchars($row['district_short'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
@@ -264,21 +280,64 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
     var periodSelect = document.getElementById('periodSelect');
     var dateTypeSelect = document.getElementById('dateTypeSelect');
     var dimensionSelect = document.getElementById('dimensionSelect');
+    var customFields = document.querySelectorAll('[data-custom-period-field]');
+    var customActions = document.querySelectorAll('[data-custom-period-action]');
+
+    function isCustom() {
+        return periodSelect && periodSelect.value === 'custom';
+    }
+
+    function updateCustomVisibility() {
+        var visible = isCustom();
+
+        customFields.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+
+            var input = el.querySelector('input, select, textarea');
+            if (input) {
+                input.disabled = !visible;
+            }
+        });
+
+        customActions.forEach(function (el) {
+            el.hidden = !visible;
+            el.classList.toggle('is-hidden', !visible);
+        });
+    }
 
     function submitAuto() {
-        if (!form) return;
+        if (!form || isCustom()) return;
+
+        var dateFrom = form.querySelector('[name="date_from"]');
+        var dateTo = form.querySelector('[name="date_to"]');
+
+        if (dateFrom) dateFrom.disabled = true;
+        if (dateTo) dateTo.disabled = true;
+
         form.submit();
     }
 
     if (periodSelect) {
-        periodSelect.addEventListener('change', submitAuto);
+        periodSelect.addEventListener('change', function () {
+            updateCustomVisibility();
+            if (!isCustom()) submitAuto();
+        });
     }
+
     if (dateTypeSelect) {
-        dateTypeSelect.addEventListener('change', submitAuto);
+        dateTypeSelect.addEventListener('change', function () {
+            if (!isCustom()) submitAuto();
+        });
     }
+
     if (dimensionSelect) {
-        dimensionSelect.addEventListener('change', submitAuto);
+        dimensionSelect.addEventListener('change', function () {
+            if (!isCustom()) submitAuto();
+        });
     }
+
+    updateCustomVisibility();
 })();
 </script>
 
@@ -290,22 +349,8 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
     var BAR_GAP = 4;
 
     var metricConfigs = {
-        weight: {
-            label: 'Масса',
-            key: 'value',
-            unit: 'кг',
-            color: '#A1622A',
-            hover: '#7A421C',
-            soft: 'rgba(161, 98, 42, 0.14)'
-        },
-        requests: {
-            label: 'Заявки',
-            key: 'value',
-            unit: '',
-            color: '#4E6F86',
-            hover: '#35566B',
-            soft: 'rgba(78, 111, 134, 0.14)'
-        }
+        weight: { label: 'Масса', key: 'weight', unit: 'кг', color: '#A1622A', hover: '#7A421C', soft: 'rgba(161, 98, 42, 0.14)' },
+        requests: { label: 'Заявки', key: 'requests', unit: '', color: '#4E6F86', hover: '#35566B', soft: 'rgba(78, 111, 134, 0.14)' }
     };
 
     var NS = 'http://www.w3.org/2000/svg';
@@ -358,7 +403,6 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
         var cfg = metricConfigs[metric];
         var n = items.length;
         var barAreaHeight = n * (BAR_HEIGHT + BAR_GAP);
-        // dynamic height
         var totalH = Math.max(220, barAreaHeight + PADDING.top + PADDING.bottom + 10);
         svg.setAttribute('viewBox', '0 0 800 ' + totalH);
 
@@ -367,7 +411,8 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
 
         var maxVal = 0;
         for (var i = 0; i < n; i++) {
-            if (items[i].value > maxVal) maxVal = items[i].value;
+            var v = items[i][cfg.key];
+            if (v > maxVal) maxVal = v;
         }
         if (maxVal <= 0) {
             svg.setAttribute('hidden', '');
@@ -375,17 +420,17 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
             return;
         }
 
-        // Nice max
         var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
         maxVal = Math.ceil(maxVal / magnitude) * magnitude;
+        if (maxVal <= 0) { svg.setAttribute('hidden', ''); return; }
 
         for (var i = 0; i < n; i++) {
             var item = items[i];
-            var barW = maxVal > 0 ? (item.value / maxVal) * barAreaW : 0;
+            var val = item[cfg.key] || 0;
+            var barW = (val / maxVal) * barAreaW;
             var y = barStartY + i * (BAR_HEIGHT + BAR_GAP);
             var x = PADDING.left;
 
-            // Label
             var labelText = svgEl('text', {
                 'x': String(PADDING.left - 6),
                 'y': String(y + BAR_HEIGHT / 2 + 4),
@@ -398,7 +443,6 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
             labelText.textContent = item.short_label || item.label;
             svg.appendChild(labelText);
 
-            // Bar
             if (barW > 0) {
                 var rect = svgEl('rect', {
                     'x': String(x),
@@ -412,7 +456,6 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                 });
                 svg.appendChild(rect);
 
-                // Value inside bar
                 var valText = svgEl('text', {
                     'x': String(x + barW + 6),
                     'y': String(y + BAR_HEIGHT / 2 + 4),
@@ -421,7 +464,7 @@ $chartSubtitle = 'Масса и заявки по выбранному осно�
                     'font-weight': '700',
                     'class': 'chart-value-label'
                 });
-                valText.textContent = cfg.unit ? formatNumber(item.value) + ' ' + cfg.unit : item.value.toLocaleString('ru-RU');
+                valText.textContent = cfg.unit ? formatNumber(val) + ' ' + cfg.unit : val.toLocaleString('ru-RU');
                 svg.appendChild(valText);
             }
         }

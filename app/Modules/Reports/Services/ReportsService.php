@@ -10,25 +10,14 @@ use App\Modules\Reports\Support\FederalDistrictRegionMap;
 /**
  * Сервис построения отчётов.
  *
- * Новый API:
- *   buildReports(period, dateType, dimension) -> view model с rows, summary, chart
- *
- * Старые методы (buildDeliveredByFO / buildDeliveredByRegions / buildStatusSummary)
- * сохранены для обратной совместимости.
+ * Фильтры: period (week|month|custom), date_type (pickup|delivery), dimension (fo|region|status).
+ * Старый API сохранён для обратной совместимости (buildDeliveredByFO / buildDeliveredByRegions / buildStatusSummary).
  */
 class ReportsService
 {
     private ReportsRepository $repository;
     private FederalDistrictRegionMap $districtMap;
 
-    /** @var string[] Месяцы (рус, кратко) */
-    private const MONTH_NAMES = [
-        1 => 'Янв', 2 => 'Фев', 3 => 'Мар', 4 => 'Апр',
-        5 => 'Май', 6 => 'Июн', 7 => 'Июл', 8 => 'Авг',
-        9 => 'Сен', 10 => 'Окт', 11 => 'Ноя', 12 => 'Дек',
-    ];
-
-    /** @var string[] Полные названия месяцев */
     private const MONTH_FULL = [
         1 => 'Январь', 2 => 'Февраль', 3 => 'Март', 4 => 'Апрель',
         5 => 'Май', 6 => 'Июнь', 7 => 'Июль', 8 => 'Август',
@@ -44,13 +33,6 @@ class ReportsService
         'planned'   => 'Планируемый',
     ];
 
-    private const STATUS_TITLES = [
-        'started'   => 'Вывоз начался',
-        'completed' => 'Груз сдан',
-        'found'     => 'Исполнитель найден',
-        'planned'   => 'Планируемый',
-    ];
-
     public function __construct()
     {
         $this->repository = new ReportsRepository();
@@ -58,58 +40,95 @@ class ReportsService
     }
 
     // ===================================================================
-    //  Новый API: buildReports
+    //  Нормализация фильтров (как Statistics)
     // ===================================================================
 
     /**
-     * Построить отчёт с фильтрами period, dateType, dimension.
-     *
-     * @return array{period: string, date_type: string, dimension: string, chart_metric: string, summary: array, chart: array, rows: array, unmatched: int}
+     * @return array{period: string, date_type: string, dimension: string, chart_metric: string, date_from: string, date_to: string, warning: string|null}
      */
-    public function buildReports(string $period, string $dateType, string $dimension): array
+    public function normalizeFilters(): array
     {
-        $flights = $this->repository->getFlightsForReports($dateType);
+        $period      = $this->normalizePeriod($_GET['period'] ?? 'week');
+        $dateType    = $this->normalizeDateType($_GET['date_type'] ?? 'delivery');
+        $dimension   = $this->resolveDimension();
+        $chartMetric = $this->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
+        $warning     = null;
+
+        $defaultFrom = date('Y-m-d', strtotime('-12 weeks'));
+        $defaultTo   = date('Y-m-d');
+
+        if ($period === 'custom') {
+            $dateFrom = $_GET['date_from'] ?? '';
+            $dateTo   = $_GET['date_to'] ?? '';
+
+            if ($dateFrom === '' || !$this->isValidDate($dateFrom)) {
+                if ($dateFrom !== '') {
+                    $warning = 'Период был скорректирован автоматически';
+                }
+                $dateFrom = $defaultFrom;
+            }
+
+            if ($dateTo === '' || !$this->isValidDate($dateTo)) {
+                if ($dateTo !== '') {
+                    $warning = 'Период был скорректирован автоматически';
+                }
+                $dateTo = $defaultTo;
+            }
+        } else {
+            $dateFrom = $defaultFrom;
+            $dateTo   = $defaultTo;
+        }
+
+        return [
+            'period'       => $period,
+            'date_type'    => $dateType,
+            'dimension'    => $dimension,
+            'chart_metric' => $chartMetric,
+            'date_from'    => $dateFrom,
+            'date_to'      => $dateTo,
+            'warning'      => $warning,
+        ];
+    }
+
+    /**
+     * Построить отчёт.
+     *
+     * @return array{summary: array, rows: array, unmatched: int}
+     */
+    public function buildReports(string $period, string $dateType, string $dimension, string $dateFrom, string $dateTo): array
+    {
+        $flights = $this->repository->getFlightsForReports($dateType, $dateFrom, $dateTo);
         if (empty($flights)) {
             return [
-                'period'       => $period,
-                'date_type'    => $dateType,
-                'dimension'    => $dimension,
-                'chart_metric'  => 'requests',
-                'summary'      => [
-                    'requests_total'     => 0,
-                    'weight_total_kg'    => 0,
-                    'rows_total'         => 0,
-                    'avg_request_weight_kg' => 0,
-                ],
-                'chart' => [
-                    'enabled' => false,
-                    'items'   => [],
+                'summary' => [
+                    'rows_total'    => 0,
+                    'requests_total' => 0,
+                    'weight_total_kg' => 0,
+                    'avg_request_kg' => 0,
                 ],
                 'rows'     => [],
                 'unmatched' => 0,
             ];
         }
 
-        // Оставляем только рейсы, у которых есть event_date
         $flightsWithDate = array_filter($flights, fn($f) => !empty($f['event_date']));
+        [$zayavkaMap] = $this->collectZayavkiFromFlights($flightsWithDate);
 
-        [$zayavkaMap, $allZayavkaIds] = $this->collectZayavkiFromFlights($flightsWithDate);
-
-        return match ($dimension) {
+        $result = match ($dimension) {
             'region' => $this->buildByRegion($flightsWithDate, $zayavkaMap, $period),
             'status' => $this->buildByStatus($flightsWithDate, $zayavkaMap, $period),
             default  => $this->buildByFO($flightsWithDate, $zayavkaMap, $period),
         };
+
+        return $result;
     }
 
     /**
      * Построить chart data.
-     *
-     * @return array{enabled: bool, type: string, metric: string, items: array}
      */
     public function buildChartData(array $rows, string $dimension, string $chartMetric): array
     {
-        $metric = in_array($chartMetric, ['weight', 'requests'], true) ? $chartMetric : 'requests';
+        $metric = $this->normalizeChartMetric($chartMetric);
 
         if (empty($rows)) {
             return ['enabled' => false, 'type' => 'bar', 'metric' => $metric, 'items' => []];
@@ -125,7 +144,8 @@ class ReportsService
             $items[] = [
                 'label'       => $fullLabel,
                 'short_label' => $label,
-                'value'       => $value,
+                'requests'    => (int) ($row['requests'] ?? 0),
+                'weight'      => (int) ($row['weight_kg'] ?? 0),
             ];
         }
 
@@ -138,7 +158,6 @@ class ReportsService
 
     private function buildByFO(array $flights, array $zayavkaMap, string $period): array
     {
-        // districtKey → periodKey → [zId => true]
         $matrix = [];
         $unmatched = 0;
 
@@ -172,7 +191,6 @@ class ReportsService
             $grWeight += $row['weight_kg'];
         }
 
-        // Unmatched
         if (isset($matrix['_unmatched'])) {
             $row = $this->aggregatePeriodRow($matrix['_unmatched'], $zayavkaMap);
             $row['district_key'] = '_unmatched';
@@ -183,12 +201,11 @@ class ReportsService
             $grWeight += $row['weight_kg'];
         }
 
-        return $this->buildResult($rows, $grRequests, $grWeight, $unmatched, $period);
+        return $this->buildResult($rows, $grRequests, $grWeight, $unmatched);
     }
 
     private function buildByRegion(array $flights, array $zayavkaMap, string $period): array
     {
-        // regionNormalized → periodKey → [zId => true]
         $matrix = [];
         $regionNames = [];
 
@@ -229,12 +246,11 @@ class ReportsService
         $grWeight = 0.0;
         foreach ($rows as $r) { $grRequests += $r['requests']; $grWeight += $r['weight_kg']; }
 
-        return $this->buildResult($rows, $grRequests, $grWeight, 0, $period);
+        return $this->buildResult($rows, $grRequests, $grWeight, 0);
     }
 
     private function buildByStatus(array $flights, array $zayavkaMap, string $period): array
     {
-        // statusKey → periodKey → [zId => true]
         $matrix = [];
 
         foreach ($flights as $flight) {
@@ -262,42 +278,30 @@ class ReportsService
             $grWeight += $row['weight_kg'];
         }
 
-        return $this->buildResult($rows, $grRequests, $grWeight, 0, $period);
+        return $this->buildResult($rows, $grRequests, $grWeight, 0);
     }
 
-    private function buildResult(array $rows, int $grRequests, float $grWeight, int $unmatched, string $period): array
+    private function buildResult(array $rows, int $grRequests, float $grWeight, int $unmatched): array
     {
         $totalRows = count($rows);
         $avgReq = $grRequests > 0 ? (int) round($grWeight / $grRequests) : 0;
 
-        $totalWeightShared = 0.0;
-        $totalRequestsShared = 0;
-        foreach ($rows as $r) { $totalWeightShared += $r['weight_kg']; $totalRequestsShared += $r['requests']; }
-
         return [
-            'period'       => $period,
-            'date_type'    => 'delivery',
-            'dimension'    => 'fo',
-            'chart_metric'  => 'requests',
-            'summary'      => [
-                'requests_total'       => $totalRequestsShared,
-                'weight_total_kg'      => (int) round($totalWeightShared),
-                'rows_total'           => $totalRows,
-                'avg_request_weight_kg' => $avgReq,
+            'summary' => [
+                'rows_total'     => $totalRows,
+                'requests_total'  => $grRequests,
+                'weight_total_kg' => (int) round($grWeight),
+                'avg_request_kg'  => $avgReq,
             ],
-            'chart' => ['enabled' => false, 'items' => []],
             'rows'     => $rows,
             'unmatched' => $unmatched,
         ];
     }
 
     // ===================================================================
-    //  Aggregation helpers
+    //  Helpers
     // ===================================================================
 
-    /**
-     * @param array<string, array<string, true>> $periodData periodKey → [zId => true]
-     */
     private function aggregatePeriodRow(array $periodData, array $zayavkaMap): array
     {
         $allZIds = [];
@@ -325,30 +329,44 @@ class ReportsService
         if (empty($date)) return 'unknown';
         $ts = strtotime($date);
         if ($period === 'month') return date('Y-m', $ts);
-        if ($period === 'quarter') return date('Y', $ts) . '-Q' . ceil((int) date('n', $ts) / 3);
-        return date('Y', $ts);
+        if ($period === 'week') return date('o-\WW', $ts);
+        return 'all';
     }
 
-    public function formatPeriodLabel(string $periodKey, string $period): string
+    public function formatPeriodLabel(string $periodKey, string $period, string $dateFrom = '', string $dateTo = ''): string
     {
+        if ($period === 'custom') {
+            if (!$this->isValidDate($dateFrom) || !$this->isValidDate($dateTo)) {
+                return 'Произвольный период';
+            }
+            $dFrom = new \DateTime($dateFrom);
+            $dTo   = new \DateTime($dateTo);
+            if ($dateFrom === $dateTo) {
+                return $dFrom->format('d.m.Y');
+            }
+            return $dFrom->format('d.m.Y') . '–' . $dTo->format('d.m.Y');
+        }
+
         if ($period === 'month') {
             $parts = explode('-', $periodKey);
             $y = (int) ($parts[0] ?? 0);
             $m = (int) ($parts[1] ?? 0);
             return (self::MONTH_FULL[$m] ?? (string) $m) . ' ' . $y;
         }
-        if ($period === 'quarter') {
-            $parts = explode('-Q', $periodKey);
-            $y = (int) ($parts[0] ?? 0);
-            $q = (int) ($parts[1] ?? 0);
-            return $q . ' кв. ' . $y;
+
+        if ($period === 'week' && preg_match('/^(\d{4})-W(\d{2})$/', $periodKey, $m)) {
+            $year = (int) $m[1];
+            $week = (int) $m[2];
+            $dto  = new \DateTime();
+            $dto->setISODate($year, $week);
+            $monday = clone $dto;
+            $sunday = clone $dto;
+            $sunday->modify('+6 days');
+            return $monday->format('d.m') . '–' . $sunday->format('d.m.Y');
         }
+
         return $periodKey;
     }
-
-    // ===================================================================
-    //  Helpers (shared)
-    // ===================================================================
 
     private function collectZayavkiFromFlights(array $flights): array
     {
@@ -385,7 +403,7 @@ class ReportsService
 
     public function normalizePeriod(string $period): string
     {
-        return in_array($period, ['month', 'quarter', 'year'], true) ? $period : 'month';
+        return in_array($period, ['week', 'month', 'custom'], true) ? $period : 'week';
     }
 
     public function normalizeDateType(string $dateType): string
@@ -403,240 +421,28 @@ class ReportsService
         return in_array($metric, ['weight', 'requests'], true) ? $metric : 'requests';
     }
 
+    private function isValidDate(string $date): bool
+    {
+        $d = \DateTime::createFromFormat('Y-m-d', $date);
+        return $d !== false && $d->format('Y-m-d') === $date;
+    }
+
+    private function resolveDimension(): string
+    {
+        if (isset($_GET['dimension'])) {
+            return $this->normalizeDimension($_GET['dimension']);
+        }
+        $report = $_GET['report'] ?? '';
+        return match ($report) {
+            'delivered_regions' => 'region',
+            'status_summary'    => 'status',
+            default             => 'fo',
+        };
+    }
+
     // ===================================================================
-    //  Старый API (для обратной совместимости)
+    //  Статичные форматтеры
     // ===================================================================
-
-    public function buildDeliveredByFO(): array
-    {
-        $flights = $this->repository->getCompletedFlights();
-        if (empty($flights)) return ['months' => [], 'rows' => [], 'totals' => [], 'unmatched' => 0];
-        [$zayavkaMap] = $this->collectZayavkiFromFlights($flights);
-        $months = $this->extractMonths($flights);
-        $matrix = [];
-        $unmatched = 0;
-        foreach ($flights as $flight) {
-            $monthKey = $this->monthKey($flight['actual_end_date']);
-            $ids = $this->parseZayavkaIds($flight['zayavki_ids']);
-            foreach ($ids as $zId) {
-                $data = $zayavkaMap[$zId] ?? null;
-                if ($data === null) continue;
-                $region = $data['mno_region'];
-                $districtKey = $this->districtMap->resolveShortName($region) ?? '_unmatched';
-                if ($districtKey === '_unmatched') $unmatched++;
-                $matrix[$districtKey][$monthKey][$zId] = true;
-            }
-        }
-        $rows = [];
-        $districtOrder = $this->districtMap->districtOrder();
-        $districtTitles = $this->districtMap->districtTitles();
-        $grandTotalWeight = 0.0;
-        $grandTotalCount = 0;
-        foreach ($districtOrder as $dk) {
-            if (!isset($matrix[$dk])) continue;
-            $row = $this->buildMonthRow($matrix[$dk], $months, $zayavkaMap);
-            $row['district_key'] = $dk;
-            $row['district_title'] = $districtTitles[$dk] ?? $dk;
-            $row['district_full'] = $this->districtMap->districtFullTitle($dk);
-            $rows[] = $row;
-            $grandTotalWeight += $row['total_weight'];
-            $grandTotalCount += $row['total_count'];
-        }
-        if (isset($matrix['_unmatched'])) {
-            $row = $this->buildMonthRow($matrix['_unmatched'], $months, $zayavkaMap);
-            $row['district_key'] = '_unmatched';
-            $row['district_title'] = 'Не определено';
-            $row['district_full'] = 'Регион не определён';
-            $rows[] = $row;
-            $grandTotalWeight += $row['total_weight'];
-            $grandTotalCount += $row['total_count'];
-        }
-        $grandRow = [
-            'district_key' => '_grand', 'district_title' => 'Общий итог', 'district_full' => 'Общий итог',
-            'total_weight' => $grandTotalWeight, 'total_count' => $grandTotalCount, 'cells' => [], 'is_total' => true,
-        ];
-        foreach ($months as $mk) {
-            $w = 0.0; $c = 0;
-            foreach ($rows as $r) { $w += $r['cells'][$mk]['weight'] ?? 0; $c += $r['cells'][$mk]['count'] ?? 0; }
-            $grandRow['cells'][$mk] = ['weight' => $w, 'count' => $c];
-        }
-        return ['months' => $months, 'rows' => $rows, 'totals' => $grandRow, 'unmatched' => $unmatched];
-    }
-
-    public function buildDeliveredByRegions(): array
-    {
-        $flights = $this->repository->getCompletedFlights();
-        if (empty($flights)) return ['months' => [], 'rows' => [], 'totals' => [], 'unmatched' => 0];
-        [$zayavkaMap] = $this->collectZayavkiFromFlights($flights);
-        $months = $this->extractMonths($flights);
-        $matrix = [];
-        $regionNames = [];
-        foreach ($flights as $flight) {
-            $monthKey = $this->monthKey($flight['actual_end_date']);
-            $ids = $this->parseZayavkaIds($flight['zayavki_ids']);
-            foreach ($ids as $zId) {
-                $data = $zayavkaMap[$zId] ?? null;
-                if ($data === null) continue;
-                $rawRegion = $data['mno_region'] ?? '';
-                $normalized = $this->districtMap->normalizeRegion($rawRegion);
-                $display = $rawRegion ?: '—';
-                if ($normalized === '') { $normalized = '_empty'; $display = 'Не указано'; }
-                $regionNames[$normalized] = $display;
-                $matrix[$normalized][$monthKey][$zId] = true;
-            }
-        }
-        $rows = [];
-        foreach ($matrix as $norm => $monthData) {
-            $row = $this->buildMonthRow($monthData, $months, $zayavkaMap);
-            $row['region_normalized'] = $norm;
-            $row['region_display'] = $regionNames[$norm] ?? $norm;
-            $districtKey = $this->districtMap->resolveShortName($regionNames[$norm] ?? null);
-            $row['district_key'] = $districtKey;
-            $row['district_short'] = $districtKey ? ($this->districtMap->districtTitles()[$districtKey] ?? '') : '';
-            $rows[] = $row;
-        }
-        usort($rows, fn($a, $b) =>
-            ($b['total_count'] ?? 0) <=> ($a['total_count'] ?? 0)
-            ?: ($a['region_display'] ?? '') <=> ($b['region_display'] ?? '')
-        );
-        $grandTotalWeight = 0.0; $grandTotalCount = 0;
-        foreach ($rows as $r) { $grandTotalWeight += $r['total_weight']; $grandTotalCount += $r['total_count']; }
-        $grandRow = [
-            'region_normalized' => '_grand', 'region_display' => 'Общий итог',
-            'district_key' => '', 'district_short' => '',
-            'total_weight' => $grandTotalWeight, 'total_count' => $grandTotalCount, 'cells' => [], 'is_total' => true,
-        ];
-        foreach ($months as $mk) {
-            $w = 0.0; $c = 0;
-            foreach ($rows as $r) { $w += $r['cells'][$mk]['weight'] ?? 0; $c += $r['cells'][$mk]['count'] ?? 0; }
-            $grandRow['cells'][$mk] = ['weight' => $w, 'count' => $c];
-        }
-        return ['months' => $months, 'rows' => $rows, 'totals' => $grandRow, 'unmatched' => 0];
-    }
-
-    public function buildStatusSummary(): array
-    {
-        $flights = $this->repository->getAllFlights();
-        if (empty($flights)) return ['statuses' => [], 'rows' => [], 'totals' => [], 'unmatched' => 0];
-        [$zayavkaMap] = $this->collectZayavkiFromFlights($flights);
-        $matrix = [];
-        $unmatched = 0;
-        foreach ($flights as $flight) {
-            $statusKey = $this->resolveFlightStatus($flight);
-            $ids = $this->parseZayavkaIds($flight['zayavki_ids']);
-            foreach ($ids as $zId) {
-                $data = $zayavkaMap[$zId] ?? null;
-                if ($data === null) continue;
-                $region = $data['mno_region'];
-                $districtKey = $this->districtMap->resolveShortName($region) ?? '_unmatched';
-                if ($districtKey === '_unmatched') $unmatched++;
-                $matrix[$districtKey][$statusKey][$zId] = true;
-            }
-        }
-        $rows = [];
-        $districtOrder = $this->districtMap->districtOrder();
-        $districtTitles = $this->districtMap->districtTitles();
-        $statuses = self::STATUS_ORDER;
-        $grandTotalWeight = 0.0; $grandTotalCount = 0;
-        foreach ($districtOrder as $dk) {
-            if (!isset($matrix[$dk])) continue;
-            $row = $this->buildStatusRow($matrix[$dk], $statuses, $zayavkaMap);
-            $row['district_key'] = $dk;
-            $row['district_title'] = $districtTitles[$dk] ?? $dk;
-            $row['district_full'] = $this->districtMap->districtFullTitle($dk);
-            $rows[] = $row;
-            $grandTotalWeight += $row['total_weight'];
-            $grandTotalCount += $row['total_count'];
-        }
-        if (isset($matrix['_unmatched'])) {
-            $row = $this->buildStatusRow($matrix['_unmatched'], $statuses, $zayavkaMap);
-            $row['district_key'] = '_unmatched';
-            $row['district_title'] = 'Не определено';
-            $row['district_full'] = 'Регион не определён';
-            $rows[] = $row;
-            $grandTotalWeight += $row['total_weight'];
-            $grandTotalCount += $row['total_count'];
-        }
-        $grandRow = [
-            'district_key' => '_grand', 'district_title' => 'Общий итог', 'district_full' => 'Общий итог',
-            'total_weight' => $grandTotalWeight, 'total_count' => $grandTotalCount, 'cells' => [], 'is_total' => true,
-        ];
-        foreach ($statuses as $sk) {
-            $w = 0.0; $c = 0;
-            foreach ($rows as $r) { $w += $r['cells'][$sk]['weight'] ?? 0; $c += $r['cells'][$sk]['count'] ?? 0; }
-            $grandRow['cells'][$sk] = ['weight' => $w, 'count' => $c];
-        }
-        return ['statuses' => $statuses, 'rows' => $rows, 'totals' => $grandRow, 'unmatched' => $unmatched];
-    }
-
-    private function extractMonths(array $flights): array
-    {
-        $months = [];
-        foreach ($flights as $flight) {
-            $key = $this->monthKey($flight['actual_end_date']);
-            $months[$key] = true;
-        }
-        $sorted = array_keys($months);
-        sort($sorted);
-        return $sorted;
-    }
-
-    private function monthKey(string $date): string
-    {
-        $ts = strtotime($date);
-        return date('Y-m', $ts);
-    }
-
-    public function formatMonthLabel(array $monthKeys, string $monthKey): string
-    {
-        $parts = explode('-', $monthKey);
-        $year = (int) ($parts[0] ?? 0);
-        $month = (int) ($parts[1] ?? 0);
-        $short = self::MONTH_NAMES[$month] ?? (string) $month;
-        $years = [];
-        foreach ($monthKeys as $mk) { $yp = explode('-', $mk); $years[(int) ($yp[0] ?? 0)] = true; }
-        return count($years) > 1 ? $short . ' ' . $year : $short;
-    }
-
-    private function buildMonthRow(array $monthData, array $months, array $zayavkaMap): array
-    {
-        $cells = [];
-        $totalWeight = 0.0; $totalCount = 0;
-        foreach ($months as $mk) {
-            $zIds = array_keys($monthData[$mk] ?? []);
-            $weight = 0.0;
-            foreach ($zIds as $zId) { $weight += ($zayavkaMap[$zId]['mass_netto'] ?? 0) * 1000; }
-            $count = count($zIds);
-            $cells[$mk] = ['weight' => $weight, 'count' => $count];
-            $totalWeight += $weight; $totalCount += $count;
-        }
-        return ['cells' => $cells, 'total_weight' => $totalWeight, 'total_count' => $totalCount];
-    }
-
-    private function buildStatusRow(array $statusData, array $statuses, array $zayavkaMap): array
-    {
-        $cells = [];
-        $totalWeight = 0.0; $totalCount = 0;
-        foreach ($statuses as $sk) {
-            $zIds = array_keys($statusData[$sk] ?? []);
-            $weight = 0.0;
-            foreach ($zIds as $zId) { $weight += ($zayavkaMap[$zId]['mass_netto'] ?? 0) * 1000; }
-            $count = count($zIds);
-            $cells[$sk] = ['weight' => $weight, 'count' => $count];
-            $totalWeight += $weight; $totalCount += $count;
-        }
-        return ['cells' => $cells, 'total_weight' => $totalWeight, 'total_count' => $totalCount];
-    }
-
-    public function statusLabel(string $statusKey): string
-    {
-        return self::STATUS_LABELS[$statusKey] ?? $statusKey;
-    }
-
-    public function statusTitle(string $statusKey): string
-    {
-        return self::STATUS_TITLES[$statusKey] ?? $statusKey;
-    }
 
     public static function formatWeight(float $kg): string
     {

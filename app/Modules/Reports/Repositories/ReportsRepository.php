@@ -9,73 +9,18 @@ use PDO;
 
 /**
  * Репозиторий для модуля «Отчётность».
- *
- * Строит агрегированные данные из flights + feo без копирования
- * бизнес-логики Statistics.
- *
- * Использует ту же цепочку:
- *   flights.zayavki_ids → feo-заявки → mass_netto / mno_region / статус / даты.
  */
 class ReportsRepository
 {
     /**
-     * Получить все завершённые рейсы (actual_end_date IS NOT NULL) с заявками.
-     *
-     * @return array<int, array{id: int|string, zayavki_ids: string, actual_end_date: string, actual_start_date: string|null, status: string|null}>
-     */
-    public function getCompletedFlights(): array
-    {
-        $pdo = Connection::get();
-        if ($pdo === null) {
-            return [];
-        }
-
-        try {
-            $stmt = $pdo->query("
-                SELECT id, zayavki_ids, actual_end_date, actual_start_date, status
-                FROM flights
-                WHERE actual_end_date IS NOT NULL
-                ORDER BY actual_end_date ASC
-            ");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            error_log('ReportsRepository getCompletedFlights error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Получить все рейсы (включая незавершённые) для статусной сводки.
-     *
-     * @return array<int, array{id: int|string, zayavki_ids: string, actual_end_date: string|null, actual_start_date: string|null, status: string|null}>
-     */
-    public function getAllFlights(): array
-    {
-        $pdo = Connection::get();
-        if ($pdo === null) {
-            return [];
-        }
-
-        try {
-            $stmt = $pdo->query("
-                SELECT id, zayavki_ids, actual_end_date, actual_start_date, status
-                FROM flights
-                ORDER BY id ASC
-            ");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            error_log('ReportsRepository getAllFlights error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Получить все рейсы с вычисляемым event_date для отчётов с фильтрацией по дате.
+     * Получить все рейсы с zayavki_ids и датами, отфильтрованными по диапазону.
      *
      * @param string $dateType 'delivery' -> actual_end_date, 'pickup' -> actual_start_date
+     * @param string $dateFrom YYYY-MM-DD
+     * @param string $dateTo   YYYY-MM-DD
      * @return array<int, array{id: int|string, zayavki_ids: string, actual_start_date: string|null, actual_end_date: string|null, status: string|null, event_date: string|null}>
      */
-    public function getFlightsForReports(string $dateType = 'delivery'): array
+    public function getFlightsForReports(string $dateType, string $dateFrom, string $dateTo): array
     {
         $pdo = Connection::get();
         if ($pdo === null) {
@@ -89,9 +34,14 @@ class ReportsRepository
                 SELECT id, zayavki_ids, actual_start_date, actual_end_date, status,
                        {$dateColumn} AS event_date
                 FROM flights
-                ORDER BY id ASC
+                WHERE {$dateColumn} IS NOT NULL
+                  AND DATE({$dateColumn}) BETWEEN :date_from AND :date_to
+                ORDER BY {$dateColumn} ASC
             ");
-            $stmt->execute();
+            $stmt->execute([
+                'date_from' => $dateFrom,
+                'date_to'   => $dateTo,
+            ]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('ReportsRepository getFlightsForReports error: ' . $e->getMessage());

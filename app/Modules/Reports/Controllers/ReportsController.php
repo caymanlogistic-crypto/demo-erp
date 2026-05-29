@@ -10,10 +10,11 @@ use App\Modules\Reports\Services\ReportsService;
 /**
  * Контроллер модуля «Отчётность».
  *
- * Новый URL:
- *   ?module=reports&period=month&date_type=delivery&dimension=fo&chart_metric=requests
+ * URL:
+ *   ?module=reports&period=week&date_type=delivery&dimension=fo&chart_metric=requests
+ *   ?module=reports&period=custom&date_from=...&date_to=...&dimension=region
  *
- * Старый URL (совместимость):
+ * Старые URL (совместимость):
  *   ?module=reports&report=delivered_fo       → dimension=fo
  *   ?module=reports&report=delivered_regions  → dimension=region
  *   ?module=reports&report=status_summary     → dimension=status
@@ -38,29 +39,32 @@ class ReportsController
 
     private function renderIndex(): string
     {
-        $period      = $this->service->normalizePeriod($_GET['period'] ?? 'month');
-        $dateType    = $this->service->normalizeDateType($_GET['date_type'] ?? 'delivery');
-        $chartMetric = $this->service->normalizeChartMetric($_GET['chart_metric'] ?? 'requests');
+        $filters = $this->service->normalizeFilters();
 
-        // Обратная совместимость: report= → dimension=
-        $dimension = $this->resolveDimension();
+        $period      = $filters['period'];
+        $dateType    = $filters['date_type'];
+        $dimension   = $filters['dimension'];
+        $chartMetric = $filters['chart_metric'];
+        $dateFrom    = $filters['date_from'];
+        $dateTo      = $filters['date_to'];
+        $warning     = $filters['warning'];
 
-        $data = $this->service->buildReports($period, $dateType, $dimension);
+        $data = $this->service->buildReports($period, $dateType, $dimension, $dateFrom, $dateTo);
         $chartData = $this->service->buildChartData($data['rows'], $dimension, $chartMetric);
 
-        // Внедряем dimension и chart_metric в результат
-        $data['dimension']    = $dimension;
-        $data['date_type']    = $dateType;
-        $data['chart_metric'] = $chartMetric;
-
         ob_start();
-        $reportData = $data;
-        $chartData  = $chartData;
-        $period     = $period;
-        $dateType   = $dateType;
-        $dimension  = $dimension;
+        $period      = $period;
+        $dateType    = $dateType;
+        $dimension   = $dimension;
         $chartMetric = $chartMetric;
-        $service    = $this->service;
+        $dateFrom    = $dateFrom;
+        $dateTo      = $dateTo;
+        $warning     = $warning;
+        $summary     = $data['summary'];
+        $rows        = $data['rows'];
+        $unmatched   = $data['unmatched'];
+        $chartData   = $chartData;
+        $service     = $this->service;
         require __DIR__ . '/../../../Views/reports/index.php';
         $content = ob_get_clean();
 
@@ -70,29 +74,6 @@ class ReportsController
         $pageModule = 'reports';
         require __DIR__ . '/../../../Views/layouts/main.php';
         return ob_get_clean();
-    }
-
-    /**
-     * Определить dimension из URL с приоритетом:
-     *   1. dimension=... (новый параметр)
-     *   2. report=delivered_regions → region
-     *   3. report=status_summary → status
-     *   4. report=delivered_fo → fo (default)
-     */
-    private function resolveDimension(): string
-    {
-        // Новый параметр имеет приоритет
-        if (isset($_GET['dimension'])) {
-            return $this->service->normalizeDimension($_GET['dimension']);
-        }
-
-        // Старая совместимость
-        $report = $_GET['report'] ?? '';
-        return match ($report) {
-            'delivered_regions' => 'region',
-            'status_summary'    => 'status',
-            default             => 'fo',
-        };
     }
 
     private function renderNoDb(): string
