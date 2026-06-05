@@ -44,8 +44,13 @@ $chartTitle = match ($dimension) {
 $chartSubtitle = 'Заявки и вес по выбранному основанию';
 $reportsRequestsTotal = (int) ($summary['requests_total'] ?? 0);
 $reportsWeightTotal   = (int) ($summary['weight_total_kg'] ?? 0);
+$filterTotalBefore  = (int) ($filterStats['total_before'] ?? 0);
+$filterExcludedWW   = (int) ($filterStats['excluded_warehouse_to_warehouse'] ?? 0);
+$filterExcludedWU   = (int) ($filterStats['excluded_warehouse_to_utilizer'] ?? 0);
+$filterTotalAfter   = (int) ($filterStats['total_after'] ?? 0);
 ?>
 <!-- reports page: dimension=<?= htmlspecialchars($dimension, ENT_QUOTES, 'UTF-8') ?> period=<?= htmlspecialchars($period, ENT_QUOTES, 'UTF-8') ?> dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> from=<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?> to=<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?> chartMetric=<?= htmlspecialchars($chartMetric, ENT_QUOTES, 'UTF-8') ?> rows=<?= $totalRows ?> requests=<?= $reportsRequestsTotal ?> weight=<?= $reportsWeightTotal ?> unmatched=<?= (int) $unmatched ?> -->
+<!-- reports route-filter: dateType=<?= htmlspecialchars($dateType, ENT_QUOTES, 'UTF-8') ?> excludedRouteTypes=<?= $dateType === 'pickup' ? 'warehouse_to_warehouse,warehouse_to_utilizer' : 'warehouse_to_warehouse' ?> flightsBefore=<?= $filterTotalBefore ?> excludedWW=<?= $filterExcludedWW ?> excludedWU=<?= $filterExcludedWU ?> flightsAfter=<?= $filterTotalAfter ?> -->
 
 <!-- Page header -->
 <div class="page-head">

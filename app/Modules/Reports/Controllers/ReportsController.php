@@ -64,6 +64,7 @@ class ReportsController
         $summary     = $data['summary'];
         $rows        = $data['rows'];
         $unmatched   = $data['unmatched'];
+        $filterStats = $data['filter_stats'] ?? [];
         $chartData   = $chartData;
         $service     = $this->service;
         require __DIR__ . '/../../../Views/reports/index.php';

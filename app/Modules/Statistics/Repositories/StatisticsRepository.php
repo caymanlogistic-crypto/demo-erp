@@ -38,7 +38,8 @@ class StatisticsRepository
 
         try {
             $stmt = $pdo->prepare("
-            SELECT id, zayavki_ids, {$dateColumn} AS event_date
+            SELECT id, zayavki_ids, route_type, unload_type,
+                   {$dateColumn} AS event_date
             FROM flights
             WHERE {$dateColumn} IS NOT NULL
               AND DATE({$dateColumn}) BETWEEN :date_from AND :date_to

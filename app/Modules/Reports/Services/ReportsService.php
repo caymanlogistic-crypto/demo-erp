@@ -6,6 +6,7 @@ namespace App\Modules\Reports\Services;
 
 use App\Modules\Reports\Repositories\ReportsRepository;
 use App\Modules\Reports\Support\FederalDistrictRegionMap;
+use App\Support\FlightRouteTypeFilter;
 
 /**
  * Сервис построения отчётов.
@@ -106,19 +107,28 @@ class ReportsService
         $this->lastDateTo   = $dateTo;
 
         $flights = $this->repository->getFlightsForReports($dateType, $dateFrom, $dateTo);
+
+        $filterResult = FlightRouteTypeFilter::filterFlights($flights, $dateType);
+        $flights = $filterResult['flights'];
+        $filterStats = $filterResult['stats'];
+
         if (empty($flights)) {
-            return $this->emptyResult($dimension);
+            $result = $this->emptyResult($dimension);
+            $result['filter_stats'] = $filterStats;
+            return $result;
         }
 
         $flightsWithDate = array_filter($flights, fn($f) => !empty($f['event_date']));
         [$zayavkaMap] = $this->collectZayavkiFromFlights($flightsWithDate);
 
-        return match ($dimension) {
+        $result = match ($dimension) {
             'fo'     => $this->buildByFO($flightsWithDate, $zayavkaMap, $period),
             'region' => $this->buildByRegion($flightsWithDate, $zayavkaMap, $period),
             'status' => $this->buildByStatus($flightsWithDate, $zayavkaMap, $period),
             default  => $this->buildByFO($flightsWithDate, $zayavkaMap, $period),
         };
+        $result['filter_stats'] = $filterStats;
+        return $result;
     }
 
     /**

@@ -31,7 +31,8 @@ class ReportsRepository
 
         try {
             $stmt = $pdo->prepare("
-                SELECT id, zayavki_ids, actual_start_date, actual_end_date, status,
+                SELECT id, zayavki_ids, route_type, unload_type,
+                       actual_start_date, actual_end_date, status,
                        {$dateColumn} AS event_date
                 FROM flights
                 WHERE {$dateColumn} IS NOT NULL

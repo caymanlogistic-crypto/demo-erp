@@ -61,6 +61,7 @@ class StatisticsController
         $warning     = $filters['warning'];
         $summary     = $data['summary'];
         $rows        = $data['rows'];
+        $filterStats = $data['filter_stats'] ?? [];
         $chartData   = $chartData;
         $chartMetric = $chartMetric;
         $service     = $this->service;

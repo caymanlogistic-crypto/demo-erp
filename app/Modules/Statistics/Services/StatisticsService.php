@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Statistics\Services;
 
 use App\Modules\Statistics\Repositories\StatisticsRepository;
+use App\Support\FlightRouteTypeFilter;
 
 /**
  * Сервис для группировки статистики вывозов по периодам.
@@ -77,6 +78,10 @@ class StatisticsService
     {
         $flights = $this->repository->getFlightsByEventDate($dateFrom, $dateTo, $dateType);
 
+        $filterResult = FlightRouteTypeFilter::filterFlights($flights, $dateType);
+        $flights = $filterResult['flights'];
+        $filterStats = $filterResult['stats'];
+
         if (empty($flights)) {
             $periodsCount = 0;
             return [
@@ -94,13 +99,16 @@ class StatisticsService
                     'avg_request_weight_kg' => 0,
                     'avg_flight_weight_kg'  => 0,
                 ],
-                'rows' => [],
+                'rows'         => [],
+                'filter_stats' => $filterStats,
             ];
         }
 
         // custom: одна строка, не группируем
         if ($period === 'custom') {
-            return $this->buildCustomPeriodRow($flights, $period, $dateType, $dateFrom, $dateTo);
+            $result = $this->buildCustomPeriodRow($flights, $period, $dateType, $dateFrom, $dateTo);
+            $result['filter_stats'] = $filterStats;
+            return $result;
         }
 
         // Собираем все zayavka_id из рейсов
@@ -208,7 +216,8 @@ class StatisticsService
                 'avg_request_weight_kg' => $totalAvgRequest,
                 'avg_flight_weight_kg'  => $totalAvgFlight,
             ],
-            'rows' => $rows,
+            'rows'         => $rows,
+            'filter_stats' => $filterStats,
         ];
     }
 
